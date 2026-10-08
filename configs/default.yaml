@@ -1,6 +1,7 @@
 # InlayFake default configuration. Every stage reads from here; runs copy the resolved config.
 project: inlayfake
 seed: 20261008
+run_name: main                       # outputs go to runs/<run_name>/
 
 paths:
   coco_annotations: data/coco/annotations/instances_val2017.json
@@ -73,6 +74,13 @@ verify:
   changed_pixel_threshold: 4
   mixed_modified_overlap: 0.10
 
+detect:
+  detectors: [faster_rcnn, yolo, rtdetr, grounding_dino]
+
+audit:                                 # candidate missing COCO labels (on C0)
+  min_score: 0.7
+  min_agree: 2                         # at least 2 detectors must agree
+
 detectors:
   faster_rcnn: {impl: torchvision, weights: FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1}
   yolo: {impl: ultralytics, weights: yolo11m.pt}
@@ -119,3 +127,5 @@ eval:
   ece_bins: 15
   fixed_fpr: 0.05
   fixed_tpr: 0.80
+  recall_score: 0.5                    # a GT object counts as detected at score >= this
+  ap_bootstrap: 50                     # resamples for AP CIs (each one is a full COCOeval)

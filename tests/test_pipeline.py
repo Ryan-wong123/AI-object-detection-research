@@ -58,3 +58,37 @@ def test_real_only_run_has_no_ai(cfg, tmp_path):
     assert recs and {r.condition.value for r in recs} == {"C0", "C1"}
     assert all(r.generator is None and r.edit is None for r in recs)
     assert all(i.origin is Origin.PHOTOGRAPHED for r in recs for i in r.instances)
+
+
+def test_task1_real_baseline_end_to_end(cfg, tmp_path):
+    """sample → plan → generate (C0/C1) → detect → forensics → audit → evaluate on CPU."""
+    from inlayfake.stages import audit, detect, evaluate, forensics
+
+    cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
+    for stage in (sample, plan, generate):
+        stage.run(cfg)
+    d = detect.run(cfg)
+    assert set(d["images_processed"]) == {"fake_a", "fake_b"}
+    assert detect.run(cfg)["images_processed"] == {"fake_a": 0, "fake_b": 0}  # resumable
+    forensics.run(cfg)
+    assert forensics.run(cfg)["images_processed"] == 0
+    a = audit.run(cfg)
+    assert a["candidates"] == 0  # fake detectors only echo ground truth
+    evaluate.run(cfg)
+
+    rd = tmp_path / "runs" / "dryrun"
+    summary = (rd / "summary.md").read_text()
+    assert "Detector AP" in summary and "ela" in summary
+    import csv
+
+    ap = list(csv.DictReader((rd / "tables" / "detector_ap.csv").open()))
+    assert {r["condition"] for r in ap} == {"C0", "C1"}
+    assert all(float(r["AP50"]) > 0.9 for r in ap)  # jittered GT boxes
+    shift = list(csv.DictReader((rd / "tables" / "forensics_resave_shift.csv").open()))
+    assert {r["method"] for r in shift} == {
+        "ela",
+        "srm_residual",
+        "noise_level",
+        "fft_highfreq",
+        "jpeg_bag",
+    }

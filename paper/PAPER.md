@@ -7,7 +7,7 @@
 > | Last updated | 2026-10-08 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | none. Task 1 (real-only COCO baseline) is next; the AI generation code is ready but deferred to Task 2 |
+> | Experiments done | none. Task 1 code complete and CPU-tested; real-photo baseline run pending on the laptop |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -196,7 +196,9 @@ we mark original objects overlapped by more than 10% as *mixed/modified*. A huma
 Qiu 2024], RT-DETR-R50 [Zhao et al. 2024], and Grounding DINO-T [Liu et al. 2024] prompted with COCO
 class names.
 
-**Hand-crafted forensics.** F1 error level analysis [Krawetz 2007]; F2 SRM high-pass residual variance
+**Hand-crafted forensics.** Each produces a dense map in which higher means more suspicious. For
+F3–F5 the map is the absolute deviation of a local statistic from the image median. F1 error level
+analysis [Krawetz 2007]; F2 SRM high-pass residual variance
 [Fridrich & Kodovsky 2012]; F3 local noise-level inconsistency (wavelet MAD) [Mahdian & Saic 2009];
 F4 high-frequency spectral energy [Durall et al. 2020]; F5 JPEG blocking-artifact grid [Li et al.
 2009].
@@ -233,8 +235,12 @@ over source photographs (1000 resamples), because edits of one photograph are co
 Before any insertion, we run every detector and forensic method on the untouched (C0) and resaved
 (C1) photographs. COCO predates diffusion-based editing, so every object is photographed and every
 "AI" flag is a false alarm.
-**Table 2a.** Detector AP on C0 vs C1; per-method false-alarm rate on real photographs at the
-threshold later used for AI detection. [[TBD: run real_baseline]]
+**Table 2a.** Detector AP on C0 vs C1 with 95% CIs, and per-object detection flips caused only by
+resaving (C0→C1). [[TBD: run task1_real_baseline]]
+**Table 2b.** Hand-crafted forensic scores on real photographs: image-level distribution, per-object
+contrast (inside vs context) and the paired resave shift C1 − C0. The false-alarm rate of each method
+is reported in §7.4 at the threshold fixed on validation images (TPR = 80%).
+[[TBD: run task1_real_baseline]]
 **Finding.** [[TBD]]
 
 ### 7.2 Do detectors see inserted objects, and does confidence reveal origin? (H1)

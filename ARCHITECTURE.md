@@ -49,7 +49,7 @@ ImageRecord
      crop_box (inpainting window), intended_mask_path, actual_mask_path,
      donor (C3: donor coco image id + annotation id), attempts, verifier_score
   instances       [Instance]
-  ignore_regions  [box]    (label-audit flagged, unresolved; excluded from FP counting)
+  ignore_regions  [{category, bbox}]  (label audit: ignore/unreviewed; scored as COCO crowd regions)
   postproc        null | {"jpeg": 75} | {"resize": 0.5} | ...
   source_dataset  coco | openimages   (openimages ⇒ split must be test)
 ```
@@ -87,7 +87,12 @@ FiftyOne's zoo with `classes=` and `max_samples=`). Map the 10 Open Images class
 (`configs/default.yaml: ood.class_map`). Keep photos with ≥ 1 mapped instance that has a mask. Use
 the image-level labels to build ignore regions for unverified classes.
 
-### 3.2 `audit` ⬜ (`data/audit.py`)
+### 3.2 `audit` ✅ (`data/audit.py`, `stages/audit.py`)
+Implemented rule: a detection with score ≥ 0.7 that ≥ 2 detectors agree on (same class, IoU ≥ 0.5)
+and that matches no GT box (same-class IoU < 0.3 and any-class IoU < 0.5). It outputs
+`audit.html` (crops) and `audit_decisions.csv` (add / ignore / reject / ?; "?" counts as ignore).
+Decisions are applied on load to every condition of that source (`stages/common.load_records`).
+
 Run a detector ensemble on C0. A high-confidence detection (≥ 0.7) with IoU < 0.3 against every GT
 box becomes a **candidate missing label**. The author reviews the candidates in a simple HTML
 contact sheet. Confirmed ones are added to the GT as `photographed`; unresolved ones become
@@ -146,7 +151,7 @@ For each source, pick a target category (balanced across categories), then a box
 - Human audit: `annotate/contact_sheet.py` builds an HTML grid of 10% random edits with checkboxes;
   the results are stored in `data/audit_results.csv`.
 
-### 3.6 `detect` ⬜ (`detect/`)
+### 3.6 `detect` ✅ (`detect/`, `stages/detect.py`; output `runs/<run>/detections/<det>.jsonl`)
 Common interface: `predict(image) -> list[Detection(bbox, category, score, logits?)]`, mapped to COCO
 category names.
 
@@ -159,10 +164,12 @@ category names.
 
 Score threshold 0.001 for AP; outputs are saved as COCO results JSON per (run, condition).
 
-### 3.7 `forensics` ⬜ (`forensics/`)
+### 3.7 `forensics` ✅ hand-crafted F1–F5 · ⬜ learned L1–L4 (`forensics/`, `stages/forensics.py`)
 Every method outputs either a **pixel map** `M ∈ [0,1]^{H×W}` or an **image/crop score**.
 
-Hand-crafted ("traditional") (`forensics/handcrafted/`):
+Hand-crafted ("traditional") (`forensics/handcrafted.py`, numpy + PIL only, about 0.1 s per 640×480
+image for all five). F3–F5 are reported as |local value − image median| so that "unusual relative to
+the rest of this photo" scores high:
 | ID | Method | Map |
 |---|---|---|
 | F1 | Error Level Analysis (resave q=90, abs diff) | ELA energy |
@@ -202,7 +209,11 @@ are included at 50%.
 Applied on test images only, after generation: JPEG {95, 75, 50}, resize {0.5}, Gaussian blur σ=1,
 "screenshot" (resize 0.8 + PNG). Each one creates a derived ImageRecord with `postproc` set.
 
-### 3.11 `evaluate` ⬜ (`eval/`)
+### 3.11 `evaluate` 🚧 (`eval/`, `stages/evaluate.py`)
+Task 1 version ✅: AP/AP50/AP75/AR100 per detector × condition (95% CI from grouped bootstrap over
+sources, `eval.ap_bootstrap` resamples), C0→C1 per-object detection flips, forensic score
+distributions on real photos, and paired C1 − C0 shift. Writes `summary.md`, `metrics.json` and
+`tables/*.csv`. Origin metrics (AUROC, joint AP, calibration) come in Task 3, once AI images exist.
 | Module | Metric |
 |---|---|
 | `semantic.py` | COCO AP/AP50/recall via pycocotools, computed on **subsets**: original instances only, inserted only (other GT set to ignore) |

@@ -85,7 +85,7 @@ class ImageRecord:
     sha256: str | None = None
     edit: EditInfo | None = None
     instances: list[Instance] = field(default_factory=list)
-    ignore_regions: list[list[float]] = field(default_factory=list)
+    ignore_regions: list[dict] = field(default_factory=list)  # {"category", "bbox"}
     postproc: dict | None = None
     source_dataset: str = "coco"
 

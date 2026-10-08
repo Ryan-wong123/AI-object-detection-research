@@ -5,7 +5,7 @@
 | Owner | Ryan Wong (sole author; supervisor: project professor) |
 | Target | CVPR 2027 main track: paper submission **16 Nov 2026 23:59 AoE** (per the official call for papers as found by search; paper registration is typically about 1 week earlier; **confirm both on cvpr.thecvf.com**) |
 | Source brief | `InlayFake_Project_Description` PDF from the professor (01 Oct 2026) |
-| Status | Week 1: Task 1 (real-only COCO baseline) in progress; AI generation code ready but deferred to Task 2 |
+| Status | Week 1: Task 1 code complete (detect, forensics, audit, evaluate); waiting for the run on the author's laptop |
 
 ## 1. Problem
 

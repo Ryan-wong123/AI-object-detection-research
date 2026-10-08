@@ -5,6 +5,30 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Task 1 code complete (branch `week-1-coco-dataset`)
+
+- **Implemented:** `detect` (Faster R-CNN v2, YOLO11-m, RT-DETR-R50, Grounding DINO-T), `forensics`
+  (F1 ELA, F2 SRM residual variance, F3 wavelet noise-level deviation, F4 FFT high-frequency
+  deviation, F5 JPEG blocking-grid deviation), `audit` (candidate missing labels → HTML +
+  decisions CSV) and `evaluate` (Task 1 tables + `summary.md`).
+- **Checks:** 33 CPU tests pass. Forensic tests confirm that ELA and the blocking grid score higher
+  on a patch that skipped the JPEG history, and the noise method scores higher on a noisier patch.
+  The detector code paths were smoke-tested on CPU: YOLO with real weights; Faster R-CNN and RT-DETR
+  with random weights (their weight hosts are blocked in the cloud sandbox). Grounding DINO's
+  post-processing signature was checked against the installed transformers 5.x. Grounding DINO is
+  the least-tested wrapper, so watch it on the first laptop run.
+- **Speed:** all five forensic maps take ≈0.12 s per 640×480 image on CPU.
+- **Method note:** hand-crafted maps have no natural "AI" threshold. Task 1 records their behaviour
+  on real photos; the false-alarm rate is computed in Task 3 at a threshold fixed on validation data
+  with AI objects (TPR 80%). This was stated to the author.
+- **Computer use:** the author offered control of their laptop, but no desktop-control tools are
+  connected to this session. The workflow stays the same: code is written here and the author runs
+  the commands.
+- **Next:** the author runs Task 1 on the laptop and pastes `summary.md`, then reviews
+  `audit.html`.
+
+---
+
 ## 2026-10-08: Work split into tasks; Task 1 = real-only COCO baseline
 
 - **Decision (author):** split the work. Task 1 runs only on real COCO photos, with no AI generation,

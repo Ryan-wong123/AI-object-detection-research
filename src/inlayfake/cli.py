@@ -23,7 +23,7 @@ STAGES = {
     "postproc": "derive robustness variants of test images",
     "evaluate": "compute metrics with grouped bootstrap CIs",
 }
-IMPLEMENTED = {"sample", "plan", "generate", "preview"}
+IMPLEMENTED = {"sample", "plan", "generate", "preview", "detect", "forensics", "audit", "evaluate"}
 
 
 def main(argv: list[str] | None = None) -> int:

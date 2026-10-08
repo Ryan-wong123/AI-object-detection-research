@@ -112,5 +112,6 @@ appears:
 
 ## Git
 
-- Work on the branch the session specifies. Commit small, descriptive messages.
+- One branch per week of the plan (`week-1-coco-dataset`, then e.g. `week-2-ai-insertion`).
+  Commit small, descriptive messages.
 - Never commit `data/`, `runs/`, weights, or COCO images.
