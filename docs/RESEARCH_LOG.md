@@ -5,6 +5,30 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Generation pipeline implemented (week 1)
+
+- **Hardware recorded:** NVIDIA GeForce RTX 4070 Laptop GPU, 8 GB (from the author's `nvidia-smi`).
+  This matches the 8 GB plan, so no config change was needed beyond recording it.
+- **Implemented:** stages `sample`, `plan`, `generate`, `preview`; COCO index; encoding policy;
+  local inpainting + feathered compositing; real-object paste with donor selection; diffusers
+  wrappers for SDXL / SD2 / Kandinsky / FLUX Fill (lazy, 8 GB defaults); run provenance (`runlog`).
+- **Design decisions:**
+  - Rectangular dilated mask with a linear feather that is exactly 0 at the mask border. Why: it
+    guarantees that pixels outside the intended mask are unchanged, so any detector or forensic
+    difference outside the edit is a JPEG-block effect we can measure, not generator leakage.
+  - G3 (held-out FLUX) only on test-split sources (~120). Why: a held-out generator must never be
+    seen in train/val. The earlier "300 sources" figure was inconsistent with a 20% test split.
+  - The insertion size is sampled from real COCO instances of the category, excluding those under 1%
+    of the image area. Why: tiny inserts rarely produce a recognisable object.
+- **Verified on CPU** (fake inpainter, synthetic COCO): 18 tests pass. They check that the policy
+  JPEGs are q95 4:4:4, that C4 decodes identically to C1 outside the mask (±1 JPEG block), that every
+  condition is produced, and that a second run is a no-op (resumable).
+- **No experimental results yet.**
+- **Next:** the author runs the 50-source pilot with SDXL on the laptop and checks `preview.html`.
+  Then the `verify` stage (OWLv2 + SAM) and `audit`.
+
+---
+
 ## 2026-10-08: Added held-out source domain (decision)
 
 - **What:** The author asked for a small second-dataset test in week 4.

@@ -5,9 +5,9 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-08 |
-> | Drafted | (08 Oct: added held-out source domain) Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
+> | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | none |
+> | Experiments done | none (generation pipeline implemented and CPU-tested; pilot pending) |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -153,8 +153,10 @@ insertion without occlusion; C5 AI insertion with controlled occlusion.
 
 **Generators.** SDXL-Inpainting [Podell et al. 2024] and SD-2-Inpainting [Rombach et al. 2022] are
 *seen* generators. FLUX.1-Fill [BFL 2024], a flow-matching transformer, is *held out* and appears only
-in test. Inpainting operates on a local window, and only pixels inside the dilated mask are composited
-back.
+in test. Inpainting operates on a square window of 2.5× the planned box at the generator's native
+resolution. Only pixels inside the dilated rectangular mask are composited back, with a feather that
+vanishes at the mask border, so every pixel outside the intended mask is identical to the matched
+resave C1. FLUX.1-Fill is applied only to test-split sources.
 
 **Held-out source domain.** To test whether conclusions transfer beyond COCO, we build a small
 test-only set of [[TBD: ~100]] Open Images V7 [Kuznetsova et al. 2020] photographs with conditions C1–C4,

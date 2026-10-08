@@ -3,7 +3,8 @@ project: inlayfake
 seed: 20261008
 
 paths:
-  coco_root: data/coco                 # contains val2017/ and annotations/instances_val2017.json
+  coco_annotations: data/coco/annotations/instances_val2017.json
+  coco_images: data/coco/val2017
   work: data/inlayfake                 # generated images, masks, ledger
   runs: runs
   hf_cache: null                       # optional HF cache dir
@@ -11,13 +12,15 @@ paths:
 hardware:
   device: cuda
   dtype: float16
-  vram_gb: 8                           # TODO: set from `nvidia-smi` on the MSI laptop
+  gpu: NVIDIA GeForce RTX 4070 Laptop GPU  # nvidia-smi, 2026-10-08
+  vram_gb: 8
   cpu_offload: true
 
 sampling:
   n_sources: 600
   split: {train: 0.6, val: 0.2, test: 0.2}
   max_person_area_frac: 0.30
+  min_image_side: 256
   categories: [chair, cup, bottle, potted plant, vase, clock, bench, umbrella, backpack, dog]
 
 placement:
@@ -38,7 +41,7 @@ edit:
   window_scale: 2.5
   mask_dilate_px: 6
   feather_px: 3
-  full_image: false                    # ablation: keep the full-frame generator output
+  composite: mask                      # mask (default) | window (ablation: keep VAE output for the whole window)
   max_attempts: 3
   prompt: "a photo of a {category}, realistic, natural lighting"
   negative_prompt: "text, watermark, cartoon, painting, drawing, blurry"
@@ -46,12 +49,21 @@ edit:
   steps: 30
   guidance: 7.5
 
+generation:                            # which generator produces which condition
+  insert_generators: [G1, G2, G3]      # C4
+  sham_generators: [G1]                # C2
+  occlusion_generators: [G1]           # C5
+
 generators:
   G1: {model_id: diffusers/stable-diffusion-xl-1.0-inpainting-0.1, resolution: 1024, role: seen}
   G2: {model_id: stabilityai/stable-diffusion-2-inpainting, resolution: 512, role: seen,
        fallback: kandinsky-community/kandinsky-2-2-decoder-inpaint}
   G3: {model_id: black-forest-labs/FLUX.1-Fill-dev, resolution: 1024, role: held_out,
-       n_sources: 300, fallback: kandinsky-community/kandinsky-2-2-decoder-inpaint}
+       splits: [test],                 # held out: never in train/val
+       steps: 28, guidance: 30.0,      # FLUX Fill uses high guidance and no negative prompt
+       offload: sequential,            # 8 GB: sequential offload, or set gguf_transformer
+       gguf_transformer: null,
+       fallback: kandinsky-community/kandinsky-2-2-decoder-inpaint}
 
 verify:
   model_id: google/owlv2-base-patch16-ensemble

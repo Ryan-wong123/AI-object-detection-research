@@ -5,7 +5,7 @@
 | Owner | Ryan Wong (sole author; supervisor: project professor) |
 | Target | CVPR 2027 main track: paper submission **16 Nov 2026 23:59 AoE** (per the official call for papers as found by search; paper registration is typically about 1 week earlier; **confirm both on cvpr.thecvf.com**) |
 | Source brief | `InlayFake_Project_Description` PDF from the professor (01 Oct 2026) |
-| Status | Week 1: setup |
+| Status | Week 1: generation pipeline ready for the 50-source pilot |
 
 ## 1. Problem
 
@@ -112,7 +112,7 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Laptop VRAM (assume 8 GB) | FLUX is slow or does not fit | CPU offload / quantization; fallback to Kandinsky; held-out set uses fewer sources (300) |
+| Laptop VRAM (assume 8 GB) | FLUX is slow or does not fit | CPU offload / quantization; fallback to Kandinsky; G3 runs on the test split only (~120 sources) |
 | Inpainting often fails to insert the object (it fills background instead) | Noisy labels | Verification with OWLv2 (not one of the evaluated detectors) + SAM mask + retry up to 3 seeds; human audit |
 | Format shortcut (PNG vs JPEG, resolution) | Spurious "detection" | Identical encoding policy for C1–C5 |
 | COCO labels are incomplete (Incomplete Benchmarks, arXiv:2609.21822) | Real unlabeled objects count as false positives | Label audit on C0 with a detector ensemble; flagged regions become "ignore" |
@@ -125,7 +125,7 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 | Week | Dates | Deliverables |
 |---|---|---|
 | 1 | 8–14 Oct | Repo, docs, environment on laptop; COCO download; source sampling + placement; generator wrappers; **pilot of 50 sources through C1–C5 with G1**; first visual check |
-| 2 | 15–21 Oct | Label audit; verification + SAM masks; full generation run (600 sources × G1, G2; 300 × G3) overnight; ledger finalised; human audit of 10% |
+| 2 | 15–21 Oct | Label audit; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
 | 3 | 22–28 Oct | Detector runs (4 families × all conditions); semantic + matched-instance metrics (H1, H2); hand-crafted forensics; TruFor; UnivFD |
 | 4 | 29 Oct–4 Nov | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; P1 Stage 2 if on track; figures |
 | 5 | 5–11 Nov | Writing, LaTeX conversion, supplementary material, related-work verification, professor review; **paper registration (≈10 Nov, confirm)** |
@@ -133,7 +133,7 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 
 ## 9. Open decisions
 
-- [ ] Exact GPU model and VRAM of the MSI laptop (run `nvidia-smi` and record it here).
+- [x] GPU: **NVIDIA GeForce RTX 4070 Laptop GPU, 8 GB** (nvidia-smi, 08 Oct). Also needed: laptop system RAM (FLUX offloading needs about 32 GB).
 - [ ] Professor's sign-off on the scope cut (Stage 2 reduced to P1).
 - [ ] Confirm the CVPR 2027 registration and submission dates on the official site.
 - [ ] Open Images: images are listed as CC BY 2.0 and annotations as CC BY 4.0 (verify per image before any release).
