@@ -5,6 +5,35 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-09: Label audit applied, final Task 1 `evaluate` (run `task1_real_baseline`)
+
+Source: `paper/results/task1_real_baseline_summary_v3_audited.md`, decisions in
+`paper/results/task1_audit_decisions.csv`.
+
+- **Audit decisions (107 candidates):** 77 add, 26 ignore, 4 reject. Drafted from a visual review of
+  every crop in `audit.html`. **The author has not re-checked them yet.** If any change, re-run
+  `evaluate` (≈ 5 min) and update Table 2a.
+  - Reject: `19742-0` (a candle, not a cup), `253742-0/1` (deer, not sheep; deer is not a COCO
+    class), `560474-0` (a doll's face, not a person).
+  - Ignore: too small or dark to judge (10), possible duplicates of an existing label, e.g. `26204-1`
+    overlaps `26204-0` (4), class doesn't clearly fit, e.g. statue cow, plush clownfish, cocoa tin as
+    cup, poster person (7), other unclear (5).
+  - Why ignore rather than guess: an ignore region is neither rewarded nor penalised, so an
+    uncertain call cannot bias AP either way.
+- **Effect on detectors:** 3,959 GT objects (was 3,882). AP rises by 0.004–0.006 for every detector
+  and condition (e.g. Faster R-CNN C0 0.494 → 0.500, YOLO11-m 0.526 → 0.530). Resave flips are
+  unchanged (0.40–0.76%). Interpretation: the missing labels made detectors look slightly worse
+  than they are; the ranking and the C0≈C1 conclusion do not change.
+- **Forensic tables unchanged:** per-object contrast is computed in the `forensics` stage over the
+  original 3,882 labels, so the 77 additions are not in Table 2b. They are 2% of objects, so this
+  is unlikely to matter; re-run `forensics` before the final version if we want them included.
+- **Pre-audit outputs kept** as `runs/task1_real_baseline/summary_preaudit.md` and
+  `metrics_preaudit.json`.
+- **Paper:** §4 Sources filled (77/26/4), Table 2a and finding (iv) updated, Status box updated.
+- **Week 1 done** apart from the author's re-check of the audit and 200-resample AP CIs.
+
+---
+
 ## 2026-10-08: Task 1 re-run after fixes (v2, run `task1_real_baseline`)
 
 Source: `paper/results/task1_real_baseline_summary_v2.md`.
