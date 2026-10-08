@@ -5,6 +5,15 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: `detect` complete for all four detectors (run `task1_real_baseline`)
+
+- **Ran (author's laptop):** after the fix, Grounding DINO processed all 1,088 images in 22 min 13 s
+  (1.23 s/img, 4 prompt chunks per image). The other three were skipped (already complete).
+- **State:** detections exist for faster_rcnn, yolo, rtdetr and grounding_dino on 544 × (C0, C1).
+- **Next:** `forensics`, `audit`, `evaluate`.
+
+---
+
 ## 2026-10-08: `detect` run: 3 of 4 detectors done; Grounding DINO bug fixed
 
 - **Ran (author's laptop):** `detect` on 1,088 images. Faster R-CNN (1 min 56 s, 9.3 img/s), YOLO11-m
