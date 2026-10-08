@@ -5,6 +5,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Task 1 re-run after fixes (v2, run `task1_real_baseline`)
+
+Source: `paper/results/task1_real_baseline_summary_v2.md`.
+
+- **jpeg_bag fixed:** image score mean 0.532 / median 0.484 / p95 0.99 (was 428.7 / 0.667). Object
+  contrast −0.003 ± 0.053 (sd was 61.8). Resave shift −0.025 [−0.028, −0.022] (−4.7%). The method
+  now behaves like the others and is sensitive to re-encoding.
+- **AP CIs (basic bootstrap):** e.g. Faster R-CNN C0 0.494 [0.462, 0.506]. Intervals now contain the
+  point estimate but are skewed downward: the resample mean is about 0.015 above the point estimate
+  (the category-dropout bias), and the reflection moves that skew below. 20 resamples only; use 200
+  for the final tables.
+- **New observation:** F4 (FFT) and F5 (blocking grid) have ≈ 0 mean object-vs-context contrast on
+  real objects, unlike ELA/SRM/noise (0.25–0.51). They may be less confounded by object texture;
+  check this when AI objects arrive (Task 3).
+- All other numbers are identical to v1, as expected (only jpeg_bag and the CI method changed).
+- **Paper:** Tables 2a/2b complete (F5 row and AP CIs filled); findings (ii) and (iii) updated.
+- **Week 1 remaining:** audit review of 107 candidates, then a final `evaluate`.
+
+---
+
 ## 2026-10-08: Task 1 results (v1) and two fixes (run `task1_real_baseline`)
 
 Source: author's `summary.md`, saved as `paper/results/task1_real_baseline_summary_v1.md`.

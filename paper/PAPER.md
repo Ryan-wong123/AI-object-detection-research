@@ -7,7 +7,7 @@
 > | Last updated | 2026-10-08 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | Task 1 complete (v1): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 drafted. Pending: re-run with fixed jpeg_bag + bias-corrected AP CIs; audit review (107 candidates) |
+> | Experiments done | Task 1 (v2): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b complete. Pending: audit review (107 candidates), 200-resample AP CIs |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -240,21 +240,22 @@ Before any insertion, we run every detector and forensic method on the untouched
 (C1) photographs. COCO predates diffusion-based editing, so every object is photographed and every
 "AI" flag is a false alarm.
 **Table 2a.** Detector AP on 544 unedited COCO val2017 photographs (C0) and their matched resaves
-(C1), with per-object detection flips caused only by resaving. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v1.md -->
+(C1), with per-object detection flips caused only by resaving. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v2.md -->
 
-| Detector | AP C0 | AP C1 | AP50 C0 | AR100 C0 | lost C0→C1 | gained C0→C1 |
+| Detector | AP C0 [95% CI] | AP C1 [95% CI] | AP50 C0 | AR100 C0 | lost C0→C1 | gained C0→C1 |
 |---|---|---|---|---|---|---|
-| Faster R-CNN v2 | 0.494 | 0.493 | 0.697 | 0.622 | 0.59% | 0.67% |
-| YOLO11-m | 0.526 | 0.524 | 0.687 | 0.647 | 0.52% | 0.41% |
-| RT-DETR-R50 | 0.508 | 0.507 | 0.671 | 0.633 | 0.64% | 0.46% |
-| Grounding DINO-T | 0.511 | 0.510 | 0.660 | 0.682 | 0.77% | 0.75% |
+| Faster R-CNN v2 | 0.494 [0.462, 0.506] | 0.493 [0.463, 0.511] | 0.697 | 0.622 | 0.59% | 0.67% |
+| YOLO11-m | 0.526 [0.488, 0.537] | 0.524 [0.484, 0.533] | 0.687 | 0.647 | 0.52% | 0.41% |
+| RT-DETR-R50 | 0.508 [0.480, 0.531] | 0.507 [0.471, 0.520] | 0.671 | 0.633 | 0.64% | 0.46% |
+| Grounding DINO-T | 0.511 [0.471, 0.521] | 0.510 [0.477, 0.513] | 0.660 | 0.682 | 0.77% | 0.75% |
 
 Flips are over 3,882 photographed objects. An object counts as detected with a same-class prediction
-at IoU ≥ 0.5 and score ≥ 0.5. [[TBD: bias-corrected 95% CIs for AP from the re-run]]
+at IoU ≥ 0.5 and score ≥ 0.5. AP intervals are basic bootstrap intervals over source photographs
+(20 resamples) [[TBD: 200 resamples for the final version]].
 
 **Table 2b.** Hand-crafted forensic scores on real photographs. Image score is the 99th percentile
 minus the median of the map. Per-object contrast is the mean inside the object minus the mean in a
-surrounding context ring. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v1.md --> [[TBD: F5 (blocking grid) row after the numerical fix]]
+surrounding context ring. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v2.md -->
 
 | Method | image score C0 (mean) | resave shift C1 − C0 [95% CI] | object contrast C1 (mean ± sd) |
 |---|---|---|---|
@@ -262,22 +263,25 @@ surrounding context ring. <!-- run:task1_real_baseline, file:paper/results/task1
 | F2 SRM residual | 3.05 | −0.106 [−0.114, −0.099] (−3.5%) | 0.290 ± 0.81 |
 | F3 noise level | 10.38 | −0.089 [−0.144, −0.041] (−0.9%) | 0.254 ± 1.62 |
 | F4 FFT high-freq. | 0.365 | +0.0045 [0.0027, 0.0064] (+1.2%) | −0.002 ± 0.045 |
+| F5 JPEG blocking grid | 0.532 | −0.025 [−0.028, −0.022] (−4.7%) | −0.003 ± 0.052 |
 
 **Findings.** (i) The detectors reach AP 0.49–0.53 on our 544 sources, and resaving with the
 benchmark encoding changes AP by at most 0.002. Resaving alone flips 0.4–0.8% of photographed
 objects between detected and missed, in both directions. This is the noise floor against which
 insertion-induced changes to real objects (H2) must be judged. (ii) Every hand-crafted method
-responds to resaving: ELA rises by 3.7% and SRM falls by 3.5%, with CIs excluding zero. Comparing
+responds to resaving, with CIs excluding zero: ELA rises by 3.7%, while SRM and the blocking-grid
+score fall by 3.5% and 4.7%. Comparing
 edited images against the original C0 rather than the matched resave C1 would therefore confound
 editing with re-encoding, which justifies C1 as the reference condition. (iii) Real objects are
 already more "suspicious" than their surroundings for ELA, SRM and noise level (positive mean
 contrast, sd ≈ 1–1.6). Object interiors carry more texture and edges than their context, so a naive
 "object stands out" rule would accuse real objects. Origin scores must be calibrated against
-photographed objects of similar content, not against zero. Fixed-threshold false-alarm rates are
+photographed objects of similar content, not against zero. The frequency (F4) and blocking-grid
+(F5) scores show no such bias (mean contrast ≈ 0), so they may be less confounded by object texture. Fixed-threshold false-alarm rates are
 reported in §7.4.
 (iv) In 70 of 544 photographs (12.9%), at least two detectors agree on a confident object that COCO
 does not label (107 candidates). These are held out as ignore regions pending manual review,
-consistent with [Incomplete Benchmarks 2026]. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v1.md -->
+consistent with [Incomplete Benchmarks 2026]. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v2.md -->
 
 ### 7.2 Do detectors see inserted objects, and does confidence reveal origin? (H1)
 **Table 2.** AP / AR on original vs inserted instances per detector and condition. [[TBD]]
