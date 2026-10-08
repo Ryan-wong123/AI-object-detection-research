@@ -136,12 +136,63 @@ class HFRTDETR:
         return sorted(dets, key=lambda d: -d.score)[:100]
 
 
+def gdino_prompt(names: list[str]) -> tuple[str, list[tuple[int, int]]]:
+    """Prompt "a. b c. d." and the character span of each name in it."""
+    spans, parts, pos = [], [], 0
+    for n in names:
+        spans.append((pos, pos + len(n)))
+        parts.append(n)
+        pos += len(n) + 2  # ". "
+    return ". ".join(parts) + ".", spans
+
+
+def token_category_map(offsets: list[tuple[int, int]], spans: list[tuple[int, int]]) -> np.ndarray:
+    """Category index of each text token (-1 = separator or special token)."""
+    out = np.full(len(offsets), -1, dtype=int)
+    for t, (a, b) in enumerate(offsets):
+        if b <= a:  # special tokens ([CLS], [SEP]) have empty offsets
+            continue
+        for k, (s0, s1) in enumerate(spans):
+            if a >= s0 and b <= s1:
+                out[t] = k
+                break
+    return out
+
+
+def decode_grounding(
+    probs: np.ndarray,  # (queries, text_tokens) sigmoid scores
+    boxes_cxcywh: np.ndarray,  # (queries, 4) normalised
+    token_cat: np.ndarray,  # (text_tokens,) category index per token, -1 = none
+    n_cats: int,
+    threshold: float,
+    width: int,
+    height: int,
+) -> list[tuple[int, list[float], float]]:
+    """Per query: score of each category = max over its tokens; keep the best category if its score
+    is >= threshold. Returns (category index, [x, y, w, h] in pixels, score)."""
+    n_tok = min(probs.shape[1], len(token_cat))
+    cat_scores = np.full((probs.shape[0], n_cats), -np.inf)
+    for k in range(n_cats):
+        toks = np.nonzero(token_cat[:n_tok] == k)[0]
+        if len(toks):
+            cat_scores[:, k] = probs[:, toks].max(axis=1)
+    best = cat_scores.argmax(axis=1)
+    score = cat_scores[np.arange(len(best)), best]
+    out = []
+    for q in np.nonzero(score >= threshold)[0]:
+        cx, cy, w, h = boxes_cxcywh[q]
+        box = [(cx - w / 2) * width, (cy - h / 2) * height, w * width, h * height]
+        out.append((int(best[q]), [float(v) for v in box], float(score[q])))
+    return out
+
+
 class HFGroundingDINO:
     """Open-vocabulary detector prompted with COCO class names in chunks.
 
     Grounding DINO's text encoder has a 256-token limit, so the 80 names are split into chunks and
-    the model runs once per chunk. A predicted phrase is mapped to the category name it equals
-    (or contains).
+    the model runs once per chunk. Labels are decoded directly from the token-level logits (see
+    ``decode_grounding``) instead of the processor's post-processing, whose phrase output changed
+    across transformers versions and could return more labels than boxes.
     """
 
     def __init__(
@@ -160,37 +211,26 @@ class HFGroundingDINO:
         self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).eval().to(device)
         self.device, self.torch = device, torch
         self.thr = max(score_threshold, 0.05)  # very low thresholds give only noise for GDINO
-        self.chunks = [categories[i : i + chunk] for i in range(0, len(categories), chunk)]
-
-    @staticmethod
-    def _match(phrase: str, names: list[str]) -> str | None:
-        phrase = phrase.strip().lower()
-        if phrase in names:
-            return phrase
-        hits = [n for n in names if n in phrase]
-        return max(hits, key=len) if hits else None
+        self.chunks = []
+        for i in range(0, len(categories), chunk):
+            names = categories[i : i + chunk]
+            text, spans = gdino_prompt(names)
+            enc = self.processor.tokenizer(text, return_offsets_mapping=True)
+            self.chunks.append((names, text, token_category_map(enc["offset_mapping"], spans)))
 
     def __call__(self, image: np.ndarray) -> list[Detection]:
+        H, W = image.shape[:2]
         dets: list[Detection] = []
-        for names in self.chunks:
-            text = ". ".join(names) + "."
+        for names, text, token_cat in self.chunks:
             inputs = self.processor(images=image, text=text, return_tensors="pt").to(self.device)
             with self.torch.inference_mode():
                 out = self.model(**inputs)
-            kwargs = {"target_sizes": [image.shape[:2]], "text_threshold": self.thr}
-            try:  # transformers >= 4.51 renamed box_threshold -> threshold
-                res = self.processor.post_process_grounded_object_detection(
-                    out, inputs.input_ids, threshold=self.thr, **kwargs
-                )[0]
-            except TypeError:
-                res = self.processor.post_process_grounded_object_detection(
-                    out, inputs.input_ids, box_threshold=self.thr, **kwargs
-                )[0]
-            labels = res.get("text_labels", res.get("labels"))
-            for b, phrase, s in zip(res["boxes"].cpu(), labels, res["scores"].cpu(), strict=True):
-                name = self._match(str(phrase), names)
-                if name is not None:
-                    dets.append(Detection(name, _xyxy_to_xywh(b), float(s)))
+            probs = out.logits[0].sigmoid().float().cpu().numpy()
+            boxes = out.pred_boxes[0].float().cpu().numpy()
+            for k, box, score in decode_grounding(
+                probs, boxes, token_cat, len(names), self.thr, W, H
+            ):
+                dets.append(Detection(names[k], box, score))
         return sorted(dets, key=lambda d: -d.score)[:100]
 
 

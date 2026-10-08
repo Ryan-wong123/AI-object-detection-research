@@ -5,6 +5,21 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: `detect` run: 3 of 4 detectors done; Grounding DINO bug fixed
+
+- **Ran (author's laptop):** `detect` on 1,088 images. Faster R-CNN (1 min 56 s, 9.3 img/s), YOLO11-m
+  (26 s, 41 img/s) and RT-DETR (59 s, 18 img/s) completed. Grounding DINO crashed after 10 images
+  (≈1.4 s/img): `zip() argument 2 is longer than argument 1`. The installed transformers'
+  `post_process_grounded_object_detection` returned more phrase labels than boxes.
+- **Fix:** Grounding DINO labels are now decoded directly from the token logits. Each query's score
+  for a class is the max sigmoid over that class name's tokens, and the query keeps the best class if
+  that score is ≥ 0.05. This no longer depends on the processor's post-processing (which changes
+  across versions). Unit tests cover the prompt spans, token→class mapping and decoding.
+- **Action for the author:** delete the partial `grounding_dino.jsonl` (its 10 rows used the old
+  decoding) and re-run `detect`; the other three detectors are skipped automatically.
+
+---
+
 ## 2026-10-08: Task 1 data stages run on the laptop (run `task1_real_baseline`)
 
 - **Ran (author, RTX 4070 laptop):** `sample`, `plan` and `generate` with `configs/real_baseline.yaml`.
