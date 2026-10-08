@@ -1,0 +1,7 @@
+# Task 1: real-only COCO baseline. No AI generation at all.
+# Produces only C0 (original) and C1 (matched resave) for the 600 sources. These are the real
+# photographs later used to measure how often detectors and forensic methods raise false alarms.
+# It uses the same work dir and seed as the full run, so the later AI stages reuse these images.
+inherit: default.yaml
+conditions: [C0, C1]
+generators_enabled: []

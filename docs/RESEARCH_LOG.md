@@ -5,6 +5,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Work split into tasks; Task 1 = real-only COCO baseline
+
+- **Decision (author):** split the work. Task 1 runs only on real COCO photos, with no AI generation,
+  to establish how detectors and forensic methods behave on genuine photographs first.
+- **Interpretation recorded:** COCO (Flickr, about 2014) predates diffusion editors, so its photos
+  are real by provenance. Forensic methods cannot *prove* an image is non-AI. What Task 1 measures is
+  each method's **false-alarm rate on real photos**, plus detector AP on C0 vs C1 (the resave
+  effect) and the label audit.
+- **Changed:** `configs/real_baseline.yaml` (C0 and C1 only, no generators; same work dir, so Task 2
+  reuses the images). Fixed `generators_enabled: []` (it previously fell back to *all* generators).
+  New test confirms that a real-only run contains no AI records. PRD timeline reordered (Task 1 → 2 →
+  3). PAPER §7.1 placeholder for the real-photo baseline.
+- **Next:** implement the `detect` stage (4 detectors) and the hand-crafted forensic methods so that
+  Task 1 can run on the laptop.
+
+---
+
 ## 2026-10-08: Generation pipeline implemented (week 1)
 
 - **Hardware recorded:** NVIDIA GeForce RTX 4070 Laptop GPU, 8 GB (from the author's `nvidia-smi`).

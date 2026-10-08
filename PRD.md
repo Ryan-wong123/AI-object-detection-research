@@ -5,7 +5,7 @@
 | Owner | Ryan Wong (sole author; supervisor: project professor) |
 | Target | CVPR 2027 main track: paper submission **16 Nov 2026 23:59 AoE** (per the official call for papers as found by search; paper registration is typically about 1 week earlier; **confirm both on cvpr.thecvf.com**) |
 | Source brief | `InlayFake_Project_Description` PDF from the professor (01 Oct 2026) |
-| Status | Week 1: generation pipeline ready for the 50-source pilot |
+| Status | Week 1: Task 1 (real-only COCO baseline) in progress; AI generation code ready but deferred to Task 2 |
 
 ## 1. Problem
 
@@ -122,11 +122,17 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 
 ## 8. Timeline (5 weeks)
 
+The work is split into tasks that run in order. **Task 1 uses only real COCO photos.** Its purpose is
+to measure, before any AI image exists, how the detectors and forensic methods behave on genuine
+photographs. COCO was collected from Flickr around 2014, before diffusion-based editors, so its
+photos are real by provenance. Any "AI" flag a forensic method raises on them is a **false alarm**.
+That false-alarm rate is the baseline every later result is compared against.
+
 | Week | Dates | Deliverables |
 |---|---|---|
-| 1 | 8–14 Oct | Repo, docs, environment on laptop; COCO download; source sampling + placement; generator wrappers; **pilot of 50 sources through C1–C5 with G1**; first visual check |
-| 2 | 15–21 Oct | Label audit; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
-| 3 | 22–28 Oct | Detector runs (4 families × all conditions); semantic + matched-instance metrics (H1, H2); hand-crafted forensics; TruFor; UnivFD |
+| 1 | 8–14 Oct | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and the **false-alarm rate of every forensic method on real photos** |
+| 2 | 15–21 Oct | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
+| 3 | 22–28 Oct | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2) |
 | 4 | 29 Oct–4 Nov | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; P1 Stage 2 if on track; figures |
 | 5 | 5–11 Nov | Writing, LaTeX conversion, supplementary material, related-work verification, professor review; **paper registration (≈10 Nov, confirm)** |
 | buffer | 12–16 Nov | Final fixes, submission by 16 Nov AoE |
