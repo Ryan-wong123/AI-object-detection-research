@@ -43,12 +43,23 @@ def test_roundtrip(tmp_path):
 
 def test_make_id():
     assert ImageRecord.make_id(5, "C1", None, None) == "5__C1__none__s0"
+    oid = ImageRecord.make_id("0a1b2c", "C4", "G3", 1, "openimages")
+    assert oid == "openimages-0a1b2c__C4__G3__s1"
+
+
+def test_openimages_is_test_only(tmp_path):
+    rec = _record(source_id="0a1b2c", source_dataset="openimages")
+    write_ledger([rec], tmp_path / "l.jsonl")
+    assert next(read_ledger(tmp_path / "l.jsonl")).source_dataset == "openimages"
+    with pytest.raises(ValueError):
+        _record(source_id="0a1b2c", source_dataset="openimages", split="train")
 
 
 @pytest.mark.parametrize(
     "kw",
     [
         {"split": "dev"},
+        {"source_dataset": "objects365"},
         {"condition": "C9"},
         {
             "instances": [

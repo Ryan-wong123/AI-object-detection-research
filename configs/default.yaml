@@ -74,6 +74,27 @@ forensics:
   context_ring_frac: 0.15
   crop_expand: 1.3
 
+ood:                                   # held-out source domain (week 4), test only
+  dataset: openimages
+  version: v7
+  split: validation
+  root: data/openimages
+  n_sources: 100
+  conditions: [C1, C2, C3, C4]
+  generators: [G1, G3]
+  class_map:                           # Open Images label -> COCO category
+    Chair: chair
+    Mug: cup
+    Coffee cup: cup
+    Bottle: bottle
+    Houseplant: potted plant
+    Vase: vase
+    Clock: clock
+    Bench: bench
+    Umbrella: umbrella
+    Backpack: backpack
+    Dog: dog
+
 postproc:
   jpeg: [95, 75, 50]
   resize: [0.5]

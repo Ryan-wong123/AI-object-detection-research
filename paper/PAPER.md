@@ -5,7 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-08 |
-> | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
+> | Drafted | (08 Oct: added held-out source domain) Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
 > | Experiments done | none |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
@@ -27,7 +27,7 @@ localising and recognising every object in an edited photograph and estimating, 
 uncertainty, whether each one was photographed or AI-inserted. InlayFake builds
 [[TBD: N]] edited images from [[TBD: 600]] COCO photographs under six matched conditions (resave,
 sham edit, real-object paste, AI insertion with and without occlusion) using three inpainting
-generators, one held out. Every instance carries a provenance record. We evaluate four detector
+generators, one held out, plus a source-domain-held-out test set from Open Images. Every instance carries a provenance record. We evaluate four detector
 families and [[TBD: 9]] hand-crafted and learned forensic methods at the instance level. We find that
 [[TBD: H1 finding: detector confidence does / does not separate origin]],
 that insertions [[TBD: H2 finding: do / do not alter predictions on untouched real objects beyond matched controls]],
@@ -156,6 +156,13 @@ insertion without occlusion; C5 AI insertion with controlled occlusion.
 in test. Inpainting operates on a local window, and only pixels inside the dilated mask are composited
 back.
 
+**Held-out source domain.** To test whether conclusions transfer beyond COCO, we build a small
+test-only set of [[TBD: ~100]] Open Images V7 [Kuznetsova et al. 2020] photographs with conditions C1–C4,
+using one seen (SDXL) and one held-out (FLUX.1-Fill) generator. No model, calibrator or threshold is fit
+on this set. Because Open Images boxes are exhaustive only for classes verified at image level, we
+score only verified classes and ignore the rest. We use Open Images rather than Objects365 because
+the latter is part of Grounding DINO's pretraining data [Liu et al. 2024].
+
 **Encoding policy.** All images in C1–C5 pass through the same decode → edit → JPEG (q=95, 4:4:4)
 pipeline, so file format cannot reveal origin.
 
@@ -235,7 +242,7 @@ localisation, seen generators. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.4 Generalisation and robustness (H4)
-**Table 5.** Held-out generator (FLUX.1-Fill). [[TBD]]
+**Table 5.** Held-out generator (FLUX.1-Fill) and held-out source domain (Open Images), in a 2×2 grid: seen/held-out generator × COCO/Open Images. [[TBD]]
 **Figure 3.** AUROC under JPEG 95/75/50, 0.5× resize, blur, screenshot. [[TBD]]
 **Finding.** [[TBD]]
 
@@ -250,8 +257,8 @@ prompt settings, including unedited images. [[TBD: or move to supplementary / dr
 
 ## 8. Limitations, ethics and broader impact
 
-InlayFake covers ten non-human object categories, one source domain (COCO) and three open inpainting
-models. Commercial editors and other domains may behave differently. Pixel evidence cannot recover an
+InlayFake covers ten non-human object categories, one main source domain (COCO) with a small held-out
+Open Images test set, and three open inpainting models. Commercial editors and other domains may behave differently. Pixel evidence cannot recover an
 edit history with certainty, so models should be able to abstain, and our labels describe *how the
 image was made*, not whether anyone intended to deceive. Benign creative edits are in scope, and
 calling a real object fake is treated as a harm, not merely an error. We do not generate people or
@@ -290,6 +297,7 @@ All entries must be checked against the published versions before submission. En
 - [Jocher & Qiu 2024] G. Jocher, J. Qiu. Ultralytics YOLO11. Software, 2024.
 - [Kirillov et al. 2023] A. Kirillov et al. Segment Anything. ICCV 2023.
 - [Krawetz 2007] N. Krawetz. A Picture's Worth: Digital Image Analysis and Forensics. Black Hat Briefings 2007.
+- [Kuznetsova et al. 2020] A. Kuznetsova et al. The Open Images Dataset V4: Unified Image Classification, Object Detection, and Visual Relationship Detection at Scale. IJCV 2020.
 - [Kwon et al. 2022] M.-J. Kwon et al. Learning JPEG Compression Artifacts for Image Manipulation Detection and Localization (CAT-Net v2). IJCV 2022. [verify]
 - [Li et al. 2009] W. Li, Y. Yuan, N. Yu. Passive Detection of Doctored JPEG Image via Block Artifact Grid Extraction. Signal Processing 2009. [verify]
 - [Li et al. 2023] Y. Li et al. Evaluating Object Hallucination in Large Vision-Language Models (POPE). EMNLP 2023.

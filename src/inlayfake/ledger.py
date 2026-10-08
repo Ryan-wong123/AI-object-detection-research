@@ -31,6 +31,9 @@ class Condition(str, Enum):
 
 SPLITS = ("train", "val", "test")
 
+# "openimages" is the small source-domain-held-out set (week 4): test split only, never trained on.
+SOURCE_DATASETS = ("coco", "openimages")
+
 
 @dataclass
 class Instance:
@@ -72,7 +75,7 @@ class EditInfo:
 @dataclass
 class ImageRecord:
     image_id: str
-    source_id: int
+    source_id: int | str  # COCO image id (int) or Open Images id (hex str)
     split: str
     condition: Condition
     path: str
@@ -84,11 +87,16 @@ class ImageRecord:
     instances: list[Instance] = field(default_factory=list)
     ignore_regions: list[list[float]] = field(default_factory=list)
     postproc: dict | None = None
+    source_dataset: str = "coco"
 
     def __post_init__(self) -> None:
         self.condition = Condition(self.condition)
         if self.split not in SPLITS:
             raise ValueError(f"unknown split {self.split!r}")
+        if self.source_dataset not in SOURCE_DATASETS:
+            raise ValueError(f"unknown source_dataset {self.source_dataset!r}")
+        if self.source_dataset != "coco" and self.split != "test":
+            raise ValueError(f"{self.image_id}: held-out source domains are test-only")
         if isinstance(self.edit, dict):
             self.edit = EditInfo(**self.edit)
         self.instances = [i if isinstance(i, Instance) else Instance(**i) for i in self.instances]
@@ -102,8 +110,15 @@ class ImageRecord:
             raise ValueError(msg)
 
     @staticmethod
-    def make_id(source_id: int, condition: str, generator: str | None, seed: int | None) -> str:
-        return f"{source_id}__{Condition(condition).value}__{generator or 'none'}__s{seed or 0}"
+    def make_id(
+        source_id: int | str,
+        condition: str,
+        generator: str | None,
+        seed: int | None,
+        source_dataset: str = "coco",
+    ) -> str:
+        src = source_id if source_dataset == "coco" else f"{source_dataset}-{source_id}"
+        return f"{src}__{Condition(condition).value}__{generator or 'none'}__s{seed or 0}"
 
     def to_dict(self) -> dict:
         d = asdict(self)
