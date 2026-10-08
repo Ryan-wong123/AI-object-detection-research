@@ -1,0 +1,88 @@
+# InlayFake default configuration. Every stage reads from here; runs copy the resolved config.
+project: inlayfake
+seed: 20261008
+
+paths:
+  coco_root: data/coco                 # contains val2017/ and annotations/instances_val2017.json
+  work: data/inlayfake                 # generated images, masks, ledger
+  runs: runs
+  hf_cache: null                       # optional HF cache dir
+
+hardware:
+  device: cuda
+  dtype: float16
+  vram_gb: 8                           # TODO: set from `nvidia-smi` on the MSI laptop
+  cpu_offload: true
+
+sampling:
+  n_sources: 600
+  split: {train: 0.6, val: 0.2, test: 0.2}
+  max_person_area_frac: 0.30
+  categories: [chair, cup, bottle, potted plant, vase, clock, bench, umbrella, backpack, dog]
+
+placement:
+  min_side_px: 32
+  max_area_frac: 0.25
+  margin_px: 8
+  occlusion_frac: [0.2, 0.5]           # C5: fraction of the occluded original instance covered
+  max_tries: 200
+
+conditions: [C0, C1, C2, C3, C4, C5]
+
+encoding:
+  format: JPEG
+  quality: 95
+  subsampling: 0                       # 4:4:4
+
+edit:
+  window_scale: 2.5
+  mask_dilate_px: 6
+  feather_px: 3
+  full_image: false                    # ablation: keep the full-frame generator output
+  max_attempts: 3
+  prompt: "a photo of a {category}, realistic, natural lighting"
+  negative_prompt: "text, watermark, cartoon, painting, drawing, blurry"
+  sham_prompt: "empty background, nothing"
+  steps: 30
+  guidance: 7.5
+
+generators:
+  G1: {model_id: diffusers/stable-diffusion-xl-1.0-inpainting-0.1, resolution: 1024, role: seen}
+  G2: {model_id: stabilityai/stable-diffusion-2-inpainting, resolution: 512, role: seen,
+       fallback: kandinsky-community/kandinsky-2-2-decoder-inpaint}
+  G3: {model_id: black-forest-labs/FLUX.1-Fill-dev, resolution: 1024, role: held_out,
+       n_sources: 300, fallback: kandinsky-community/kandinsky-2-2-decoder-inpaint}
+
+verify:
+  model_id: google/owlv2-base-patch16-ensemble
+  min_iou: 0.3
+  min_score: 0.2
+  sam_model_id: facebook/sam-vit-base
+  changed_pixel_threshold: 4
+  mixed_modified_overlap: 0.10
+
+detectors:
+  faster_rcnn: {impl: torchvision, weights: FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1}
+  yolo: {impl: ultralytics, weights: yolo11m.pt}
+  rtdetr: {impl: transformers, model_id: PekingU/rtdetr_r50vd}
+  grounding_dino: {impl: transformers, model_id: IDEA-Research/grounding-dino-tiny}
+  score_threshold: 0.001
+
+forensics:
+  handcrafted: [ela, srm_residual, noise_level, fft_highfreq, jpeg_bag]
+  learned: [trufor, univfd, crop_probe]
+  context_ring_frac: 0.15
+  crop_expand: 1.3
+
+postproc:
+  jpeg: [95, 75, 50]
+  resize: [0.5]
+  blur_sigma: [1.0]
+  screenshot: true
+
+eval:
+  iou_threshold: 0.5
+  bootstrap_resamples: 1000
+  ece_bins: 15
+  fixed_fpr: 0.05
+  fixed_tpr: 0.80

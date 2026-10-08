@@ -1,0 +1,24 @@
+# data, outputs, weights
+data/
+runs/
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+hf_cache/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
