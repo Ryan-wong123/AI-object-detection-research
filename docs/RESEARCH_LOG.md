@@ -5,6 +5,24 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Task 1 data stages run on the laptop (run `task1_real_baseline`)
+
+- **Ran (author, RTX 4070 laptop):** `sample`, `plan` and `generate` with `configs/real_baseline.yaml`.
+- **Numbers (as printed by the CLI):**
+  - sample: 600 sources; train 362 / val 114 / test 124 (60.3 / 19.0 / 20.7%).
+  - plan: 544 planned, **56 failed (9.3%)**, 363 of 544 with a C5 occlusion box (66.7%).
+    Categories: chair 62, bottle 56, potted plant 49, vase 50, clock 57, bench 51, backpack 65,
+    dog 44, cup 59, umbrella 51.
+  - generate: 1,088 records = 544 × (C0 + C1), real only; 27 s.
+- **Interpretation:** The splits match the 60/20/20 target. The failed plans are photos with no free
+  region for a new object (crowded scenes). All later conditions use the same 544 sources, so the
+  benchmark under-represents very cluttered scenes; this has been added to the paper's limitations.
+  C5 will cover only about 2/3 of sources; acceptable, but report C5 counts separately.
+- **Next:** `detect` (GPU; first run downloads the four detectors' weights), then `forensics`,
+  `audit`, `evaluate`.
+
+---
+
 ## 2026-10-08: Windows test-environment fix
 
 - **What:** On the author's laptop, `pytest -q` gave 28 passed and 5 errors. All 5 were

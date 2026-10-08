@@ -7,7 +7,7 @@
 > | Last updated | 2026-10-08 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | none. Task 1 code complete and CPU-tested; real-photo baseline run pending on the laptop |
+> | Experiments done | Task 1 data stages done on the laptop (600 sampled → 544 planned sources; 1,088 real C0/C1 images). Detect/forensics/audit/evaluate pending |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -143,7 +143,11 @@ by COCO-trained detectors. We exclude images dominated by people, and we split t
 review. Confirmed missing objects are added and unresolved regions are ignored
 ([[TBD: number of added labels / ignore regions]]).
 
-**Insertion plan.** For each source we choose one of ten categories (chair, cup, bottle, potted plant,
+**Insertion plan.** Of 600 sampled photographs, 544 admitted a free-space box for the
+target category <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->. The remaining 56 (9.3%) were too cluttered and are excluded from every
+condition. The benchmark therefore under-represents very crowded scenes (§8). Of the 544, 363 also
+admitted a controlled-occlusion box for C5 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
+ For each source we choose one of ten categories (chair, cup, bottle, potted plant,
 vase, clock, bench, umbrella, backpack, dog) and a box whose size follows that category's COCO size
 distribution. The box is placed either in free space or overlapping 20–50% of one original object.
 One plan is shared by every condition of a source.
@@ -179,8 +183,8 @@ we mark original objects overlapped by more than 10% as *mixed/modified*. A huma
 
 | Cond. | Description | #images | #photographed | #AI-inserted | #real-pasted |
 |---|---|---|---|---|---|
-| C0 | untouched | [[TBD]] | [[TBD]] | – | – |
-| C1 | matched resave | [[TBD]] | [[TBD]] | – | – |
+| C0 | untouched | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
+| C1 | matched resave | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
 | C2 | sham edit | [[TBD]] | [[TBD]] | – | – |
 | C3 | real paste | [[TBD]] | [[TBD]] | – | [[TBD]] |
 | C4 | AI insert | [[TBD]] | [[TBD]] | [[TBD]] | – |
@@ -273,7 +277,8 @@ prompt settings, including unedited images. [[TBD: or move to supplementary / dr
 
 ## 8. Limitations, ethics and broader impact
 
-InlayFake covers ten non-human object categories, one main source domain (COCO) with a small held-out
+InlayFake excludes very cluttered photographs (9.3% of sampled sources had no free space for an
+insertion), and covers ten non-human object categories, one main source domain (COCO) with a small held-out
 Open Images test set, and three open inpainting models. Commercial editors and other domains may behave differently. Pixel evidence cannot recover an
 edit history with certainty, so models should be able to abstain, and our labels describe *how the
 image was made*, not whether anyone intended to deceive. Benign creative edits are in scope, and
