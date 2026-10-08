@@ -5,6 +5,20 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Task 1 `forensics`, `audit`, `evaluate` complete (run `task1_real_baseline`)
+
+- **forensics:** 1,088 images × 5 methods in 2 min 55 s (6.2 img/s on the laptop CPU).
+- **audit:** 107 candidate missing labels in 70 of 544 C0 images (12.9% of images have at least one
+  confident object, agreed by ≥ 2 detectors, that COCO did not label). This is consistent with the
+  label-incompleteness finding of *Object Detection Benchmarks are Incomplete*. No decisions yet: all
+  are "?" and are therefore treated as ignore regions in this evaluation.
+- **evaluate:** finished; `runs/task1_real_baseline/summary.md` written (1,088 records). The numbers
+  will be recorded once the author shares the summary.
+- **Next:** author pastes `summary.md`; reviews `audit.html` and fills `audit_decisions.csv`; re-run
+  `evaluate`.
+
+---
+
 ## 2026-10-08: `evaluate` looked stuck: progress output added
 
 - **What:** `evaluate` printed nothing for a long time on the laptop. The cause is the AP bootstrap:
