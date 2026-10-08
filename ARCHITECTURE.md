@@ -26,6 +26,11 @@ idempotent and resumable (skip outputs that already exist).
 We use COCO **val2017** as the source pool: COCO-trained detectors were trained on train2017, so
 val2017 photos are unseen by them.
 
+**Held-out source domain (week 4).** About 100 Open Images V7 validation/test photos run through the
+same stages (`data/openimages.py` adapter → same ledger format with `source_dataset="openimages"`,
+test split only). Conditions C1–C4 with G1 and G3. All classifiers, calibrators and thresholds are fit
+on COCO only and applied unchanged.
+
 ## 2. Data contract: the provenance ledger ✅ (`ledger.py`)
 
 Each edited image is one `ImageRecord` (JSONL line):
@@ -46,6 +51,7 @@ ImageRecord
   instances       [Instance]
   ignore_regions  [box]    (label-audit flagged, unresolved; excluded from FP counting)
   postproc        null | {"jpeg": 75} | {"resize": 0.5} | ...
+  source_dataset  coco | openimages   (openimages ⇒ split must be test)
 ```
 
 ```
@@ -73,6 +79,13 @@ Rules (from the brief, §4):
 Select sources from val2017 that have: ≥ 1 non-crowd annotated object; no person instance covering
 > 30% of the image (keeps people out of the edit focus); and a free region that fits the planned
 insertion. Assign the split by hashing `source_id` (deterministic). Output: `data/sources.jsonl`.
+
+### 3.1b `sample --dataset openimages` ⬜ (`data/openimages.py`)
+Download only what is needed: the class-description CSV, the segmentation and box CSVs for the
+validation split, and the selected images (by ID, from the public `open-images-dataset` bucket, or
+FiftyOne's zoo with `classes=` and `max_samples=`). Map the 10 Open Images classes to COCO names
+(`configs/default.yaml: ood.class_map`). Keep photos with ≥ 1 mapped instance that has a mask. Use
+the image-level labels to build ignore regions for unverified classes.
 
 ### 3.2 `audit` ⬜ (`data/audit.py`)
 Run a detector ensemble on C0. A high-confidence detection (≥ 0.7) with IoU < 0.3 against every GT

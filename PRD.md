@@ -49,7 +49,12 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 4. **Detector + forensics composition**: the joint system (find the object, then score its origin),
    evaluated with joint origin-aware AP, calibration (ECE, Brier) and risk–coverage with abstention.
 5. **Robustness**: held-out generator; JPEG q ∈ {95, 75, 50}, 0.5× resize, Gaussian blur σ=1.
-6. Paper draft in `paper/PAPER.md`, converted to the CVPR LaTeX template in week 5.
+6. **Held-out source domain (week 4)**: about 100 photos from **Open Images V7** (validation or test
+   split), used **only for testing**. Conditions C1, C2, C3, C4 with G1 (seen) and G3 (held out). No
+   training, calibration or threshold tuning happens on it: every model and threshold is fit on COCO
+   and then transferred. This answers "do the findings hold outside COCO?" (H4, source-domain axis).
+   Open Images is chosen over Objects365 because Grounding DINO was pretrained on Objects365.
+7. Paper draft in `paper/PAPER.md`, converted to the CVPR LaTeX template in week 5.
 
 ### Should-have (P1)
 - Stage 2 mini-study: Florence-2 and Qwen2.5-VL-3B with three prompt settings (plain, grounded,
@@ -79,6 +84,10 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
   classifier and to calibrate); G3 FLUX.1-Fill-dev (held out, different architecture). Fallback for
   G3 if it does not fit in VRAM: Kandinsky 2.2 inpainting.
 - **Splits (by source image):** train 60% / val 20% / test 20%; G3 images appear **only** in test.
+- **Held-out source domain:** about 100 Open Images V7 photos with instance masks for the mapped
+  categories (Chair, Mug/Coffee cup, Bottle, Houseplant, Vase, Clock, Bench, Umbrella, Backpack, Dog).
+  `source_dataset = "openimages"`, test split only. C5 is skipped (time), and C3 donors come from other
+  Open Images photos.
 - **Ledger:** one JSONL record per (source, condition, generator) with all instances and their origin,
   intended mask, actual changed mask, seed, prompt, model revision and file hashes.
 
@@ -108,6 +117,7 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 | Format shortcut (PNG vs JPEG, resolution) | Spurious "detection" | Identical encoding policy for C1–C5 |
 | COCO labels are incomplete (Incomplete Benchmarks, arXiv:2609.21822) | Real unlabeled objects count as false positives | Label audit on C0 with a detector ensemble; flagged regions become "ignore" |
 | 5-week deadline | Incomplete experiments | P0/P1 split; pilot first; tables designed now; write in parallel |
+| Open Images labels are not exhaustive (boxes cover only image-level-verified classes) | Real objects counted as false positives | Score only classes verified present or absent at image level; unverified classes become ignore regions; same label audit as COCO |
 | Verification uses a detector → selection bias | Inflated detector recall on inserts | Verifier (OWLv2) is excluded from the evaluated set; report the verifier-pass rate |
 
 ## 8. Timeline (5 weeks)
@@ -117,7 +127,7 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 | 1 | 8–14 Oct | Repo, docs, environment on laptop; COCO download; source sampling + placement; generator wrappers; **pilot of 50 sources through C1–C5 with G1**; first visual check |
 | 2 | 15–21 Oct | Label audit; verification + SAM masks; full generation run (600 sources × G1, G2; 300 × G3) overnight; ledger finalised; human audit of 10% |
 | 3 | 22–28 Oct | Detector runs (4 families × all conditions); semantic + matched-instance metrics (H1, H2); hand-crafted forensics; TruFor; UnivFD |
-| 4 | 29 Oct–4 Nov | Crop classifier training; joint AP, calibration, abstention; robustness + held-out (H3, H4); P1 Stage 2 if on track; figures |
+| 4 | 29 Oct–4 Nov | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; P1 Stage 2 if on track; figures |
 | 5 | 5–11 Nov | Writing, LaTeX conversion, supplementary material, related-work verification, professor review; **paper registration (≈10 Nov, confirm)** |
 | buffer | 12–16 Nov | Final fixes, submission by 16 Nov AoE |
 
@@ -126,5 +136,6 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
 - [ ] Exact GPU model and VRAM of the MSI laptop (run `nvidia-smi` and record it here).
 - [ ] Professor's sign-off on the scope cut (Stage 2 reduced to P1).
 - [ ] Confirm the CVPR 2027 registration and submission dates on the official site.
+- [ ] Open Images: images are listed as CC BY 2.0 and annotations as CC BY 4.0 (verify per image before any release).
 - [ ] Licences: COCO images are CC-BY (per-image). FLUX.1-dev licence is non-commercial (fine for
       research; check redistribution before releasing generated images).
