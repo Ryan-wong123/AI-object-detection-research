@@ -5,6 +5,17 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Windows test-environment fix
+
+- **What:** On the author's laptop, `pytest -q` gave 28 passed and 5 errors. All 5 were
+  `PermissionError [WinError 5]` on `%TEMP%\pytest-of-USER`: pytest could not open its Windows temp
+  folder, so every test that uses `tmp_path` failed during setup. This was not a bug in the
+  project code.
+- **Fix:** `pyproject.toml` now sets `--basetemp=.pytest_tmp` (a git-ignored folder inside the repo).
+- **Next:** the author re-runs `pytest -q` (expect 33 passed), then the Task 1 commands.
+
+---
+
 ## 2026-10-08: Task 1 code complete (branch `week-1-coco-dataset`)
 
 - **Implemented:** `detect` (Faster R-CNN v2, YOLO11-m, RT-DETR-R50, Grounding DINO-T), `forensics`
