@@ -5,6 +5,17 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: `evaluate` looked stuck: progress output added
+
+- **What:** `evaluate` printed nothing for a long time on the laptop. The cause is the AP bootstrap:
+  4 detectors × 2 conditions × (1 + 50 resamples) ≈ 400 full COCOevals on 544 images, with no
+  progress output.
+- **Fix:** progress messages per detector/condition and a progress bar for the resamples. The default
+  `eval.ap_bootstrap` is now 20 for quick runs; it will be raised to 200 for the paper's final tables
+  (wider-than-final CIs until then).
+
+---
+
 ## 2026-10-08: `detect` complete for all four detectors (run `task1_real_baseline`)
 
 - **Ran (author's laptop):** after the fix, Grounding DINO processed all 1,088 images in 22 min 13 s

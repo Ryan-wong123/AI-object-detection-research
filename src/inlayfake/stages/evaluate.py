@@ -60,7 +60,10 @@ def detector_tables(cfg, recs, categories, rng) -> tuple[list[dict], list[dict]]
     for name in cfg["detect"]["detectors"]:
         dets = load_detections(cfg, name)
         for cond, rs in sorted(by_cond.items()):
-            m = ap_with_ci(rs, dets, categories, ecfg.get("ap_bootstrap", 0), rng)
+            print(f"[evaluate] AP: {name} / {cond} ({len(rs)} images)", flush=True)
+            m = ap_with_ci(
+                rs, dets, categories, ecfg.get("ap_bootstrap", 0), rng, desc=f"{name} {cond}"
+            )
             ap_rows.append({"detector": name, "condition": cond, "n_images": len(rs)} | m)
         if {"C0", "C1"} <= set(by_cond):
             c1 = {r.source_id: r for r in by_cond["C1"]}
@@ -249,6 +252,7 @@ def run(cfg: dict) -> dict:
     categories = sorted(load_coco(cfg).cat_id)
     rd = run_dir(cfg)
     ap_rows, flip_rows = detector_tables(cfg, recs, categories, rng)
+    print("[evaluate] forensic score tables", flush=True)
     dist_rows, shift_rows = forensic_tables(cfg, rng)
     _write_csv(ap_rows, rd / "tables" / "detector_ap.csv")
     _write_csv(flip_rows, rd / "tables" / "detector_c0_vs_c1.csv")

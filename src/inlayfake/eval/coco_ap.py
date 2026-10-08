@@ -98,6 +98,7 @@ def ap_with_ci(
     n_boot: int,
     rng: np.random.Generator,
     origins: set[str] | None = None,
+    desc: str = "AP bootstrap",
 ) -> dict[str, float]:
     """AP point estimate plus a 95% CI from resampling source photographs."""
     out = coco_ap(*build_coco(records, dets, categories, origins))
@@ -108,7 +109,9 @@ def ap_with_ci(
         by_src.setdefault(r.source_id, []).append(r)
     keys = list(by_src)
     aps = []
-    for _ in range(n_boot):
+    from tqdm import tqdm
+
+    for _ in tqdm(range(n_boot), desc=desc, leave=False):
         sample = [by_src[keys[j]] for j in rng.integers(len(keys), size=len(keys))]
         # duplicate records need distinct image ids: build_coco numbers images by position
         recs = [r for group in sample for r in group]
