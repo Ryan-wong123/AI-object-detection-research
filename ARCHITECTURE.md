@@ -75,7 +75,7 @@ Rules (from the brief, §4):
 
 ## 3. Stages
 
-### 3.1 `sample` ⬜ (`data/coco.py`, `data/sampling.py`)
+### 3.1 `sample` ✅ (`data/coco.py`, `data/sampling.py`)
 Select sources from val2017 that have: ≥ 1 non-crowd annotated object; no person instance covering
 > 30% of the image (keeps people out of the edit focus); and a free region that fits the planned
 insertion. Assign the split by hashing `source_id` (deterministic). Output: `data/sources.jsonl`.
@@ -93,7 +93,7 @@ box becomes a **candidate missing label**. The author reviews the candidates in 
 contact sheet. Confirmed ones are added to the GT as `photographed`; unresolved ones become
 `ignore_regions`. (Lesson from *Object Detection Benchmarks are Incomplete*.)
 
-### 3.3 `plan` ⬜ (`edit/placement.py`)
+### 3.3 `plan` ✅ (`edit/placement.py`)
 For each source, pick a target category (balanced across categories), then a box:
 - size: sampled from that category's COCO area distribution (relative to image area), clipped to
   [32², 0.25·HW] pixels; aspect ratio from the category's median.
@@ -101,27 +101,36 @@ For each source, pick a target category (balanced across categories), then a box
 - **C5**: box that covers 20–50% of the area of one chosen original instance (the "occluded" one).
 - C2 and C3 reuse the C4 box, so all conditions share **one geometric plan**.
 
-### 3.4 `generate` ⬜ (`edit/`)
+### 3.4 `generate` ✅ (`edit/`, `stages/generate.py`)
 - `encode.py` **Encoding policy** (critical): every image a model sees in C1–C5 is produced by
   `decode(original) → float RGB → [edit] → uint8 → JPEG q=95, 4:4:4, PIL`. C1 is exactly this with no
   edit. The format and quality are therefore identical across origins.
 - `compose.py` **Local inpainting**: crop a window of 2.5× the target box (square, clipped), resize
   it to the generator's native resolution (1024 for SDXL/FLUX, 512 for SD2), inpaint with a dilated,
-  feathered mask, resize back, and alpha-composite **only inside the mask**. Pixels outside the
-  dilated mask are bit-identical to C1 before encoding. Ablation flag `full_image=True` keeps the
-  generator's full-frame VAE output (an editor that touches everything).
+  rectangular mask (box + 6 px), resize back, and alpha-composite **only inside the mask** with a
+  linear 3-px feather that reaches 0 at the mask border. Pixels outside the dilated mask are
+  bit-identical to C1 before encoding, and after JPEG they decode identically except in the 8×8
+  blocks that touch the mask (this is tested). Ablation `edit.composite: window` keeps the generator
+  output for the whole window, i.e. VAE re-encoding outside the mask.
 - `generators.py`: wrappers with one interface, `inpaint(image, mask, prompt, seed) -> image`:
   - G1 `diffusers/stable-diffusion-xl-1.0-inpainting-0.1`
   - G2 `stabilityai/stable-diffusion-2-inpainting` (verify availability on HF; fallback
     `kandinsky-community/kandinsky-2-2-decoder-inpaint`)
-  - G3 (held out) `black-forest-labs/FLUX.1-Fill-dev` (gated; needs CPU offload or quantization on
-    8 GB)
+  - G3 (held out) `black-forest-labs/FLUX.1-Fill-dev` (gated). It runs on **test-split sources
+    only**. On 8 GB it needs `offload: sequential` (slow) or a GGUF-quantised transformer
+    (`gguf_transformer`); guidance 30, 28 steps, no negative prompt.
+  - Loop order is generator-major (one model on the GPU at a time). The stage is resumable: each
+    image writes `records/<image_id>.json`, and existing records are skipped.
+  - `FakeInpainter` (`model_id: fake`, `configs/dryrun.yaml`) lets the whole pipeline run on CPU.
   - Prompt template: `"a photo of a {category}, realistic, natural lighting"`. Negative: `"text,
     watermark, cartoon, painting"`. 30 steps; per-category guidance from the config.
-- `sham.py` (C2): same window, mask and generator; prompt `"empty background, nothing"`.
+- C2 (sham, in `stages/generate.py`): same window, mask and generator; prompt `"empty background, nothing"`.
 - `paste.py` (C3): donor = a COCO instance of the same category from another val2017 image, with
   enough area and not truncated. It is cut out with its GT mask, scaled to the planned box and
-  alpha-pasted with a 3-px feather.
+  alpha-pasted with a 3-px feather. The aspect ratio is kept (within 25% of the plan box; fitted
+  inside the box, bottom-centre aligned).
+- `stages/preview.py` ✅: `<work>/preview.html` contact sheet (planned boxes in yellow, inserted or
+  pasted instances in red) for visual checks of the pilot.
 
 ### 3.5 `verify` + `annotate` ⬜ (`edit/verify.py`, `annotate/`)
 - **Insertion success**: OWLv2 (`google/owlv2-base-patch16-ensemble`, **not** an evaluated detector)
@@ -210,7 +219,7 @@ Applied on test images only, after generation: JPEG {95, 75, 50}, resize {0.5}, 
 `configs/pilot.yaml` overrides it for the 50-source pilot. A run copies the resolved config into
 `runs/<run_id>/config.yaml`.
 
-## 5. Run provenance (`runlog.py`) ⬜
+## 5. Run provenance (`runlog.py`) ✅
 `runs/<run_id>/run.json`: git commit and dirty flag, UTC time, resolved config hash, seeds, model IDs
 and revisions, package versions (torch, diffusers, transformers, ultralytics), GPU name and VRAM,
 wall time.
@@ -221,7 +230,7 @@ wall time.
 |---|---|---|
 | G1 SDXL (C2, C4, C5) | 600 × 3 + retries | ~15 s each → ~9 h |
 | G2 SD2 (C4) | 600 + retries | ~5 s each → ~1 h |
-| G3 FLUX Fill (C4, test) | 300 | 60–120 s each → 5–10 h |
+| G3 FLUX Fill (C4, test split only) | ~120 | 60–180 s each (sequential offload) → 2–6 h |
 | Detectors | ~5k images × 4 | ~1–2 h |
 | Forensics hand-crafted | ~5k (CPU) | ~1 h |
 | TruFor / CLIP | ~5k | ~1–2 h |

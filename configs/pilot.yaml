@@ -1,4 +1,4 @@
-# 50-source pilot: debug the full pipeline end to end with G1 only.
+# 50-source pilot: debug the full pipeline end to end with G1 (SDXL) only.
 inherit: default.yaml
 sampling:
   n_sources: 50

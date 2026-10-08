@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import argparse
+import importlib
+import json
 
-# Stage name -> one-line description (ARCHITECTURE.md §3). Implementations are added stage by stage.
+from inlayfake.config import load_config
+
+# Stage name -> one-line description (ARCHITECTURE.md §3). Implemented stages live in
+# inlayfake.stages.<name> and expose run(cfg, **kwargs) -> dict.
 STAGES = {
     "sample": "select COCO val2017 sources and assign splits",
-    "audit": "flag candidate missing labels on C0 for manual review",
     "plan": "choose target category and insertion boxes (shared by C2-C5)",
-    "generate": "produce C1-C5 images with the encoding policy",
+    "generate": "produce C0-C5 images with the encoding policy",
+    "preview": "write an HTML contact sheet of generated conditions",
+    "audit": "flag candidate missing labels on C0 for manual review",
     "verify": "verify insertions (OWLv2), SAM masks, actual-change masks, write ledger",
     "detect": "run the four detector families",
     "forensics": "run hand-crafted and learned forensic methods",
@@ -17,16 +23,26 @@ STAGES = {
     "postproc": "derive robustness variants of test images",
     "evaluate": "compute metrics with grouped bootstrap CIs",
 }
+IMPLEMENTED = {"sample", "plan", "generate", "preview"}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="inlayfake", description=__doc__)
     sub = parser.add_subparsers(dest="stage", metavar="stage")
     for name, desc in STAGES.items():
-        p = sub.add_parser(name, help=desc)
+        p = sub.add_parser(name, help=desc + ("" if name in IMPLEMENTED else " [not yet]"))
         p.add_argument("--config", default="configs/default.yaml")
+        if name in ("generate", "preview"):
+            p.add_argument("--limit", type=int, default=None, help="only the first N sources")
     args = parser.parse_args(argv)
     if args.stage is None:
         parser.print_help()
         return 0
-    raise NotImplementedError(f"stage {args.stage!r} is not implemented yet (see ARCHITECTURE.md)")
+    if args.stage not in IMPLEMENTED:
+        raise SystemExit(f"stage {args.stage!r} is not implemented yet (see ARCHITECTURE.md)")
+    cfg = load_config(args.config)
+    module = importlib.import_module(f"inlayfake.stages.{args.stage}")
+    kwargs = {"limit": args.limit} if getattr(args, "limit", None) is not None else {}
+    result = module.run(cfg, **kwargs)
+    print(json.dumps(result, indent=2))
+    return 0

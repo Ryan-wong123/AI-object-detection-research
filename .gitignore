@@ -1,6 +1,6 @@
 # data, outputs, weights
-data/
-runs/
+/data/
+/runs/
 *.pt
 *.pth
 *.safetensors

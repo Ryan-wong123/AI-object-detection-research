@@ -1,0 +1,11 @@
+# CPU dry run: fake inpainter, 10 sources. Checks the pipeline without a GPU or model downloads.
+inherit: default.yaml
+sampling:
+  n_sources: 10
+hardware:
+  device: cpu
+generators_enabled: [G1]
+generators:
+  G1: {model_id: fake, resolution: 256, role: seen}
+paths:
+  work: data/inlayfake_dryrun
