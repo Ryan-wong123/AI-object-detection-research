@@ -61,7 +61,9 @@ def _exists(wd: Path, image_id: str) -> bool:
 
 
 def _gen_enabled(cfg: dict) -> list[str]:
-    return list(cfg.get("generators_enabled") or cfg["generators"].keys())
+    """Generators to run. An explicit empty list means none (real-only runs)."""
+    enabled = cfg.get("generators_enabled")
+    return list(cfg["generators"].keys() if enabled is None else enabled)
 
 
 def _non_generative(cfg, index, plan, src, wd, enc) -> int:

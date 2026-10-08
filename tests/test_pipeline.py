@@ -47,3 +47,14 @@ def test_dry_run(cfg, tmp_path):
 
     out = preview.run(cfg)
     assert out["sources"] > 0
+
+
+def test_real_only_run_has_no_ai(cfg, tmp_path):
+    cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
+    sample.run(cfg)
+    plan.run(cfg)
+    generate.run(cfg)
+    recs = list(read_ledger(tmp_path / "work" / "ledger_generated.jsonl"))
+    assert recs and {r.condition.value for r in recs} == {"C0", "C1"}
+    assert all(r.generator is None and r.edit is None for r in recs)
+    assert all(i.origin is Origin.PHOTOGRAPHED for r in recs for i in r.instances)

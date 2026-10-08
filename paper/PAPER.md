@@ -7,7 +7,7 @@
 > | Last updated | 2026-10-08 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | none (generation pipeline implemented and CPU-tested; pilot pending) |
+> | Experiments done | none. Task 1 (real-only COCO baseline) is next; the AI generation code is ready but deferred to Task 2 |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -229,29 +229,37 @@ over source photographs (1000 resamples), because edits of one photograph are co
 
 ## 7. Results
 
-### 7.1 Do detectors see inserted objects, and does confidence reveal origin? (H1)
+### 7.1 Baseline: unedited photographs
+Before any insertion, we run every detector and forensic method on the untouched (C0) and resaved
+(C1) photographs. COCO predates diffusion-based editing, so every object is photographed and every
+"AI" flag is a false alarm.
+**Table 2a.** Detector AP on C0 vs C1; per-method false-alarm rate on real photographs at the
+threshold later used for AI detection. [[TBD: run real_baseline]]
+**Finding.** [[TBD]]
+
+### 7.2 Do detectors see inserted objects, and does confidence reveal origin? (H1)
 **Table 2.** AP / AR on original vs inserted instances per detector and condition. [[TBD]]
 **Finding.** [[TBD]]
 
-### 7.2 Do insertions disturb real objects? (H2)
+### 7.3 Do insertions disturb real objects? (H2)
 **Figure 2.** Matched-instance change rates (C2, C3, C4, C5 vs C1) by distance to the edit. [[TBD]]
 **Finding.** [[TBD]]
 
-### 7.3 Can forensics tell origin per object? (H3)
+### 7.4 Can forensics tell origin per object? (H3)
 **Table 3.** Origin AUROC / AUPRC / false-accusation rate per method × scoring mode, oracle
 localisation, seen generators. [[TBD]]
 **Table 4.** End-to-end joint origin-aware AP and calibration of composed systems. [[TBD]]
 **Finding.** [[TBD]]
 
-### 7.4 Generalisation and robustness (H4)
+### 7.5 Generalisation and robustness (H4)
 **Table 5.** Held-out generator (FLUX.1-Fill) and held-out source domain (Open Images), in a 2×2 grid: seen/held-out generator × COCO/Open Images. [[TBD]]
 **Figure 3.** AUROC under JPEG 95/75/50, 0.5× resize, blur, screenshot. [[TBD]]
 **Finding.** [[TBD]]
 
-### 7.5 Controls: what are the detectors actually responding to?
+### 7.6 Controls: what are the detectors actually responding to?
 C3 (real paste) and C2 (sham) results that separate origin from compositing and editing. [[TBD]]
 
-### 7.6 (P1) Origin claims in grounded captions
+### 7.7 (P1) Origin claims in grounded captions
 **Table 6.** False-AI / false-real / abstention rates for Florence-2 and Qwen2.5-VL across three
 prompt settings, including unedited images. [[TBD: or move to supplementary / drop]]
 
