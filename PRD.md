@@ -130,7 +130,7 @@ That false-alarm rate is the baseline every later result is compared against.
 
 | Week | Dates | Deliverables |
 |---|---|---|
-| 1 | 8–14 Oct | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and the **false-alarm rate of every forensic method on real photos** |
+| 1 | 8–14 Oct | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and **each forensic method's score distribution on real photos** (the false-alarm rate itself needs a threshold fixed on validation data with AI objects, so it is computed in Task 3) |
 | 2 | 15–21 Oct | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
 | 3 | 22–28 Oct | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2) |
 | 4 | 29 Oct–4 Nov | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; P1 Stage 2 if on track; figures |
