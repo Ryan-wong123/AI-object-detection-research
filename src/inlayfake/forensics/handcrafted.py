@@ -141,8 +141,10 @@ def jpeg_bag(img: np.ndarray, block: int = 32) -> np.ndarray:
     def blocks(x):
         return x.reshape(Hb, block, Wb, block).mean(axis=(1, 3))
 
-    # boundary positions are 1/8 of each axis; weight so a grid-free region gives ratio ≈ 1
-    ratio = (blocks(on_p) * 7) / (blocks(off_p) + 1e-6)
+    # Boundary positions are 1/8 of each axis; weight so a grid-free region gives ≈ 0 after the log.
+    # The +1 (grey levels) keeps flat or saturated regions, where both terms are ~0, from exploding:
+    # with a plain ratio, Task 1 saw image scores in the thousands from a few such regions.
+    ratio = np.log((blocks(on_p) * 7 + 1.0) / (blocks(off_p) + 1.0))
     dev = np.abs(ratio - np.median(ratio)).astype(np.float32)
     return _block_upsample(dev, block, img.shape[0], img.shape[1])
 

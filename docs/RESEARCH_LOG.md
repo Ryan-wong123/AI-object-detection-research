@@ -5,6 +5,37 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-08: Task 1 results (v1) and two fixes (run `task1_real_baseline`)
+
+Source: author's `summary.md`, saved as `paper/results/task1_real_baseline_summary_v1.md`.
+
+- **Detectors on real photos:** AP C0 / C1: Faster R-CNN 0.494 / 0.493, YOLO11-m 0.526 / 0.524,
+  RT-DETR 0.508 / 0.507, Grounding DINO 0.511 / 0.510. These are in the range expected for these
+  models on COCO val, a sanity check that the wrappers, the category mapping and the evaluation work.
+- **Resave effect (C0→C1):** AP changes ≤ 0.002. Per-object flips are 0.41–0.77% lost and gained,
+  roughly symmetric (3,882 objects). This is the noise floor for H2.
+- **Recall at score ≥ 0.5 differs a lot by detector** (0.46–0.74), mostly because of score
+  calibration: YOLO and Grounding DINO give lower scores. Use it only for within-detector
+  comparisons (flips), never to rank detectors.
+- **Forensics on real photos:** all methods shift significantly with resaving (ELA +3.7%, SRM −3.5%,
+  noise −0.9%, FFT +1.2%), so C1, not C0, must be the reference. Real objects have positive mean
+  contrast against their context for ELA (0.50), SRM (0.30) and noise (0.25): texture makes real
+  objects stand out, so calibration has to be against real objects.
+- **Problem 1, jpeg_bag outliers:** mean image score 428 vs median 0.67, and object-contrast sd 62.
+  The ratio on/off-grid divided ~0 by ~0 in flat or saturated regions. **Fix:** log ratio with +1 grey
+  level in numerator and denominator; regression test added (fails on the old code). Requires
+  re-running `forensics` for jpeg_bag only.
+- **Problem 2, AP CIs biased:** all 8 percentile intervals sit mostly above the point estimate
+  (e.g. 0.494 [0.479, 0.527]). COCO AP averages over the categories present, and rare, low-AP
+  categories drop out of resamples, so resampled APs are inflated. **Fix:** basic (reverse-percentile)
+  bootstrap interval; the resample mean is also stored. Requires re-running `evaluate`.
+- **Paper:** §7.1 drafted with Table 2a/2b and four findings; F5 row and AP CIs left as TBD until
+  the re-run.
+- **Next:** delete `forensics/jpeg_bag.jsonl`, re-run `forensics` and `evaluate`, then review the
+  audit.
+
+---
+
 ## 2026-10-08: Task 1 `forensics`, `audit`, `evaluate` complete (run `task1_real_baseline`)
 
 - **forensics:** 1,088 images × 5 methods in 2 min 55 s (6.2 img/s on the laptop CPU).

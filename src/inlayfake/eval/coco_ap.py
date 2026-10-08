@@ -116,5 +116,12 @@ def ap_with_ci(
         # duplicate records need distinct image ids: build_coco numbers images by position
         recs = [r for group in sample for r in group]
         aps.append(coco_ap(*build_coco(recs, dets, categories, origins))["AP"])
-    out["AP_lo"], out["AP_hi"] = (float(v) for v in np.percentile(aps, [2.5, 97.5]))
+    # Basic (reverse-percentile) bootstrap interval. COCO AP averages over the categories present,
+    # and rare, low-AP categories drop out of some resamples, so resampled APs are biased upward;
+    # Task 1 showed the plain percentile interval sitting almost entirely above the point
+    # estimate. Reflecting the percentiles around the point estimate corrects that shift.
+    q_lo, q_hi = np.percentile(aps, [2.5, 97.5])
+    point = out["AP"]
+    out["AP_lo"], out["AP_hi"] = float(2 * point - q_hi), float(2 * point - q_lo)
+    out["AP_boot_mean"] = float(np.mean(aps))
     return out

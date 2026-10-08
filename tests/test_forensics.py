@@ -79,3 +79,13 @@ def test_instance_and_image_scores():
     s = instance_score(m, bbox_mask(box, m.shape), box, 0.15)
     assert s["mean_in"] == 1.0 and s["mean_ring"] == 0.0 and s["contrast"] == 1.0
     assert image_score(m)["p99_minus_median"] == pytest.approx(1.0)
+
+
+def test_jpeg_bag_bounded_on_flat_regions():
+    """Flat/saturated regions used to divide ~0 by ~0 (Task 1 saw image scores in the thousands)."""
+    rng = np.random.default_rng(4)
+    img = _jpeg(_smooth_noise(rng, 256, 256), 80).copy()
+    img[:128, :128] = 255  # saturated block
+    img[128:, 128:] = 0  # black block
+    m = jpeg_bag(_jpeg(img, 80))
+    assert np.isfinite(m).all() and m.max() < 10
