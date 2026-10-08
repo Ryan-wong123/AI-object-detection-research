@@ -1,0 +1,7 @@
+# 50-source pilot: debug the full pipeline end to end with G1 only.
+inherit: default.yaml
+sampling:
+  n_sources: 50
+generators_enabled: [G1]
+paths:
+  work: data/inlayfake_pilot
