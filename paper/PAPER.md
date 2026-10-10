@@ -197,8 +197,12 @@ we mark original objects overlapped by more than 10% as *mixed/modified*. A huma
 ## 5. Methods evaluated
 
 **Detectors (frozen, COCO-trained).** Faster R-CNN R50-FPN v2 [Ren et al. 2015], YOLO11-m [Jocher &
-Qiu 2024], RT-DETR-R50 [Zhao et al. 2024], and Grounding DINO-T [Liu et al. 2024] prompted with COCO
-class names.
+Qiu 2024], RT-DETR-R50 [Zhao et al. 2024], and Grounding DINO-T [Liu et al. 2024]. Grounding DINO
+receives the same text for every image: the 80 COCO class names, sorted alphabetically and split into
+four prompts of 20 names (e.g. "airplane. apple. backpack. …"), one forward pass per prompt because of
+its text-length limit. A box's score for a class is the maximum token score over that class name's
+tokens; boxes are kept at score ≥ 0.05, and the top 100 per image over all four prompts are evaluated.
+The prompt never depends on the image or its edits.
 
 **Hand-crafted forensics.** Each produces a dense map in which higher means more suspicious. For
 F3–F5 the map is the absolute deviation of a local statistic from the image median. F1 error level

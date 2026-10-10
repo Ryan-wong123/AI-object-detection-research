@@ -160,7 +160,7 @@ category names.
 | Two-stage CNN | Faster R-CNN R50-FPN v2 | torchvision (COCO weights) |
 | One-stage | YOLO11-m | ultralytics |
 | DETR-style | RT-DETR R50 | HF `PekingU/rtdetr_r50vd` |
-| Open-vocab | Grounding DINO tiny | HF `IDEA-Research/grounding-dino-tiny`, prompted with the 80 COCO names in chunks |
+| Open-vocab | Grounding DINO tiny | HF `IDEA-Research/grounding-dino-tiny`, prompted with the 80 COCO names (alphabetical, 4 chunks of 20, `"a. b. c."`, same for every image); labels decoded from token logits (max over a name's tokens), score ≥ 0.05, top 100 |
 
 Score threshold 0.001 for AP; outputs are saved as COCO results JSON per (run, condition).
 
