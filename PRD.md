@@ -2,9 +2,8 @@
 
 | | |
 |---|---|
-| Owner | Ryan Wong (sole author; supervisor: project professor) |
+| Owner | Ryan Wong |
 | Target | CVPR 2027 main track: paper submission **16 Nov 2026 23:59 AoE** (per the official call for papers as found by search; paper registration is typically about 1 week earlier; **confirm both on cvpr.thecvf.com**) |
-| Source brief | `InlayFake_Project_Description` PDF from the professor (01 Oct 2026) |
 | Status | Week 1: Task 1 code complete (detect, forensics, audit, evaluate); waiting for the run on the author's laptop |
 
 ## 1. Problem
@@ -27,9 +26,6 @@ capability is **object-origin estimation**.
 | H3 | Per-object forensic evidence (instance-conditioned scoring) beats image-level and naive region-pooled scoring for object origin, with fewer false accusations of real objects. | Origin AUROC/AUPRC, FPR on real objects at fixed TPR, joint origin-aware AP |
 | H4 | Any origin-detection gain survives a **held-out generator** and post-processing (JPEG, resize, blur). | Same metrics on held-out splits; degradation curves |
 | H5 (stretch) | Grounding origin evidence into VLM captions reduces false origin claims compared with direct prompting. | Caption origin error rates (Stage 2) |
-
-H1, H2 and H4 come from the brief. H3 is our sharpened version of the "object-conditioned estimator"
-idea. H5 is the brief's H3, reduced to a small study because of time.
 
 ## 3. Scope
 
@@ -97,7 +93,7 @@ idea. H5 is the brief's H3, reduced to a small study because of time.
   detectable new object in < 5% of cases.
 - Every P0 table in the paper is filled from runs, with 95% bootstrap CIs.
 - At least one clear, defensible finding for each of H1, H2, H4, whether positive or negative.
-- The paper is complete in CVPR format by 13 Nov (3-day buffer).
+- The paper is complete in CVPR format.
 
 ## 6. Novelty positioning (what we may and may not claim)
 
@@ -128,20 +124,11 @@ photographs. COCO was collected from Flickr around 2014, before diffusion-based 
 photos are real by provenance. Any "AI" flag a forensic method raises on them is a **false alarm**.
 That false-alarm rate is the baseline every later result is compared against.
 
-| Week | Dates | Deliverables |
-|---|---|---|
-| 1 | 8–14 Oct | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and **each forensic method's score distribution on real photos** (the false-alarm rate itself needs a threshold fixed on validation data with AI objects, so it is computed in Task 3) |
-| 2 | 15–21 Oct | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
-| 3 | 22–28 Oct | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2) |
-| 4 | 29 Oct–4 Nov | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; P1 Stage 2 if on track; figures |
-| 5 | 5–11 Nov | Writing, LaTeX conversion, supplementary material, related-work verification, professor review; **paper registration (≈10 Nov, confirm)** |
-| buffer | 12–16 Nov | Final fixes, submission by 16 Nov AoE |
+| Week | Deliverables |
+|---|---|
+| 1 | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and **each forensic method's score distribution on real photos** (the false-alarm rate itself needs a threshold fixed on validation data with AI objects, so it is computed in Task 3) |
+| 2  | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
+| 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2) |
+| 4  | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; P1 Stage 2 if on track; figures |
+| 5  | Writing, LaTeX conversion, supplementary material, related-work verification |
 
-## 9. Open decisions
-
-- [x] GPU: **NVIDIA GeForce RTX 4070 Laptop GPU, 8 GB** (nvidia-smi, 08 Oct). Also needed: laptop system RAM (FLUX offloading needs about 32 GB).
-- [ ] Professor's sign-off on the scope cut (Stage 2 reduced to P1).
-- [ ] Confirm the CVPR 2027 registration and submission dates on the official site.
-- [ ] Open Images: images are listed as CC BY 2.0 and annotations as CC BY 4.0 (verify per image before any release).
-- [ ] Licences: COCO images are CC-BY (per-image). FLUX.1-dev licence is non-commercial (fine for
-      research; check redistribution before releasing generated images).

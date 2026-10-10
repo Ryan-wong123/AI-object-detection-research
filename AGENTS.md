@@ -6,8 +6,7 @@ changing code.
 
 ## Project in one paragraph
 
-**InlayFake** is a research project targeting **CVPR 2027** (paper deadline 16 Nov 2026 AoE; confirm
-on the official site). We insert AI-generated objects into real COCO photographs under matched control
+**InlayFake** is a research project targeting **CVPR 2027** (paper deadline 16 Nov 2026 AoE.) We insert AI-generated objects into real COCO photographs under matched control
 conditions. We then measure (1) how off-the-shelf object detectors behave on inserted and on untouched
 real objects, and (2) whether hand-crafted and learned image-forensic methods can tell, **per object**,
 whether it was photographed or AI-inserted. The output is a benchmark, a baseline study and a paper
