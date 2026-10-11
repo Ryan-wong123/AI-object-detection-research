@@ -4,10 +4,10 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-09 |
+> | Last updated | 2026-10-11 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | Task 1 (v2): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b complete; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels). Pending: author re-check of audit decisions, 200-resample AP CIs |
+> | Experiments done | Task 1 (v2): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b complete; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels). Audit decisions re-checked and confirmed by the author. Pending: 200-resample AP CIs |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >

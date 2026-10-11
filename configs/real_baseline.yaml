@@ -6,3 +6,5 @@ inherit: default.yaml
 run_name: task1_real_baseline
 conditions: [C0, C1]
 generators_enabled: []
+eval:
+  ap_bootstrap: 200                    # final-table setting (default.yaml uses 20 for quick runs)

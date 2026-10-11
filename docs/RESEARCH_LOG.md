@@ -5,6 +5,21 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-11: Label audit re-checked; config set for the final `evaluate`
+
+- **Audit:** the author re-checked all 107 drafted decisions (77 add / 26 ignore / 4 reject) on a
+  review page showing each crop next to its decision, and confirmed every one. No change to
+  `audit_decisions.csv`, so Table 2a's point estimates stand.
+- **Changed:** `configs/real_baseline.yaml` now sets `eval.ap_bootstrap: 200`, the setting for the
+  paper's final tables (`default.yaml` keeps 20 for quick runs). Why in this config: the author only
+  needs to re-run `evaluate` on run `task1_real_baseline`; `detect`/`forensics` outputs are reused.
+- **PRD status** corrected: Task 1 has run; only the final `evaluate` remains.
+- **Next:** on the RTX 4070 laptop, `git pull` then
+  `python -m inlayfake evaluate --config configs/real_baseline.yaml`; record the 200-resample CIs in
+  Table 2a/2b.
+
+---
+
 ## 2026-10-09: Label audit applied, final Task 1 `evaluate` (run `task1_real_baseline`)
 
 Source: `paper/results/task1_real_baseline_summary_v3_audited.md`, decisions in
