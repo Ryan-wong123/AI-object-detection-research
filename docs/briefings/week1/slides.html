@@ -43,7 +43,7 @@ figcaption{margin-top:8px;line-height:1.5;color:#33415c}
 </div>
 <div style="display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:40px;border:1px solid #DEDBD2;border-radius:16px">
 <p style="font-family:'Source Serif 4', Georgia, serif;font-size:96px;font-weight:600;line-height:1;color:#14213D">544</p>
-<p style="font-size:28px;line-height:1.35;color:#4A5568">with an insertion plan; 56 too cluttered</p>
+<p style="font-size:28px;line-height:1.35;color:#4A5568">with an insertion plan; 56 close-ups with no free space</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:40px;border:1px solid #DEDBD2;border-radius:16px">
 <p style="font-family:'Source Serif 4', Georgia, serif;font-size:96px;font-weight:600;line-height:1;color:#14213D">1,088</p>
@@ -55,7 +55,7 @@ figcaption{margin-top:8px;line-height:1.5;color:#33415c}
 </div>
 </div>
 <p style="font-size:28px;line-height:1.45;color:#4A5568"><b style="color:#14213D">Measured on every image:</b> 4 detectors (Faster R-CNN v2, YOLO11-m, RT-DETR-R50, Grounding DINO-T) and 5 forensic methods (ELA, SRM residual, noise level, FFT, JPEG blocking grid).</p>
-</section></div><figcaption><b>Slide 3.</b> The pipeline is staged and resumable, every run is seeded and logged, and 37 unit tests run on CPU. The 56 cluttered photos are a stated limitation.</figcaption></figure><figure class="slide"><div class="frame"><section id="detectors" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+</section></div><figcaption><b>Slide 3.</b> The pipeline is staged and resumable, every run is seeded and logged, and 38 unit tests run on CPU. The 56 excluded photos are close-ups where one object fills the frame (median 97% covered by objects); under-representing such shots is a stated limitation.</figcaption></figure><figure class="slide"><div class="frame"><section id="detectors" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
 <p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Detectors on real photos</p>
 <h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">All four detectors score AP 0.50–0.53, as expected on COCO</h2>
 <table style="font-size:32px;color:#14213D;width:1300px">
@@ -127,7 +127,7 @@ figcaption{margin-top:8px;line-height:1.5;color:#33415c}
 <ul style="font-size:28px;line-height:1.45;color:#4A5568">
 <li>VLM caption study (H5) stays a must-have, weeks 3–4</li>
 <li>CVPR 2027 registration and submission dates</li>
-<li>Excluding the 9% most cluttered photos as a stated limitation</li>
+<li>Excluding the 9% of photos with no free space (mostly close-ups) as a stated limitation</li>
 </ul>
 </div>
 </div>

@@ -1,6 +1,6 @@
 # InlayFake: Week 1 progress (8–14 Oct 2026)
 
-11 Oct 2026 · Ryan Wong
+12 Oct 2026 · Ryan Wong
 
 Week 1 delivered the real-only baseline: four detectors and five forensic methods measured on 544
 untouched COCO photographs and their matched resaves, before any AI content is generated. All numbers
@@ -10,8 +10,8 @@ come from run `task1_real_baseline`.
 
 | Area | What was delivered |
 | --- | --- |
-| Pipeline | Staged, resumable code: sample → plan → generate → detect → forensics → audit → evaluate. Seeded and logged per run; 37 CPU unit tests. |
-| Sources | 600 COCO val2017 photos, split by photo (train 362 / val 114 / test 124). 544 have an insertion plan; 56 (9.3%) were too cluttered. |
+| Pipeline | Staged, resumable code: sample → plan → generate → detect → forensics → audit → evaluate. Seeded and logged per run; 38 CPU unit tests. |
+| Sources | 600 COCO val2017 photos, split by photo (train 362 / val 114 / test 124). 544 have an insertion plan; 56 (9.3%) had no free space, mostly close-ups where one object fills the frame. |
 | Real conditions | C0 = original file, C1 = matched resave (JPEG q95, 4:4:4): 1,088 images. |
 | Detectors | Faster R-CNN v2, YOLO11-m, RT-DETR-R50, Grounding DINO-T (fixed prompt of all 80 COCO names). |
 | Forensics | ELA, SRM residual, wavelet noise level, FFT high-frequency, JPEG blocking grid. |
@@ -45,6 +45,12 @@ photos, 200 resamples) are in Table 2a of the paper draft.
    blocking grid show no such bias.
 4. **COCO labels are incomplete.** Adding the 77 confirmed labels raises every detector's AP by
    0.004–0.006.
+5. **The 56 excluded photos are close-ups, not busy scenes.** Same median object count as the kept
+   photos (4), but their objects cover a median 97% of the frame (kept: 32%). The benchmark
+   under-represents close-up shots.
+6. **Per-photo detections.** Of 3,959 labelled objects, at score ≥ 0.5 the detectors found: Faster
+   R-CNN 2,938, RT-DETR 2,387, YOLO11-m 2,053, Grounding DINO 1,826. Full list per photo:
+   [images_used.md](images_used.md).
 
 ## Fixed along the way, and done early
 
@@ -63,4 +69,8 @@ held out on the test split; a human audit of 10% of edits; start the Open Images
 
 **To discuss:**
 
-- Whether excluding the 9% most cluttered photos is acceptable as a stated limitation.
+- The VLM caption study (Stage 2, H5) stays a must-have: plain and grounded prompts in week 3,
+  origin-aware prompts and caption evaluation in week 4. Confirm this plan.
+- Confirm the CVPR 2027 registration and submission dates.
+- Whether excluding the 9% of photos with no free space (mostly close-ups) is acceptable as a stated
+  limitation.

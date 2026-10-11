@@ -4,7 +4,7 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-11 |
+> | Last updated | 2026-10-12 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
 > | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Next: Task 2 (AI insertion) |
@@ -147,8 +147,11 @@ review. Confirmed missing objects are added and unresolved regions are ignored
 Of 107 candidates in 70 of 544 photographs, we add 77 labels, keep 26 as ignore regions and reject 4 as detector errors <!-- run:task1_real_baseline, file:paper/results/task1_audit_decisions.csv -->.
 
 **Insertion plan.** Of 600 sampled photographs, 544 admitted a free-space box for the
-target category <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->. The remaining 56 (9.3%) were too cluttered and are excluded from every
-condition. The benchmark therefore under-represents very crowded scenes (§8). Of the 544, 363 also
+target category <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->. The remaining 56 (9.3%) had no free space and are excluded from every
+condition. They are close-ups rather than crowded scenes: they have the same median number of labelled
+objects as the kept photographs (4), but their object boxes cover a median 97% of the frame (kept: 32%),
+and in 52 of the 56 a single object covers more than half the image <!-- run:task1_real_baseline (plan failed_sources, seed 20261008; COCO val2017 annotations), see docs/RESEARCH_LOG.md 2026-10-11 -->.
+The benchmark therefore under-represents close-up, frame-filling shots (§8). Of the 544, 363 also
 admitted a controlled-occlusion box for C5 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
  For each source we choose one of ten categories (chair, cup, bottle, potted plant,
 vase, clock, bench, umbrella, backpack, dog) and a box whose size follows that category's COCO size
@@ -323,8 +326,8 @@ prompt settings, including unedited images. [[TBD]]
 
 ## 8. Limitations, ethics and broader impact
 
-InlayFake excludes very cluttered photographs (9.3% of sampled sources had no free space for an
-insertion), and covers ten non-human object categories, one main source domain (COCO) with a small held-out
+InlayFake under-represents close-up, frame-filling photographs (9.3% of sampled sources had no free
+space for an insertion, mostly because one object fills the frame), and covers ten non-human object categories, one main source domain (COCO) with a small held-out
 Open Images test set, and three open inpainting models. Commercial editors and other domains may behave differently. Pixel evidence cannot recover an
 edit history with certainty, so models should be able to abstain, and our labels describe *how the
 image was made*, not whether anyone intended to deceive. Benign creative edits are in scope, and

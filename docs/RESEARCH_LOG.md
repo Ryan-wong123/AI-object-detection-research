@@ -14,8 +14,12 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   Why: the briefings had fallen behind `briefing_full.md` and the paper between sessions.
 - **Found while applying it:** week 1's `one_page.md` and `slides.html` still say the 56 unplanned
   photos were "too cluttered" and that there are 37 unit tests; `briefing_full.md` already describes
-  them as close-ups (Key finding 4) and the log records 38 tests. Waiting on the author before
-  syncing.
+  them as close-ups (Key finding 4) and the log records 38 tests.
+- **Fixed (author approved):** the close-up wording now appears in PAPER §4 (Insertion plan, with the
+  median object coverage 97% vs 32%) and §8, and in the one-pager and slides. The test count reads
+  38 everywhere (`pytest -q`: 38 passed on 2026-10-12). The one-pager also gains the close-up and
+  per-photo detection findings and the VLM and CVPR-dates discussion points, so all three week-1
+  files agree.
 
 ---
 

@@ -14,7 +14,7 @@ diffusion editors existed, so every object in it is photographed.
 - **Each stage is reproducible.** Every random choice uses a seed from the config, and each run
   records its git commit, config, model versions and package versions.
 - **Each stage can be resumed** if it is interrupted.
-- 37 unit tests run on the CPU without model weights.
+- 38 unit tests run on the CPU without model weights.
 - Hardware: RTX 4070 Laptop, 8 GB.
 
 ### 2. The benchmark's sources
