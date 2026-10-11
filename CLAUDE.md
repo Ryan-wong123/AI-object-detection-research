@@ -6,8 +6,9 @@
 
 - Read `PRD.md` and `ARCHITECTURE.md` before starting any task. Check the timeline in `PRD.md`
   §Timeline for what the current week should deliver.
-- After **any** completed task or finding: update `docs/RESEARCH_LOG.md` **and** `paper/PAPER.md`
-  (including its Status box).
+- After **any** completed task or finding: update `docs/RESEARCH_LOG.md`, `paper/PAPER.md`
+  (including its Status box) **and** the current week's briefing in `docs/briefings/weekN/`
+  (see `AGENTS.md` §Weekly briefing protocol).
 - Cloud sessions have no GPU (4 CPU, 15 GB RAM). Do not try to download diffusion or VLM weights
   there. Write the code, test it on CPU with synthetic fixtures, and give the author the exact command
   to run on their laptop.

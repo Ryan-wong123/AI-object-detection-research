@@ -5,6 +5,20 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-12: Decision: weekly briefings are kept current like the paper
+
+- **Decision (author):** the briefing for the current week (`docs/briefings/weekN/`:
+  `briefing_full.md`, `one_page.md`, `slides.html`) is updated after every run, finding, decision or
+  code change for the week's task, and created at the start of a new week. Added as
+  `AGENTS.md` §Weekly briefing protocol, as step 6 of the experiment workflow, and in `CLAUDE.md`.
+  Why: the briefings had fallen behind `briefing_full.md` and the paper between sessions.
+- **Found while applying it:** week 1's `one_page.md` and `slides.html` still say the 56 unplanned
+  photos were "too cluttered" and that there are 37 unit tests; `briefing_full.md` already describes
+  them as close-ups (Key finding 4) and the log records 38 tests. Waiting on the author before
+  syncing.
+
+---
+
 ## 2026-10-11: Task 1 final evaluate with 200 bootstrap resamples; week 1 complete
 
 - **Run:** `task1_real_baseline`, `evaluate` (run_evaluate_2026-10-11T150104Z.json, git 780a397)
