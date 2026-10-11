@@ -5,6 +5,34 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-11: Task 1 final evaluate with 200 bootstrap resamples; week 1 complete
+
+- **Run:** `task1_real_baseline`, `evaluate` (run_evaluate_2026-10-11T150104Z.json, git 780a397)
+  with `eval.ap_bootstrap: 200` (`configs/real_baseline.yaml`), on the RTX 4070 laptop. Reuses the
+  saved detections and forensic scores and the confirmed audit decisions (77 add / 26 ignore /
+  4 reject). Then `report` for the per-photo table. Summary saved as
+  `paper/results/task1_real_baseline_summary_v4_200boot.md`.
+- **Check:** every point estimate (AP, AP50, AR100, recall, lost/gained, forensic means, medians,
+  p95, object contrast) is identical to v3 (`..._v3_audited.md`). Only the confidence intervals
+  changed, so the inputs are unchanged.
+- **Final AP 95% CIs (C0 / C1):** Faster R-CNN 0.500 [0.460, 0.515] / 0.498 [0.460, 0.510];
+  YOLO11-m 0.530 [0.484, 0.547] / 0.528 [0.487, 0.547]; RT-DETR 0.512 [0.479, 0.527] /
+  0.511 [0.476, 0.532]; Grounding DINO 0.515 [0.481, 0.532] / 0.515 [0.476, 0.525]. The intervals
+  are wider than the 20-resample ones and overlap heavily across detectors: on 544 photos, the AP
+  ranking of the four detectors is not resolved.
+- **Resave shift (C1 − C0) CIs:** ELA +0.188 [0.170, 0.206], SRM −0.106 [−0.114, −0.099], noise
+  −0.089 [−0.142, −0.038], FFT +0.0045 [0.0029, 0.0064], JPEG grid −0.025 [−0.027, −0.022]. All
+  still exclude zero, so Findings (ii) in §7.1 stand. They moved slightly because the random
+  generator is shared with the AP bootstrap.
+- **Per-photo table:** `docs/briefings/week1/images_used.md`. Totals found / 3,959 reproduce recall
+  C0 exactly (2938 → 0.742, 2053 → 0.519, 2387 → 0.603, 1826 → 0.461).
+- **Updated:** PAPER §7.1 Tables 2a/2b and Status box, PRD Status, briefing Key finding 5.
+- **Note:** PAPER §6 says CIs use 1000 resamples; Task 1 uses 200 (stated in Table 2a). Decide
+  before submission whether the main experiments use 1000 or §6 should say 200.
+- **Next:** Task 2 (AI insertion): SDXL pilot on 50 sources with `configs/pilot.yaml`.
+
+---
+
 ## 2026-10-11: The 56 photos without a plan are close-ups; new `report` stage
 
 - **Finding:** the 56 sources that failed `plan` are not busy scenes. Their median number of

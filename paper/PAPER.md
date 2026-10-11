@@ -7,7 +7,7 @@
 > | Last updated | 2026-10-11 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | Task 1 (v2): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b complete; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels). Audit decisions re-checked and confirmed by the author. Pending: 200-resample AP CIs |
+> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Next: Task 2 (AI insertion) |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -247,30 +247,30 @@ Before any insertion, we run every detector and forensic method on the untouched
 (C1) photographs. COCO predates diffusion-based editing, so every object is photographed and every
 "AI" flag is a false alarm.
 **Table 2a.** Detector AP on 544 unedited COCO val2017 photographs (C0) and their matched resaves
-(C1), with per-object detection flips caused only by resaving. Ground truth includes the 77 audit-added labels. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v3_audited.md -->
+(C1), with per-object detection flips caused only by resaving. Ground truth includes the 77 audit-added labels. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v4_200boot.md -->
 
 | Detector | AP C0 [95% CI] | AP C1 [95% CI] | AP50 C0 | AR100 C0 | lost C0→C1 | gained C0→C1 |
 |---|---|---|---|---|---|---|
-| Faster R-CNN v2 | 0.500 [0.470, 0.513] | 0.498 [0.469, 0.518] | 0.702 | 0.628 | 0.58% | 0.66% |
-| YOLO11-m | 0.530 [0.492, 0.540] | 0.528 [0.487, 0.536] | 0.692 | 0.651 | 0.53% | 0.40% |
-| RT-DETR-R50 | 0.512 [0.484, 0.536] | 0.511 [0.477, 0.524] | 0.675 | 0.635 | 0.66% | 0.45% |
-| Grounding DINO-T | 0.515 [0.473, 0.527] | 0.515 [0.481, 0.520] | 0.664 | 0.685 | 0.76% | 0.73% |
+| Faster R-CNN v2 | 0.500 [0.460, 0.515] | 0.498 [0.460, 0.510] | 0.702 | 0.628 | 0.58% | 0.66% |
+| YOLO11-m | 0.530 [0.484, 0.547] | 0.528 [0.487, 0.547] | 0.692 | 0.651 | 0.53% | 0.40% |
+| RT-DETR-R50 | 0.512 [0.479, 0.527] | 0.511 [0.476, 0.532] | 0.675 | 0.635 | 0.66% | 0.45% |
+| Grounding DINO-T | 0.515 [0.481, 0.532] | 0.515 [0.476, 0.525] | 0.664 | 0.685 | 0.76% | 0.73% |
 
 Flips are over 3,959 photographed objects (3,882 COCO labels + 77 audit additions). An object counts as detected with a same-class prediction
 at IoU ≥ 0.5 and score ≥ 0.5. AP intervals are basic bootstrap intervals over source photographs
-(20 resamples) [[TBD: 200 resamples for the final version]].
+(200 resamples).
 
 **Table 2b.** Hand-crafted forensic scores on real photographs. Image score is the 99th percentile
 minus the median of the map. Per-object contrast is the mean inside the object minus the mean in a
-surrounding context ring, over the 3,882 original COCO labels. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v2.md -->
+surrounding context ring, over the 3,882 original COCO labels. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v4_200boot.md -->
 
 | Method | image score C0 (mean) | resave shift C1 − C0 [95% CI] | object contrast C1 (mean ± sd) |
 |---|---|---|---|
-| F1 ELA | 5.05 | +0.188 [0.171, 0.205] (+3.7%) | 0.515 ± 1.33 |
+| F1 ELA | 5.05 | +0.188 [0.170, 0.206] (+3.7%) | 0.515 ± 1.33 |
 | F2 SRM residual | 3.05 | −0.106 [−0.114, −0.099] (−3.5%) | 0.290 ± 0.81 |
-| F3 noise level | 10.38 | −0.089 [−0.144, −0.041] (−0.9%) | 0.254 ± 1.62 |
-| F4 FFT high-freq. | 0.365 | +0.0045 [0.0027, 0.0064] (+1.2%) | −0.002 ± 0.045 |
-| F5 JPEG blocking grid | 0.532 | −0.025 [−0.028, −0.022] (−4.7%) | −0.003 ± 0.052 |
+| F3 noise level | 10.38 | −0.089 [−0.142, −0.038] (−0.9%) | 0.254 ± 1.62 |
+| F4 FFT high-freq. | 0.365 | +0.0045 [0.0029, 0.0064] (+1.2%) | −0.002 ± 0.045 |
+| F5 JPEG blocking grid | 0.532 | −0.025 [−0.027, −0.022] (−4.7%) | −0.003 ± 0.052 |
 
 **Findings.** (i) The detectors reach AP 0.50–0.53 on our 544 sources, and resaving with the
 benchmark encoding changes AP by at most 0.002. Resaving alone flips 0.4–0.8% of photographed

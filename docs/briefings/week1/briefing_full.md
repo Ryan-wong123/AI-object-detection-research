@@ -148,8 +148,11 @@ object boxes.
 5. **All 544 photos used, and what each detector found in them.** For every photo:
    its split, the category planned for insertion, its labelled objects, and how many of them each of
    the four detectors found (same class, IoU ≥ 0.5, score ≥ 0.5). Full table:
-   [images_used.md](images_used.md). [[TBD: totals per detector, generated on the RTX 4070 with
-   `python -m inlayfake report --config configs/real_baseline.yaml`]]
+   [images_used.md](images_used.md). Of the 3,959 labelled objects (COCO labels plus audit
+   additions), the detectors found: Faster R-CNN 2,938 (recall 0.742), RT-DETR 2,387 (0.603),
+   YOLO11-m 2,053 (0.519), Grounding DINO 1,826 (0.461). These equal recall C0 in run
+   `task1_real_baseline`. Recall at a fixed score ≥ 0.5 ranks the detectors differently from AP,
+   because AP averages over all score thresholds.
 
 
 ## Also done (ahead of schedule)

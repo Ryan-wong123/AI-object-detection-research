@@ -4,7 +4,7 @@
 |---|---|
 | Owner | Ryan Wong |
 | Target | CVPR 2027 main track: paper submission **16 Nov 2026 23:59 AoE** (per the official call for papers as found by search; paper registration is typically about 1 week earlier; **confirm both on cvpr.thecvf.com**) |
-| Status | Week 1: Task 1 run complete (run `task1_real_baseline`, results in PAPER §7.1); label audit re-checked by the author. Remaining: final `evaluate` with 200 AP bootstrap resamples |
+| Status | Week 1 complete: Task 1 (run `task1_real_baseline`, PAPER §7.1) final with 200-resample bootstrap CIs; label audit re-checked by the author. Next: Task 2 (AI insertion, week 2) |
 
 ## 1. Problem
 
