@@ -22,8 +22,19 @@ STAGES = {
     "compose": "pair detections with origin scores; abstention",
     "postproc": "derive robustness variants of test images",
     "evaluate": "compute metrics with grouped bootstrap CIs",
+    "report": "per-image table of the photos used and what each detector found",
 }
-IMPLEMENTED = {"sample", "plan", "generate", "preview", "detect", "forensics", "audit", "evaluate"}
+IMPLEMENTED = {
+    "sample",
+    "plan",
+    "generate",
+    "preview",
+    "detect",
+    "forensics",
+    "audit",
+    "evaluate",
+    "report",
+}
 
 
 def main(argv: list[str] | None = None) -> int:

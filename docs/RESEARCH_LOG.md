@@ -5,6 +5,46 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-11: The 56 photos without a plan are close-ups; new `report` stage
+
+- **Finding:** the 56 sources that failed `plan` are not busy scenes. Their median number of
+  labelled objects is 4, the same as the 544 kept photos, but the union of their object boxes covers
+  a median 97% of the frame (kept: 32%). In 52 of 56, one object covers more than half the image,
+  most often a dining table (18), bowl (6), bed (5) or person (5). Split: 39 train, 7 val, 10 test.
+  Computed from the plan stage's `failed_sources` list (seed 20261008) and the COCO val2017
+  annotations. Interpretation: the benchmark under-represents close-up, frame-filling shots, not
+  crowded scenes. The paper's wording ("too cluttered", "very crowded scenes", §4 and §8) should
+  change; waiting for the author's go-ahead and a check of the list on the RTX 4070.
+- **Added:** the full list of 56 (COCO IDs linked to the official images, split, object count,
+  coverage, main labels) as Key finding 4 in `docs/briefings/week1/briefing_full.md`.
+- **New stage `report`:** `python -m inlayfake report --config ...` writes
+  `runs/<run>/tables/images_used.{csv,md}`, one row per C0 photo with split, planned insert,
+  labelled objects and the number found per detector (the same rule as `evaluate`'s recall, so the
+  totals reproduce recall C0). Why: the author wants the briefing to list every photo used and what
+  was detected in it. Unit test with a hand-checked example; 38 tests pass. The real table is
+  produced on the RTX 4070 (added to `TASK.md`).
+
+---
+
+## 2026-10-11: Decision: Stage 2 (VLM origin claims, H5) is a must-have
+
+- **Decision (author):** the VLM caption study is no longer optional (P1). It is part of the P0
+  scope, and H5 is a full hypothesis rather than a stretch goal. This reverses the 2026-10-08
+  decision that reduced Stage 2 to P1.
+- **Why:** Stage 2 is part of the professor's brief, and the author wants the paper to cover it.
+- **Changed:** PRD (H5 no longer "stretch"; Stage 2 moved into the P0 list; success criteria need a
+  finding for H5; new risk row; timeline: `vlm` stage, caption metrics and the plain/grounded prompts
+  in week 3, origin-aware prompts and caption evaluation in week 4). PAPER (abstract gains an H5
+  placeholder; new contribution 4; "(P1)" removed from §2 and §7.7). ARCHITECTURE (P1 labels removed
+  from `vlm` and `captions.py`). Week-1 briefing files updated.
+- **Scope kept small to fit the schedule:** two small VLMs (Florence-2, Qwen2.5-VL-3B in 4-bit),
+  three prompt settings, about 200 test images plus unedited controls. If time slips, fewer images,
+  not dropping the study.
+- **Next:** write the `vlm` stage in week 3 on the second laptop; runs that feed the paper happen on
+  the RTX 4070.
+
+---
+
 ## 2026-10-11: Label audit re-checked; config set for the final `evaluate`
 
 - **Audit:** the author re-checked all 107 drafted decisions (77 add / 26 ignore / 4 reject) on a

@@ -50,7 +50,15 @@ text. Do not mix results from the two machines.
    python -m inlayfake evaluate --config configs/real_baseline.yaml
    ```
 
-4. Start Claude Code in this repo and say something like:
+4. Build the per-photo table for the week-1 briefing (a few seconds; it lists all 544 photos and how
+   many labelled objects each detector found), then copy it into the briefing folder:
+
+   ```powershell
+   python -m inlayfake report --config configs/real_baseline.yaml
+   Copy-Item runs\task1_real_baseline\tables\images_used.md docs\briefings\week1\images_used.md
+   ```
+
+5. Start Claude Code in this repo and say something like:
    *"Read TASK.md. Here is my summary.md:"*, then paste the full contents of
    `runs\task1_real_baseline\summary.md`.
 
@@ -76,9 +84,13 @@ text. Do not mix results from the two machines.
 4. **Status box** in `PAPER.md`: set *Last updated*. Change *Experiments done* to say Task 1 is
    complete with final 200-resample CIs, and remove "Pending: 200-resample AP CIs".
 5. `PRD.md` *Status* row: week 1 complete; next is Task 2 (AI insertion).
-6. `docs/RESEARCH_LOG.md`: add a dated entry at the top with the run ID, what was run, the key
+6. **Briefing:** check that `docs/briefings/week1/images_used.md` exists (step 4 of the author's
+   steps). Its "Totals found" line divided by its total objects must equal the recall C0 values in
+   `summary.md`; if not, tell the author. In `docs/briefings/week1/briefing_full.md`, replace the
+   `[[TBD: ...]]` under Key finding 5 with those totals as recall per detector.
+7. `docs/RESEARCH_LOG.md`: add a dated entry at the top with the run ID, what was run, the key
    intervals, and a note that the point estimates were unchanged.
-7. Delete this `TASK.md`. Ask the author before committing. Then suggest merging
+8. Delete this `TASK.md`. Ask the author before committing. Then suggest merging
    `week-1-coco-dataset` into `main` and creating `week-2-ai-insertion` (see `AGENTS.md` §Git).
 
 ---

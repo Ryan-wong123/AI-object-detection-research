@@ -25,7 +25,7 @@ capability is **object-origin estimation**.
 | H2 | Local insertions change detector predictions on **untouched original objects** beyond what matched processing (resave, sham edit, real paste) and occlusion explain. | Matched-instance change rates C4 vs C1/C2/C3 |
 | H3 | Per-object forensic evidence (instance-conditioned scoring) beats image-level and naive region-pooled scoring for object origin, with fewer false accusations of real objects. | Origin AUROC/AUPRC, FPR on real objects at fixed TPR, joint origin-aware AP |
 | H4 | Any origin-detection gain survives a **held-out generator** and post-processing (JPEG, resize, blur). | Same metrics on held-out splits; degradation curves |
-| H5 (stretch) | Grounding origin evidence into VLM captions reduces false origin claims compared with direct prompting. | Caption origin error rates (Stage 2) |
+| H5 | Grounding origin evidence into VLM captions reduces false origin claims compared with direct prompting. | Caption origin error rates (Stage 2) |
 
 ## 3. Scope
 
@@ -50,12 +50,12 @@ capability is **object-origin estimation**.
    training, calibration or threshold tuning happens on it: every model and threshold is fit on COCO
    and then transferred. This answers "do the findings hold outside COCO?" (H4, source-domain axis).
    Open Images is chosen over Objects365 because Grounding DINO was pretrained on Objects365.
-7. Paper draft in `paper/PAPER.md`, converted to the CVPR LaTeX template in week 5.
+7. **Stage 2: VLM origin claims (H5)**: Florence-2 and Qwen2.5-VL-3B with three prompt settings
+   (plain, grounded, origin-aware) on about 200 test images, plus unedited controls. Structured JSON
+   output, scored for false-AI and false-real claims.
+8. Paper draft in `paper/PAPER.md`, converted to the CVPR LaTeX template in week 5.
 
 ### Should-have (P1)
-- Stage 2 mini-study: Florence-2 and Qwen2.5-VL-3B with three prompt settings (plain, grounded,
-  origin-aware) on about 200 test images, plus unedited controls. Structured JSON output, scored for
-  false-AI and false-real claims.
 - Human audit of 10% of edits (insertion success, unintended changes).
 
 ### Out of scope (future work, stated in the paper)
@@ -92,7 +92,7 @@ capability is **object-origin estimation**.
 - Benchmark: ≥ 85% verified insertion success in C4 (audited sample). Sham edits introduce a
   detectable new object in < 5% of cases.
 - Every P0 table in the paper is filled from runs, with 95% bootstrap CIs.
-- At least one clear, defensible finding for each of H1, H2, H4, whether positive or negative.
+- At least one clear, defensible finding for each of H1, H2, H4 and H5, whether positive or negative.
 - The paper is complete in CVPR format.
 
 ## 6. Novelty positioning (what we may and may not claim)
@@ -113,6 +113,7 @@ capability is **object-origin estimation**.
 | Format shortcut (PNG vs JPEG, resolution) | Spurious "detection" | Identical encoding policy for C1–C5 |
 | COCO labels are incomplete (Incomplete Benchmarks, arXiv:2609.21822) | Real unlabeled objects count as false positives | Label audit on C0 with a detector ensemble; flagged regions become "ignore" |
 | 5-week deadline | Incomplete experiments | P0/P1 split; pilot first; tables designed now; write in parallel |
+| Stage 2 adds GPU time in weeks 3–4 | Squeezes week 4 | Small models (Florence-2, Qwen2.5-VL-3B in 4-bit), about 200 test images, runs overnight; plain and grounded prompts run in week 3 as soon as detections exist; if time slips, reduce the number of images, never drop the study |
 | Open Images labels are not exhaustive (boxes cover only image-level-verified classes) | Real objects counted as false positives | Score only classes verified present or absent at image level; unverified classes become ignore regions; same label audit as COCO |
 | Verification uses a detector → selection bias | Inflated detector recall on inserts | Verifier (OWLv2) is excluded from the evaluated set; report the verifier-pass rate |
 
@@ -128,7 +129,7 @@ That false-alarm rate is the baseline every later result is compared against.
 |---|---|
 | 1 | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and **each forensic method's score distribution on real photos** (the false-alarm rate itself needs a threshold fixed on validation data with AI objects, so it is computed in Task 3) |
 | 2  | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
-| 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2) |
-| 4  | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; P1 Stage 2 if on track; figures |
+| 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2); **Stage 2:** `vlm` stage and caption metrics written, plain and grounded prompts run |
+| 4  | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; **Stage 2:** origin-aware prompts (need the week-4 origin scores) and caption evaluation (H5); figures |
 | 5  | Writing, LaTeX conversion, supplementary material, related-work verification |
 

@@ -94,3 +94,41 @@ def test_audit_candidates_and_decisions():
     )
     assert r0.ignore_regions == [{"category": "vase", "bbox": [60.0, 150.0, 20.0, 30.0]}]
     assert len(r.instances) == 2  # original record untouched
+
+
+def test_report_rows_count_found_objects_per_detector():
+    from inlayfake.stages.report import image_rows, label_summary, rows_markdown
+
+    r = _rec(sid=7)  # cup [10,10,40,40] and dog [100,100,60,50]
+    dets = {
+        # finds the cup; the dog box is the right class but scores below 0.5
+        "a": {
+            r.image_id: [
+                {"category": "cup", "bbox": [12, 10, 40, 40], "score": 0.9},
+                {"category": "dog", "bbox": [100, 100, 60, 50], "score": 0.4},
+            ]
+        },
+        # wrong class on the cup, finds the dog
+        "b": {
+            r.image_id: [
+                {"category": "bowl", "bbox": [10, 10, 40, 40], "score": 0.9},
+                {"category": "dog", "bbox": [102, 101, 58, 50], "score": 0.8},
+            ]
+        },
+    }
+    rows = image_rows([r], dets, {"7": "chair"}, iou_thr=0.5, score_thr=0.5)
+    assert rows == [
+        {
+            "source_id": 7,
+            "split": "test",
+            "planned_insert": "chair",
+            "n_objects": 2,
+            "labels": "cup, dog",
+            "found_a": 1,
+            "found_b": 1,
+        }
+    ]
+    assert label_summary(["person", "cup", "person", "dog", "person"]) == "person ×3, cup, dog"
+    md = rows_markdown(rows, ["a", "b"], {"a": "A"})
+    assert "[7](http://images.cocodataset.org/val2017/000000000007.jpg)" in md
+    assert md.strip().endswith("| 1/2 | 1/2 |")

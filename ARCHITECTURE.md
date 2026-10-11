@@ -12,7 +12,7 @@ COCO val2017 ──► [1 sample] ──► [2 audit] ──► [3 plan] ──�
                                                                                         │
             ┌──────────────────────────────────┬────────────────────────────────────────┤
             ▼                                  ▼                                        ▼
-   [6 detect] 4 detector families     [7 forensics] hand-crafted + learned     [9 vlm] (P1, Stage 2)
+   [6 detect] 4 detector families     [7 forensics] hand-crafted + learned     [9 vlm] (Stage 2)
             │                                  │                                        │
             └──────────────► [8 compose: detector + origin scorer] ◄────────────────────┘
                                                │
@@ -199,7 +199,7 @@ End-to-end system = detector predictions → for each detection, an origin score
 *predicted* box/mask (SAM-prompted) → record `{class, box, p_ai, decision ∈ {photographed, ai, abstain}}`.
 Abstain when `p_ai ∈ (τ_lo, τ_hi)`, with thresholds chosen on val.
 
-### 3.9 `vlm` (P1) ⬜ (`vlm/`)
+### 3.9 `vlm` ⬜ (`vlm/`)
 Florence-2-large (`<OD>`, `<DENSE_REGION_CAPTION>`) and Qwen2.5-VL-3B (4-bit), three prompts:
 plain caption, grounded caption, origin-aware caption requesting JSON
 `[{id, class, box, origin: photographed|ai|unknown, evidence}]` followed by prose. Unedited C1 images
@@ -221,7 +221,8 @@ distributions on real photos, and paired C1 − C0 shift. Writes `summary.md`, `
 | `origin.py` | AUROC, AUPRC, TPR@FPR=5%, **real-object false-accusation rate** at fixed TPR=80%; on GT instances (oracle localisation) and end-to-end |
 | `joint_ap.py` | Origin-aware AP: TP needs class match, IoU ≥ 0.5 and correct origin; score = det_score × p(predicted origin); macro over {photographed, ai_inserted} |
 | `calibration.py` | ECE (15 bins), Brier, risk–coverage curve, AURC |
-| `captions.py` (P1) | false-AI claims on real objects, false-real claims on inserted objects, missed origin statements, abstention coverage |
+| `captions.py` | false-AI claims on real objects, false-real claims on inserted objects, missed origin statements, abstention coverage |
+| `stages/report.py` | per-image table of a run's C0 photos: split, planned insert, labelled objects, objects found per detector (same rule as recall) → `tables/images_used.{csv,md}` |
 | `bootstrap.py` | 1000 resamples grouped by `source_id` → 95% CI for every reported number |
 
 ## 4. Configuration

@@ -31,7 +31,8 @@ generators, one held out, plus a source-domain-held-out test set from Open Image
 families and [[TBD: 9]] hand-crafted and learned forensic methods at the instance level. We find that
 [[TBD: H1 finding: detector confidence does / does not separate origin]],
 that insertions [[TBD: H2 finding: do / do not alter predictions on untouched real objects beyond matched controls]],
-and that instance-conditioned forensic scoring [[TBD: H3/H4 finding incl. held-out generator]].
+that instance-conditioned forensic scoring [[TBD: H3/H4 finding incl. held-out generator]],
+and that grounding origin evidence in VLM captions [[TBD: H5 finding: does / does not reduce false origin claims]].
 We release the benchmark protocol, provenance ledger and baselines.
 
 ---
@@ -76,7 +77,9 @@ records intended and actual edit masks, so ground truth is auditable.
 3. We run an instance-level study of four detector families and of hand-crafted and learned forensic
    methods, scored image-level, region-pooled and instance-conditioned, alone and composed with
    detectors (§5–§7).
-4. We report [[TBD: key findings, 1–2 sentences each, after experiments]].
+4. We measure the origin claims that vision-language models make when describing mixed-origin
+   images, with and without grounded origin evidence (§7.7).
+5. We report [[TBD: key findings, 1–2 sentences each, after experiments]].
 
 ---
 
@@ -111,7 +114,7 @@ false-accusation rate on intact photographed objects.
 **Explainable forensics and captioning.** FakeShield [Xu et al. 2025] and SIDA [Huang et al. 2025] pair
 localisation with language explanations. Captioning benchmarks measure object hallucination [Rohrbach
 et al. 2018; Li et al. 2023], but a caption mentioning an inserted chair is not hallucinating. Our
-(P1) study evaluates *origin claims* in grounded captions from Florence-2 [Xiao et al. 2024] and
+study evaluates *origin claims* in grounded captions from Florence-2 [Xiao et al. 2024] and
 Qwen2.5-VL [Bai et al. 2025].
 
 ---
@@ -311,9 +314,10 @@ localisation, seen generators. [[TBD]]
 ### 7.6 Controls: what are the detectors actually responding to?
 C3 (real paste) and C2 (sham) results that separate origin from compositing and editing. [[TBD]]
 
-### 7.7 (P1) Origin claims in grounded captions
+### 7.7 Origin claims in grounded captions (H5)
 **Table 6.** False-AI / false-real / abstention rates for Florence-2 and Qwen2.5-VL across three
-prompt settings, including unedited images. [[TBD: or move to supplementary / drop]]
+prompt settings, including unedited images. [[TBD]]
+**Finding.** [[TBD]]
 
 ---
 
