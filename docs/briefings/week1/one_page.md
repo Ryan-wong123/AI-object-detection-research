@@ -29,6 +29,12 @@ evaluation are correct.
 | RT-DETR-R50 | 0.512 | 0.511 |
 | Faster R-CNN v2 | 0.500 | 0.498 |
 
+**What "AP" means here:** the standard COCO detection metric, which is a *mean* average precision
+(often written mAP). It is computed with `pycocotools` and averages precision over (1) all recall levels,
+(2) the 80 COCO categories present in the images and (3) ten box-overlap (IoU) thresholds from 0.50 to
+0.95. AP50 is the same average at the single IoU threshold 0.50. It is not "accuracy": a score of 0.50
+does not mean that half of the objects were found. C0 = original photo, C1 = matched resave.
+
 Ground truth includes the 77 audit-added labels. 95% confidence intervals (bootstrap over source
 photos, 200 resamples) are in Table 2a of the paper draft.
 

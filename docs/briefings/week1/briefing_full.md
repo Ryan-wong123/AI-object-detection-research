@@ -39,6 +39,12 @@ Four families: two-stage, one-stage, transformer and open-vocabulary.
 | RT-DETR-R50 | 0.512 | 0.511 |
 | Grounding DINO-T | 0.515 | 0.515 |
 
+**What "AP" means here:** the standard COCO detection metric, which is a *mean* average precision
+(often written mAP). It is computed with `pycocotools` and averages precision over (1) all recall levels,
+(2) the 80 COCO categories present in the images and (3) ten box-overlap (IoU) thresholds from 0.50 to
+0.95. AP50 is the same average at the single IoU threshold 0.50. It is not "accuracy": a score of 0.50
+does not mean that half of the objects were found. C0 = original photo, C1 = matched resave.
+
 - These values are in the expected range for these models on COCO, which confirms the setup and
   evaluation are correct.
 - The confidence intervals are 95% bootstraps over source photos with 200 resamples (Table 2a in the

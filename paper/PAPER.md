@@ -232,7 +232,9 @@ and *instance-conditioned* (interior minus a surrounding context ring). Scores a
 
 ## 6. Metrics
 
-*Semantic*: COCO AP/AR [Lin et al. 2014], reported separately for original and inserted subsets.
+*Semantic*: COCO AP/AR [Lin et al. 2014]. Following COCO, "AP" denotes average precision averaged
+over the 80 categories and over IoU thresholds 0.50:0.05:0.95 (i.e. COCO mAP); AP50 uses IoU 0.50 only.
+It is reported separately for original and inserted subsets.
 *Matched-instance change*: for each original instance, the detected→missed rate, class flips, box IoU
 drift and score change from C1 to each condition, stratified by distance to the edit and by
 visibility. *Origin*: AUROC, AUPRC, TPR at 5% FPR and the **real-object false-accusation rate** at 80%
