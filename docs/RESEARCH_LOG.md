@@ -5,6 +5,15 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-15: README: how to view and re-run the detector viewer
+
+- The author committed the shareable week-1 viewer (`docs/viewer/task1_real_baseline/`: 1,088
+  downscaled photos, about 70 MB).
+- README now explains how to open it without setup, how to regenerate the local viewer (`report` →
+  `viewer` → open, with timings), and how to rebuild and push the shareable copy.
+
+---
+
 ## 2026-10-15: Shareable viewer (`viewer --share`)
 
 - **Why:** the author wants others to view the runs. Committing `runs/` is not enough: the page
