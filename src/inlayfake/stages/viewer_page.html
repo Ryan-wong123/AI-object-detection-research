@@ -8,13 +8,13 @@
 :root {
   --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1f24; --muted: #5f6470; --line: #d9dbe0;
   --gt: #1f7a4d; --audit: #2463c2; --tp: #1f9d55; --fp: #e0662b; --ign: #8a8f98; --miss: #c2185b;
-  --ins: #8e44ad;
+  --ins: #8e44ad; --mod: #b7791f;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #15171c; --panel: #1e2128; --ink: #e8e9ec; --muted: #a3a8b3; --line: #343842;
     --gt: #3fbf7f; --audit: #5b9bf0; --tp: #3ccf7a; --fp: #ff8a4c; --ign: #9aa0aa;
-    --miss: #ff5c9a; --ins: #c084fc;
+    --miss: #ff5c9a; --ins: #c084fc; --mod: #f0b429;
   }
 }
 * { box-sizing: border-box; }
@@ -85,6 +85,7 @@ details.results summary { cursor: pointer; font-weight: 600; }
     <span><i class="sw" style="border-color:var(--gt)"></i>COCO label</span>
     <span><i class="sw" style="border-color:var(--audit)"></i>label added in audit</span>
     <span><i class="sw" style="border-color:var(--ins)"></i>inserted / pasted object</span>
+    <span><i class="sw" style="border-color:var(--mod)"></i>real object altered by the editor</span>
     <span><i class="sw" style="border-color:var(--ign);border-style:dashed"></i>ignore / crowd region</span>
     <span><i class="sw" style="border-color:var(--tp)"></i>detection matching a label</span>
     <span><i class="sw" style="border-color:var(--fp)"></i>detection matching no label</span>
@@ -104,7 +105,9 @@ details.results summary { cursor: pointer; font-weight: 600; }
   const PER_PAGE = 10;
   const NAMES = { faster_rcnn: "Faster R-CNN", yolo: "YOLO11-m", rtdetr: "RT-DETR",
                   grounding_dino: "Grounding DINO" };
-  const CONDS = { C0: "C0 original", C1: "C1 resave" };
+  const CONDS = { C0: "C0 original", C1: "C1 resave", C2: "C2 sham edit", C3: "C3 real paste",
+                  C4: "C4 AI insert", C5: "C5 AI insert + occlusion" };
+  const condLabel = (k) => { const [c, g] = k.split("/"); return (CONDS[c] || c) + (g ? " · " + g : ""); };
   const state = { cond: D.conditions.includes("C0") ? "C0" : D.conditions[0], page: 0 };
 
   $("runname").textContent = D.run ? "· " + D.run : "";
@@ -112,13 +115,14 @@ details.results summary { cursor: pointer; font-weight: 600; }
   $("rule").textContent = `Boxes are shown at the evaluation operating point: score ≥ ${D.score_threshold}. ` +
     `An object counts as found when a box of the same class overlaps it with IoU ≥ ${D.iou_threshold}; ` +
     `"found X/N" matches images_used.md.`;
-  for (const c of D.conditions) $("cond").add(new Option(CONDS[c] || c, c));
+  for (const c of D.conditions) $("cond").add(new Option(condLabel(c), c));
   $("cond").value = state.cond;
 
   const esc = (s) => String(s).replace(/[&<>"]/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const GT_COLOR = { coco: "var(--gt)", audit: "var(--audit)", inserted: "var(--ins)",
-                     pasted: "var(--ins)", crowd: "var(--ign)", ignore: "var(--ign)" };
+                     pasted: "var(--ins)", modified: "var(--mod)", crowd: "var(--ign)",
+                     ignore: "var(--ign)" };
   const BOX_COLOR = { 1: "var(--tp)", 0: "var(--fp)", 2: "var(--ign)" };
   const unscored = (g) => g[5] === "crowd" || g[5] === "ignore";
 
@@ -141,6 +145,8 @@ details.results summary { cursor: pointer; font-weight: 600; }
     if (name === null) {
       for (const g of view.gt) svg += box(g, GT_COLOR[g[5]], g[4], im.w, unscored(g));
       title = "Ground truth"; info = `${view.gt.filter((g) => !unscored(g)).length} labels`;
+    } else if (!view.det[name]) {
+      title = NAMES[name] || name; info = "not run on this image yet";
     } else {
       const p = view.det[name], found = new Set(p.found);
       view.gt.forEach((g, i) => {

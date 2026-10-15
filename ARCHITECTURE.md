@@ -137,7 +137,15 @@ For each source, pick a target category (balanced across categories), then a box
 - `stages/preview.py` ✅: `<work>/preview.html` contact sheet (planned boxes in yellow, inserted or
   pasted instances in red) for visual checks of the pilot.
 
-### 3.5 `verify` + `annotate` ⬜ (`edit/verify.py`, `annotate/`)
+### 3.5 `verify` + `annotate` ✅ (`edit/verify.py`, `stages/verify.py`, `stages/insert.py`)
+Implemented as below, with these specifics: `verify.jsonl` logs one row per checked image;
+`generate` reads it and regenerates failed jobs with seed attempt n+1 (max `edit.max_attempts` = 3),
+skipping model loading when nothing is pending. `insert` runs generate → verify in rounds. Sham
+edits (C2) pass only if OWLv2 finds *no* target object. The final `ledger.jsonl` carries C0/C1
+unchanged (tested), C3 with its pasted mask, and one passed record per C2/C4/C5 job. The human audit
+is `audit_edits.html` + `audit_edits.csv` (before/after crops; object_ok / realistic / other_change).
+Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml` for CPU tests).
+
 - **Insertion success**: OWLv2 (`google/owlv2-base-patch16-ensemble`, **not** an evaluated detector)
   queried with the category name inside the crop window. Pass = a box with IoU ≥ 0.3 to the plan and
   score ≥ τ. On failure, retry with a new seed (max 3), then drop and log it.

@@ -4,7 +4,7 @@
 |---|---|
 | Owner | Ryan Wong |
 | Target | CVPR 2027 main track: paper submission **16 Nov 2026 23:59 AoE** (per the official call for papers as found by search; paper registration is typically about 1 week earlier; **confirm both on cvpr.thecvf.com**) |
-| Status | Week 1 complete: Task 1 (run `task1_real_baseline`, PAPER §7.1) final with 200-resample bootstrap CIs; label audit re-checked by the author. Next: Task 2 (AI insertion, week 2) |
+| Status | Week 1 complete (run `task1_real_baseline`). Week 2 in progress: insertion + verification code done and CPU-tested on branch `week-2-ai-insertion`; SDXL pilot next on the laptop |
 
 ## 1. Problem
 

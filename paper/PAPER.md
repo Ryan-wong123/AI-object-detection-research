@@ -4,10 +4,10 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-12 |
+> | Last updated | 2026-10-15 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Next: Task 2 (AI insertion) |
+> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion); SDXL pilot pending on the laptop |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -179,9 +179,13 @@ the latter is part of Grounding DINO's pretraining data [Liu et al. 2024].
 pipeline, so file format cannot reveal origin.
 
 **Verification and annotation.** An open-vocabulary verifier (OWLv2 [Minderer et al. 2023]), which is
-not among the evaluated detectors, confirms each insertion. SAM [Kirillov et al. 2023] provides its
-mask. Failed insertions are retried with new seeds or discarded
-([[TBD: success rate]]). We record the actual changed region separately from the intended mask, and
+not among the evaluated detectors, confirms each insertion: it must find the target class in the edit window with IoU ≥ 0.3 to the
+planned box and score ≥ 0.2. A sham edit (C2) passes only if the verifier finds no such object. Failed
+edits are regenerated with a new seed, up to three attempts, and otherwise discarded
+([[TBD: success rate per condition and generator]]). SAM [Kirillov et al. 2023], prompted with the
+verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
+objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
+become ignore regions. We record the actual changed region separately from the intended mask, and
 we mark original objects overlapped by more than 10% as *mixed/modified*. A human audit of
 [[TBD: 10%]] of edits finds [[TBD: audit results]].
 

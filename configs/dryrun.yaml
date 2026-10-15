@@ -8,6 +8,8 @@ generators_enabled: [G1]
 generators:
   G1: {model_id: fake, resolution: 256, role: seen}
 run_name: dryrun
+verify:
+  model_id: fake
 detect:
   detectors: [fake_a, fake_b]
 detectors:

@@ -162,9 +162,13 @@ def _generative_jobs(cfg: dict, plan: dict, gen: str) -> list[tuple[str, list[fl
     return jobs
 
 
-def _generative_one(cfg, index, plan, src, gen, cond, box, inpainter, wd, enc) -> bool:
+def _generative_one(cfg, index, plan, src, gen, cond, box, inpainter, wd, enc, state) -> bool:
     sid, split = plan["source_id"], plan["split"]
-    attempt = 0
+    from inlayfake.stages.verify import next_attempt
+
+    attempt = next_attempt(state, f"{sid}|{cond}|{gen}", cfg["edit"]["max_attempts"])
+    if attempt is None:  # already verified as passed, or out of attempts
+        return False
     seed = derive_seed(cfg["seed"], sid, cond, gen, attempt)
     rid = ImageRecord.make_id(sid, cond, gen, seed)
     if _exists(wd, rid):
@@ -235,6 +239,18 @@ def _generative_one(cfg, index, plan, src, gen, cond, box, inpainter, wd, enc) -
     return True
 
 
+def _pending(cfg: dict, plan: dict, cond: str, gen: str, state: dict, wd: Path) -> bool:
+    """True if this job still needs an image (first attempt or a retry after a failed verify)."""
+    from inlayfake.stages.verify import next_attempt
+
+    sid = plan["source_id"]
+    attempt = next_attempt(state, f"{sid}|{cond}|{gen}", cfg["edit"]["max_attempts"])
+    if attempt is None:
+        return False
+    seed = derive_seed(cfg["seed"], sid, cond, gen, attempt)
+    return not _exists(wd, ImageRecord.make_id(sid, cond, gen, seed))
+
+
 def consolidate(wd: Path) -> int:
     rows = sorted((wd / "records").glob("*.json"))
     with (wd / "ledger_generated.jsonl").open("w", encoding="utf-8") as f:
@@ -256,15 +272,34 @@ def run(cfg: dict, limit: int | None = None) -> dict:
             cfg, index, plan, sources[plan["source_id"]], wd, enc
         )
 
+    from inlayfake.stages.verify import verify_state
+
+    state = verify_state(wd)
     for gen in _gen_enabled(cfg):
-        jobs = [(p, c, b) for p in plans for c, b in _generative_jobs(cfg, p, gen)]
-        if not jobs:
+        jobs = [
+            (p, c, b)
+            for p in plans
+            for c, b in _generative_jobs(cfg, p, gen)
+            if _pending(cfg, p, c, gen, state, wd)
+        ]
+        if not jobs:  # nothing to (re)generate: do not load the model
+            counts[gen] = 0
             continue
         inpainter = build_inpainter(cfg["generators"][gen], cfg["edit"], cfg["hardware"])
         done = 0
         for plan, cond, box in tqdm(jobs, desc=f"{gen}"):
             done += _generative_one(
-                cfg, index, plan, sources[plan["source_id"]], gen, cond, box, inpainter, wd, enc
+                cfg,
+                index,
+                plan,
+                sources[plan["source_id"]],
+                gen,
+                cond,
+                box,
+                inpainter,
+                wd,
+                enc,
+                state,
             )
         counts[gen] = done
         del inpainter

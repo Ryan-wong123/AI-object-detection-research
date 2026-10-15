@@ -17,6 +17,7 @@ STAGES = {
     "preview": "write an HTML contact sheet of generated conditions",
     "audit": "flag candidate missing labels on C0 for manual review",
     "verify": "verify insertions (OWLv2), SAM masks, actual-change masks, write ledger",
+    "insert": "generate + verify in rounds until every edit passed or ran out of attempts",
     "detect": "run the four detector families",
     "forensics": "run hand-crafted and learned forensic methods",
     "compose": "pair detections with origin scores; abstention",
@@ -36,6 +37,8 @@ IMPLEMENTED = {
     "evaluate",
     "report",
     "viewer",
+    "verify",
+    "insert",
 }
 
 
@@ -45,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     for name, desc in STAGES.items():
         p = sub.add_parser(name, help=desc + ("" if name in IMPLEMENTED else " [not yet]"))
         p.add_argument("--config", default="configs/default.yaml")
-        if name in ("generate", "preview"):
+        if name in ("generate", "preview", "insert"):
             p.add_argument("--limit", type=int, default=None, help="only the first N sources")
         if name == "viewer":
             p.add_argument(

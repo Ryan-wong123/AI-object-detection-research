@@ -43,7 +43,10 @@ NOT_SCORED = ("crowd", "ignore")
 
 
 def ground_truth(rec: ImageRecord) -> list[list]:
-    """[x, y, w, h, label, kind] with kind in coco | audit | inserted | pasted | crowd | ignore."""
+    """[x, y, w, h, label, kind].
+
+    kind: coco | audit | inserted | pasted | modified | crowd | ignore.
+    """
     out = []
     for inst in rec.instances:
         if inst.iscrowd:
@@ -54,6 +57,8 @@ def ground_truth(rec: ImageRecord) -> list[list]:
             kind = "inserted"
         elif inst.origin.value == "real_pasted":
             kind = "pasted"
+        elif inst.origin.value == "mixed_modified":
+            kind = "modified"
         else:
             kind = "coco"
         out.append([*(round(v, 1) for v in inst.bbox), inst.category, kind])
@@ -222,8 +227,12 @@ def build_data(cfg: dict, out_dir: Path, share: bool = False) -> dict:
         by_src[r.source_id][key] = {
             "src": quote(rel, safe="/._-"),
             "gt": gt,
+            # None = this detector has not been run on this image yet (e.g. edited images before
+            # week 3), shown as "not run" rather than as zero detections.
             "det": {
-                n: score_panel(dets[n].get(r.image_id, []), gt, iou_thr, score_thr)
+                n: score_panel(dets[n][r.image_id], gt, iou_thr, score_thr)
+                if r.image_id in dets[n]
+                else None
                 for n in detectors
             },
         }

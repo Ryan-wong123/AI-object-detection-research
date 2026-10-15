@@ -73,6 +73,9 @@ verify:
   sam_model_id: facebook/sam-vit-base
   changed_pixel_threshold: 4
   mixed_modified_overlap: 0.10
+  candidate_threshold: 0.05            # OWLv2 candidates kept before the min_score/min_iou check
+  min_visible_fraction: 0.10           # occluded originals below this become ignore regions
+  audit_fraction: 0.10                 # share of verified edits put on the human-audit sheet
 
 detect:
   detectors: [faster_rcnn, yolo, rtdetr, grounding_dino]

@@ -5,6 +5,32 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-15: Week 2 started: verification stage, insert loop, viewer for C2–C5
+
+- **Branch:** `week-2-ai-insertion` (from `week-1-coco-dataset`). Briefing folder
+  `docs/briefings/week2/` created (full, one-page, slides; results all TBD).
+- **verify** (new): OWLv2 must find the target class in the crop window (IoU ≥ 0.3 to the plan,
+  score ≥ 0.2); C2 sham passes only if it does not. SAM, prompted with the OWLv2 box and clipped to
+  the intended mask, gives the inserted mask and box. Actual changed mask (|edit − C1| > 4, 3×3
+  opening). Occluded real objects get visible mask, box and fraction (< 10% → ignore region). Real
+  objects overlapped > 10% by the changed region → `mixed_modified`. 10% human-audit sheet.
+- **Why OWLv2 and not one of the four detectors:** verifying with an evaluated detector would keep
+  only insertions that detector sees and inflate its recall on inserted objects.
+- **Retries:** failed edits are regenerated with a new seed (attempt n+1, max 3); `insert` loops
+  generate → verify. `generate` no longer loads a 7 GB model when no job is pending.
+- **Final ledger** `ledger.jsonl`: C0/C1 unchanged (tested, so week-1 results are unaffected), C3
+  with its pasted mask, one passed record per C2/C4/C5 job.
+- **Bug caught before the GPU run:** transformers 5.x removed `Owlv2Processor.post_process_object_
+  detection` (now `post_process_grounded_object_detection`); the wrapper supports both. The SAM wrapper
+  was run with random weights on CPU; real OWLv2/SAM weights cannot be downloaded in the sandbox.
+- **Viewer:** lists C2–C5 per generator; inserted objects purple, `mixed_modified` amber; detectors
+  not yet run on an image show "not run on this image yet" instead of zero detections.
+- **Tests:** 48 pass (end-to-end insert; forced verifier failure regenerated with a new seed).
+- **Open:** laptop system RAM (FLUX needs about 32 GB on an 8 GB GPU, else Kandinsky 2.2).
+- **Next:** SDXL pilot on the laptop (`configs/pilot.yaml`), then the overnight `insert` run.
+
+---
+
 ## 2026-10-15: README: how to view and re-run the detector viewer
 
 - The author committed the shareable week-1 viewer (`docs/viewer/task1_real_baseline/`: 1,088

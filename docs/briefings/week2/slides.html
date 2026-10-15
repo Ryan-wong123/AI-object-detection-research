@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InlayFake Week 2 Update</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400..700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+body{margin:0;padding:24px;background:#d9d7d0;font:15px 'IBM Plex Sans',Arial,sans-serif;color:#14213D}
+h1.page{font:600 22px 'Source Serif 4',Georgia,serif;margin:0 auto 16px;max-width:1200px}
+.slide{margin:0 auto 32px;max-width:1200px}
+.frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.frame>section{position:absolute;left:0;top:0;width:1920px;height:1080px;box-sizing:border-box;transform-origin:0 0}
+.frame section *{margin:0;box-sizing:border-box}
+.frame section ul,.frame section ol{padding-left:1.2em}
+.frame section table{border-collapse:collapse}
+.frame section th,.frame section td{padding:.35em .6em;border-bottom:1px solid #cfccc3}
+figcaption{margin-top:8px;line-height:1.5;color:#33415c}
+</style></head><body>
+<h1 class="page">InlayFake Week 2 Update (speaker notes under each slide)</h1>
+<figure class="slide"><div class="frame"><section id="cover" data-transition="fade" style="background:#14213D;color:#F7F6F2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:40px">
+<p style="font-size:32px;font-weight:600;color:#E8A06A;letter-spacing:4px;text-transform:uppercase">CVPR 2027 project · Progress briefing</p>
+<h1 style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1.05;color:#F7F6F2">InlayFake: Week 2</h1>
+<p style="font-size:44px;line-height:1.3;color:#C9D2E3;width:1400px">Inserting AI objects into real photos, with matched controls and verification</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1200px;font-size:24px;color:#9AA6BD">15–21 October 2026 · Ryan Wong · last updated 15 October 2026</p>
+</section></div><figcaption><b>Slide 1.</b> Week 2 of five. The insertion and verification code is written and tested; generation on the laptop GPU is next, so results are still to come.</figcaption></figure><figure class="slide"><div class="frame"><section id="how" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">How an insertion works</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;width:1600px">The generator only repaints the planned box; everything else stays identical to C1</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">1. Window</h3><p style="font-size:28px;line-height:1.45;color:#4A5568">Square crop of 2.5× the planned box, so the generator sees the scene.</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">2. Inpaint</h3><p style="font-size:28px;line-height:1.45;color:#4A5568">"a photo of a chair, realistic, natural lighting" inside the box, at the generator's native size.</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">3. Composite</h3><p style="font-size:28px;line-height:1.45;color:#4A5568">Only pixels inside the mask are blended back, then saved as JPEG q95 like C1.</p></div>
+</div>
+</section></div><figcaption><b>Slide 2.</b> The mask-only composite and identical JPEG settings stop a method from detecting the edit through format or global re-encoding instead of the object itself.</figcaption></figure><figure class="slide"><div class="frame"><section id="conditions" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Matched conditions</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Controls separate "AI object" from "edited" and "pasted"</h2>
+<table style="font-size:30px;width:1660px">
+<tr><th style="text-align:left">Condition</th><th style="text-align:left">What it is</th><th style="text-align:left">Generator</th></tr>
+<tr><td>C2 sham</td><td>Same mask, "empty background": the editor runs but adds nothing</td><td>SDXL</td></tr>
+<tr><td>C3 real paste</td><td>A real COCO object of the same class pasted into the box</td><td>none</td></tr>
+<tr><td>C4 AI insert</td><td>AI object in free space</td><td>SDXL, SD2; FLUX held out (test only)</td></tr>
+<tr><td>C5 AI insert + occlusion</td><td>AI object covering 20–50% of a real object</td><td>SDXL</td></tr>
+</table>
+</section></div><figcaption><b>Slide 3.</b> If a method flags C4 but also C2 or C3, it reacts to editing or pasting rather than to AI origin.</figcaption></figure><figure class="slide"><div class="frame"><section id="verify" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">New code: verification</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Every edit is checked before it enters the benchmark</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">Object present?</h3><ul style="font-size:28px;line-height:1.45;color:#4A5568"><li>OWLv2, not an evaluated detector, must find the class in the box</li><li>Sham edits must contain no object</li><li>Failures are regenerated with a new seed, up to 3 times</li></ul></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">Ground truth</h3><ul style="font-size:28px;line-height:1.45;color:#4A5568"><li>SAM outline of each inserted object</li><li>Actual changed region per image</li><li>Visible fraction of occluded real objects</li><li>10% human audit sheet</li></ul></div>
+</div>
+</section></div><figcaption><b>Slide 4.</b> 48 CPU tests pass, including a forced verifier failure that is retried with a new seed. The real OWLv2 and SAM weights run for the first time in the pilot.</figcaption></figure><figure class="slide"><div class="frame"><section id="next" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Results and next steps</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Pilot first, then the overnight run</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:3;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600">Results</h3>
+<ul style="font-size:28px;line-height:1.45;color:#4A5568"><li>Pilot insertion success (50 photos, SDXL): [[TBD]]</li><li>Sham edits that produced an object: [[TBD]]</li><li>Final images per condition: [[TBD]]</li><li>Human audit: [[TBD]]</li></ul>
+</div>
+<div style="flex:2;display:flex;flex-direction:column;gap:20px;background:#FFFFFF;padding:48px;border:2px solid #B04A12;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600;color:#B04A12">To discuss</h3>
+<ul style="font-size:28px;line-height:1.45;color:#4A5568"><li>FLUX needs ~32 GB RAM on an 8 GB GPU, otherwise Kandinsky 2.2 is held out</li><li>Is 3 attempts per edit enough?</li></ul>
+</div>
+</div>
+</section></div><figcaption><b>Slide 5.</b> Generation runs on the RTX 4070 laptop. Results will be filled in from run task2_insertion.</figcaption></figure>
+<script>
+function fit(){document.querySelectorAll('.frame').forEach(f=>{f.firstElementChild.style.transform='scale('+f.clientWidth/1920+')';});}
+addEventListener('resize',fit);fit();
+</script></body></html>
