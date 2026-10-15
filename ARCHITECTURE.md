@@ -211,13 +211,16 @@ Applied on test images only, after generation: JPEG {95, 75, 50}, resize {0.5}, 
 
 ### 3.10b `viewer` ✅ (`stages/viewer.py`, template `stages/viewer_page.html`)
 Writes `runs/<run>/viewer/index.html` + `data.js`, a static page opened straight from disk (no
-server). Per photo: a ground-truth panel (COCO labels, audit additions, ignore/crowd regions,
-inserted/pasted objects) and one panel per detector. Detections ≥ `viewer.min_score` (0.3) are stored;
-a slider sets the display threshold (default 0.5). Boxes are matched to labels with the `evaluate`
-rule (same class, IoU ≥ 0.5, greedy by score, one-to-one): green = matched, orange = no matching
-label (false positive or unlabelled object), grey = on an ignore region; labels no shown box matches
-are drawn dashed. Filters: condition (C0/C1, later C2–C5 per generator), category, split, "photos
-with a miss / an unmatched box / audit changes", image id. Click a panel to enlarge it.
+server). It shows results, not a tuning tool. At the top it renders the run's `summary.md` and the
+totals from `tables/images_used.md`. Below that, per photo (sorted by COCO id, 10 per page), it shows
+a ground-truth panel (COCO labels, audit additions, ignore/crowd regions, inserted/pasted objects)
+and one panel per detector. Boxes are drawn only at the evaluation operating point
+(score ≥ `eval.recall_score` = 0.5), using the same found-rule as `evaluate.detected` and `report`
+(same class, IoU ≥ `eval.iou_threshold`). Each panel's "found X/N" therefore equals the
+corresponding `images_used.md` cell; a test enforces this. Colours: green = box on a label, orange =
+box on no label (false positive or unlabelled object), grey = box on an ignore region, dashed = label
+not found. Controls: condition (C0/C1, later C2–C5 per generator), COCO id search, pages,
+click-to-enlarge.
 
 ### 3.11 `evaluate` 🚧 (`eval/`, `stages/evaluate.py`)
 Task 1 version ✅: AP/AP50/AP75/AR100 per detector × condition (95% CI from grouped bootstrap over

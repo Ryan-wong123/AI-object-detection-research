@@ -95,34 +95,56 @@ def test_task1_real_baseline_end_to_end(cfg, tmp_path):
 
 
 def test_viewer_page(cfg, tmp_path):
-    """The viewer writes index.html + data.js with GT and per-detector matched boxes."""
+    """The viewer writes index.html + data.js; per-panel found counts equal report's table."""
     import json
 
-    from inlayfake.stages import detect, viewer
+    from inlayfake.stages import detect, evaluate, report, viewer
 
     cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
-    for stage in (sample, plan, generate, detect):
+    for stage in (sample, plan, generate, detect, evaluate, report):
         stage.run(cfg)
     out = viewer.run(cfg)
     vdir = tmp_path / "runs" / "dryrun" / "viewer"
     assert (vdir / "index.html").exists() and out["conditions"] == ["C0", "C1"]
     data = json.loads((vdir / "data.js").read_text().split("=", 1)[1].rstrip().rstrip(";"))
-    im = data["images"][0]
-    view = im["cond"]["C0"]
-    assert (vdir / view["src"]).resolve().exists()  # relative image path resolves
-    dets = view["det"]["fake_a"]
-    assert dets and all(d[6] >= 0 for d in dets)  # fake detector echoes GT -> all matched
+    assert "Detector AP" in data["results_html"] and "<table>" in data["results_html"]
+
+    import csv
+
+    rows = {
+        r["source_id"]: r
+        for r in csv.DictReader((tmp_path / "runs/dryrun/tables/images_used.csv").open())
+    }
+    for im in data["images"]:
+        view = im["cond"]["C0"]
+        assert (vdir / view["src"]).resolve().exists()  # relative image path resolves
+        for name in ("fake_a", "fake_b"):
+            assert len(view["det"][name]["found"]) == int(rows[str(im["sid"])][f"found_{name}"])
 
 
-def test_match_detections_greedy_and_ignore():
-    from inlayfake.stages.viewer import IGNORE, UNMATCHED, match_detections
+def test_score_panel_rule():
+    from inlayfake.stages.viewer import IGNORED, MATCHED, UNMATCHED, score_panel
 
-    gt = [[0, 0, 10, 10, "cup", "coco"], [50, 50, 10, 10, "dog", "ignore"]]
+    gt = [
+        [0, 0, 10, 10, "cup", "coco"],
+        [50, 50, 10, 10, "dog", "ignore"],
+        [80, 0, 10, 10, "cat", "coco"],
+    ]
     dets = [
         {"category": "cup", "bbox": [0, 0, 10, 10], "score": 0.9},
-        {"category": "cup", "bbox": [1, 1, 10, 10], "score": 0.8},  # duplicate -> unmatched
-        {"category": "dog", "bbox": [50, 50, 10, 10], "score": 0.7},  # on ignore region
-        {"category": "cup", "bbox": [0, 0, 10, 10], "score": 0.1},  # below min_score -> dropped
+        {"category": "cup", "bbox": [1, 1, 10, 10], "score": 0.8},  # duplicate: still on a label
+        {"category": "dog", "bbox": [50, 50, 10, 10], "score": 0.7},  # on an ignore region
+        {"category": "vase", "bbox": [30, 30, 5, 5], "score": 0.6},  # no label
+        {"category": "cat", "bbox": [80, 0, 10, 10], "score": 0.4},  # below threshold: hidden
     ]
-    out = match_detections(dets, gt, 0.5, 0.3)
-    assert [d[6] for d in out] == [0, UNMATCHED, IGNORE]
+    p = score_panel(dets, gt, 0.5, 0.5)
+    assert [b[6] for b in p["boxes"]] == [MATCHED, MATCHED, IGNORED, UNMATCHED]
+    assert p["found"] == [0] and p["n"] == 2  # the cat is not found at score >= 0.5
+
+
+def test_markdown_to_html():
+    from inlayfake.stages.viewer import markdown_to_html
+
+    h = markdown_to_html("# T\n\nText **b** `c`\n\n| a | b |\n|---|---|\n| 1 | 2 |\n<!-- x -->")
+    assert "<h2>T</h2>" in h and "<b>b</b>" in h and "<code>c</code>" in h
+    assert "<th>a</th>" in h and "<td>2</td>" in h and "x -->" not in h

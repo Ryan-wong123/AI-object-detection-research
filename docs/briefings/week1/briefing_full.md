@@ -170,7 +170,9 @@ object boxes.
 - Paper draft: sections 1–6 and 8 are drafted, and §7.1 (baseline results) is filled in.
 - A detector viewer (`python -m inlayfake viewer`): a local web page that shows each photo's COCO
   labels next to every detector's boxes. Boxes are coloured by whether they match a label, missed
-  labels are drawn dashed, and there are a score slider, a C0/C1 switch and filters. It is useful
+  labels are drawn dashed, and the run's result tables are shown at the top. Boxes are drawn at the
+  same score ≥ 0.5 operating point as the results, so each panel's "found X/N" equals
+  `images_used.md`. It is useful
   for showing supervisors what the AP numbers mean on real photos, and it will also show the
   AI-edited conditions from week 2.
 

@@ -77,10 +77,6 @@ verify:
 detect:
   detectors: [faster_rcnn, yolo, rtdetr, grounding_dino]
 
-viewer:                                # `viewer` stage: runs/<run>/viewer/index.html
-  min_score: 0.3                       # boxes below this are not stored (keeps data.js small)
-  default_threshold: 0.5               # initial position of the score slider
-
 audit:                                 # candidate missing COCO labels (on C0)
   min_score: 0.7
   min_agree: 2                         # at least 2 detectors must agree

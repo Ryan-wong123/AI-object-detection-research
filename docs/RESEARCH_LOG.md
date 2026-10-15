@@ -5,6 +5,19 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-15: Viewer shows results only (slider removed)
+
+- **Why:** the author wants the page to show the results as computed, not an adjustable view: a
+  free score slider could display a different operating point from the reported numbers.
+- **Change:** boxes are drawn only at the evaluation operating point (score ≥ `eval.recall_score`
+  = 0.5, IoU ≥ 0.5). The found-rule is now identical to `evaluate.detected` / `report`, so each
+  panel's "found X/N" equals the `images_used.md` cell; an end-to-end test checks this for every
+  photo. The run's `summary.md` and the `images_used.md` totals are rendered at the top. Category,
+  split and "show only" filters were removed; the C0/C1 switch, id search and pages remain.
+- **No new results.**
+
+---
+
 ## 2026-10-15: Detector viewer web page (`viewer` stage)
 
 - **Why:** the author wanted to see, per photo, the original COCO image with its labels next to what
