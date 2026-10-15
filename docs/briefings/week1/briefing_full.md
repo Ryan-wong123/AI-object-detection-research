@@ -172,7 +172,8 @@ object boxes.
   labels next to every detector's boxes. Boxes are coloured by whether they match a label, missed
   labels are drawn dashed, and the run's result tables are shown at the top. Boxes are drawn at the
   same score ≥ 0.5 operating point as the results, so each panel's "found X/N" equals
-  `images_used.md`. It is useful
+  `images_used.md`. `viewer --share` writes a self-contained copy (`docs/viewer/<run>/`, downscaled
+  photos) that can be committed and shared. It is useful
   for showing supervisors what the AP numbers mean on real photos, and it will also show the
   AI-edited conditions from week 2.
 

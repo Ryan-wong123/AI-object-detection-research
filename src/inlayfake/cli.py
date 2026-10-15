@@ -47,6 +47,12 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--config", default="configs/default.yaml")
         if name in ("generate", "preview"):
             p.add_argument("--limit", type=int, default=None, help="only the first N sources")
+        if name == "viewer":
+            p.add_argument(
+                "--share",
+                action="store_true",
+                help="self-contained copy in docs/viewer/<run>/ to commit or share",
+            )
     args = parser.parse_args(argv)
     if args.stage is None:
         parser.print_help()
@@ -56,6 +62,8 @@ def main(argv: list[str] | None = None) -> int:
     cfg = load_config(args.config)
     module = importlib.import_module(f"inlayfake.stages.{args.stage}")
     kwargs = {"limit": args.limit} if getattr(args, "limit", None) is not None else {}
+    if getattr(args, "share", False):
+        kwargs["share"] = True
     result = module.run(cfg, **kwargs)
     print(json.dumps(result, indent=2))
     return 0

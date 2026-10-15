@@ -9,6 +9,12 @@ same class with IoU >= eval.iou_threshold. Each detector panel's "found X/N" the
 corresponding cell of images_used.md. The run's summary.md and the images_used.md totals are
 rendered at the top of the page.
 
+Two output modes:
+  local (default): runs/<run>/viewer/. Images are referenced in place from data/ (fast, private).
+  --share: docs/viewer/<run>/. Self-contained page + data.js + downscaled JPEG copies
+    (viewer.share_max_side / share_quality), so the folder can be committed, zipped or served
+    with GitHub Pages.
+
 Per photo: a ground-truth panel (COCO labels, audit additions, ignore/crowd regions, inserted or
 pasted objects) and one panel per detector. Box colours: green = the box matches a labelled object;
 orange = it matches no label (a false positive or an object COCO did not label); grey = it falls on
@@ -25,6 +31,7 @@ from collections import defaultdict
 from pathlib import Path
 from urllib.parse import quote
 
+from inlayfake.edit.encode import load_rgb
 from inlayfake.edit.placement import iou
 from inlayfake.ledger import ImageRecord
 from inlayfake.runlog import write_run_info
@@ -164,7 +171,20 @@ def results_html(cfg: dict) -> str:
     return "\n".join(parts)
 
 
-def build_data(cfg: dict, out_dir: Path) -> dict:
+def share_copy(src: Path, dst: Path, max_side: int, quality: int) -> None:
+    """Downscaled JPEG copy for the shareable viewer. Boxes stay in original pixel coordinates;
+    the page scales them with the SVG viewBox, so no coordinate change is needed."""
+    from PIL import Image
+
+    if dst.exists():
+        return
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    im = Image.fromarray(load_rgb(src))
+    im.thumbnail((max_side, max_side), Image.LANCZOS)
+    im.save(dst, format="JPEG", quality=quality)
+
+
+def build_data(cfg: dict, out_dir: Path, share: bool = False) -> dict:
     recs = load_records(cfg)
     iou_thr = cfg["eval"]["iou_threshold"]
     score_thr = cfg["eval"]["recall_score"]
@@ -188,7 +208,17 @@ def build_data(cfg: dict, out_dir: Path) -> dict:
     for r in recs:
         key = r.condition.value + (f"/{r.generator}" if r.generator else "")
         gt = ground_truth(r)
-        rel = os.path.relpath(Path(r.path).resolve(), root).replace(os.sep, "/")
+        if share:
+            vcfg = cfg.get("viewer", {})
+            rel = f"images/{r.image_id}.jpg"
+            share_copy(
+                Path(r.path),
+                out_dir / rel,
+                vcfg.get("share_max_side", 640),
+                vcfg.get("share_quality", 80),
+            )
+        else:
+            rel = os.path.relpath(Path(r.path).resolve(), root).replace(os.sep, "/")
         by_src[r.source_id][key] = {
             "src": quote(rel, safe="/._-"),
             "gt": gt,
@@ -220,10 +250,15 @@ def build_data(cfg: dict, out_dir: Path) -> dict:
     }
 
 
-def run(cfg: dict) -> dict:
-    out = run_dir(cfg) / "viewer"
+def run(cfg: dict, share: bool = False) -> dict:
+    if share:
+        out = Path(cfg.get("viewer", {}).get("share_dir", "docs/viewer")) / cfg.get(
+            "run_name", "run"
+        )
+    else:
+        out = run_dir(cfg) / "viewer"
     out.mkdir(parents=True, exist_ok=True)
-    data = build_data(cfg, out)
+    data = build_data(cfg, out, share=share)
     (out / "data.js").write_text(
         "window.VIEWER_DATA = " + json.dumps(data, separators=(",", ":")) + ";\n", encoding="utf-8"
     )
@@ -234,6 +269,10 @@ def run(cfg: dict) -> dict:
         "images": len(data["images"]),
         "detectors": data["detectors"],
         "conditions": data["conditions"],
+        "shareable": share,
     }
+    if share:
+        size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())
+        summary["size_mb"] = round(size / 2**20, 1)
     write_run_info(run_dir(cfg), "viewer", cfg, summary)
     return summary

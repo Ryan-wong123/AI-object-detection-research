@@ -5,6 +5,18 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-15: Shareable viewer (`viewer --share`)
+
+- **Why:** the author wants others to view the runs. Committing `runs/` is not enough: the page
+  loads photos from the ignored `data/` folder, and the raw run files are large and regenerable.
+- **What:** `python -m inlayfake viewer --config <cfg> --share` writes `docs/viewer/<run>/` with
+  the page, `data.js` and downscaled JPEG copies (max side 640, q80) of every shown image. This
+  folder is self-contained and can be committed, zipped or served with GitHub Pages. AGENTS.md
+  rule 8 now names it as the way to share runs.
+- **Test:** the share folder only references its own `images/`, and copies are ≤ max side.
+
+---
+
 ## 2026-10-15: Viewer shows results only (slider removed)
 
 - **Why:** the author wants the page to show the results as computed, not an adjustable view: a

@@ -29,7 +29,8 @@ whether it was photographed or AI-inserted. The output is a benchmark, a baselin
 7. **Reproducibility.** Every run records the git commit, config, seeds, model checkpoint IDs and
    package versions (handled by `inlayfake.runlog`). Do not hard-code paths; use the config.
 8. **No data or weights in git.** `data/`, `runs/` and model weights are git-ignored. Small result
-   tables (CSV/JSON < 1 MB) that the paper cites are copied into `paper/results/`.
+   tables (CSV/JSON < 1 MB) that the paper cites are copied into `paper/results/`. To share a run
+   visually, commit the self-contained `docs/viewer/<run>/` from `viewer --share`, not `runs/`.
 9. **Do not overclaim novelty.** Never write "first" in the paper (see PDF §2 and `PRD.md` §Novelty).
 10. **Ethics.** No identifiable people are used as insertion targets. Do not generate humans by
     default. Treat false "AI" accusations against real objects as a first-class harm metric.

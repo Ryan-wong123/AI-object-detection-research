@@ -148,3 +148,32 @@ def test_markdown_to_html():
     h = markdown_to_html("# T\n\nText **b** `c`\n\n| a | b |\n|---|---|\n| 1 | 2 |\n<!-- x -->")
     assert "<h2>T</h2>" in h and "<b>b</b>" in h and "<code>c</code>" in h
     assert "<th>a</th>" in h and "<td>2</td>" in h and "x -->" not in h
+
+
+def test_viewer_share_is_self_contained(cfg, tmp_path):
+    """--share writes page, data and downscaled photo copies into one folder."""
+    import json
+
+    from PIL import Image
+
+    from inlayfake.stages import detect, viewer
+
+    share_dir = tmp_path / "share"
+    cfg = dict(
+        cfg,
+        conditions=["C0", "C1"],
+        generators_enabled=[],
+        viewer={"share_dir": str(share_dir), "share_max_side": 200, "share_quality": 80},
+    )
+    for stage in (sample, plan, generate, detect):
+        stage.run(cfg)
+    out = viewer.run(cfg, share=True)
+    vdir = share_dir / "dryrun"
+    assert out["shareable"] and (vdir / "index.html").exists()
+    data = json.loads((vdir / "data.js").read_text().split("=", 1)[1].rstrip().rstrip(";"))
+    for im in data["images"]:
+        for view in im["cond"].values():
+            assert view["src"].startswith("images/")
+            with Image.open(vdir / view["src"]) as p:
+                assert max(p.size) <= 200
+        assert im["w"] == 400  # boxes stay in original pixel coordinates

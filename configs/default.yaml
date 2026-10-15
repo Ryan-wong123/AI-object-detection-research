@@ -77,6 +77,11 @@ verify:
 detect:
   detectors: [faster_rcnn, yolo, rtdetr, grounding_dino]
 
+viewer:                                # `viewer --share`: self-contained copy to commit / publish
+  share_dir: docs/viewer               # -> docs/viewer/<run_name>/
+  share_max_side: 640                  # downscaled photo copies (boxes are rescaled by the page)
+  share_quality: 80
+
 audit:                                 # candidate missing COCO labels (on C0)
   min_score: 0.7
   min_agree: 2                         # at least 2 detectors must agree
