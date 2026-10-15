@@ -1,6 +1,6 @@
 # InlayFake: Week 1 progress (8–14 Oct 2026)
 
-12 Oct 2026 · Ryan Wong
+15 Oct 2026 · Ryan Wong
 
 Week 1 delivered the real-only baseline: four detectors and five forensic methods measured on 544
 untouched COCO photographs and their matched resaves, before any AI content is generated. All numbers
@@ -65,7 +65,8 @@ photos, 200 resamples) are in Table 2a of the paper draft.
   bootstrap). Each fix has a unit test.
 - **Ahead of schedule:** the AI-insertion pipeline (SDXL, SD2 and FLUX Fill inpainting, compositing,
   real-object paste control) is written; a held-out Open Images test domain is planned; paper sections
-  1–6 and 8 are drafted and §7.1 holds these results.
+  1–6 and 8 are drafted and §7.1 holds these results; a detector viewer web page shows each photo's
+  COCO labels next to every detector's boxes (`python -m inlayfake viewer`).
 
 ## Next week and points to discuss
 

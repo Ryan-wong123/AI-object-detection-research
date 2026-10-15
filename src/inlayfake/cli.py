@@ -23,6 +23,7 @@ STAGES = {
     "postproc": "derive robustness variants of test images",
     "evaluate": "compute metrics with grouped bootstrap CIs",
     "report": "per-image table of the photos used and what each detector found",
+    "viewer": "web page comparing COCO labels with every detector's boxes",
 }
 IMPLEMENTED = {
     "sample",
@@ -34,6 +35,7 @@ IMPLEMENTED = {
     "audit",
     "evaluate",
     "report",
+    "viewer",
 }
 
 

@@ -5,6 +5,22 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-15: Detector viewer web page (`viewer` stage)
+
+- **Why:** the author wanted to see, per photo, the original COCO image with its labels next to what
+  each detector found, rather than only AP tables.
+- **What:** `python -m inlayfake viewer --config configs/real_baseline.yaml` writes
+  `runs/task1_real_baseline/viewer/index.html` (+ `data.js`), opened directly from disk. The page
+  has a ground-truth panel plus one panel per detector, coloured with the same matching rule as
+  `evaluate` (green matched, orange unmatched, grey on an ignore region, dashed = label missed). It
+  has a score slider, a C0/C1 switch, filters (category, split, photos with misses / unmatched boxes /
+  audit changes, id) and click-to-enlarge.
+- **Checks:** unit tests for greedy one-to-one matching (duplicates → unmatched, ignore regions)
+  and an end-to-end CPU test; rendered in headless Chromium on the synthetic fixture.
+- **No new results:** this is a visual tool; numbers in the paper are unchanged.
+
+---
+
 ## 2026-10-12: Decision: weekly briefings are kept current like the paper
 
 - **Decision (author):** the briefing for the current week (`docs/briefings/weekN/`:

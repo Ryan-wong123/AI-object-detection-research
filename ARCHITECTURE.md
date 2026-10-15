@@ -209,6 +209,16 @@ are included at 50%.
 Applied on test images only, after generation: JPEG {95, 75, 50}, resize {0.5}, Gaussian blur σ=1,
 "screenshot" (resize 0.8 + PNG). Each one creates a derived ImageRecord with `postproc` set.
 
+### 3.10b `viewer` ✅ (`stages/viewer.py`, template `stages/viewer_page.html`)
+Writes `runs/<run>/viewer/index.html` + `data.js`, a static page opened straight from disk (no
+server). Per photo: a ground-truth panel (COCO labels, audit additions, ignore/crowd regions,
+inserted/pasted objects) and one panel per detector. Detections ≥ `viewer.min_score` (0.3) are stored;
+a slider sets the display threshold (default 0.5). Boxes are matched to labels with the `evaluate`
+rule (same class, IoU ≥ 0.5, greedy by score, one-to-one): green = matched, orange = no matching
+label (false positive or unlabelled object), grey = on an ignore region; labels no shown box matches
+are drawn dashed. Filters: condition (C0/C1, later C2–C5 per generator), category, split, "photos
+with a miss / an unmatched box / audit changes", image id. Click a panel to enlarge it.
+
 ### 3.11 `evaluate` 🚧 (`eval/`, `stages/evaluate.py`)
 Task 1 version ✅: AP/AP50/AP75/AR100 per detector × condition (95% CI from grouped bootstrap over
 sources, `eval.ap_bootstrap` resamples), C0→C1 per-object detection flips, forensic score

@@ -168,6 +168,11 @@ object boxes.
 - A held-out source domain is planned: about 100 Open Images photos for the week-4 test, all
   test-only.
 - Paper draft: sections 1–6 and 8 are drafted, and §7.1 (baseline results) is filled in.
+- A detector viewer (`python -m inlayfake viewer`): a local web page that shows each photo's COCO
+  labels next to every detector's boxes. Boxes are coloured by whether they match a label, missed
+  labels are drawn dashed, and there are a score slider, a C0/C1 switch and filters. It is useful
+  for showing supervisors what the AP numbers mean on real photos, and it will also show the
+  AI-edited conditions from week 2.
 
 ## Next week (Task 2: AI insertion)
 

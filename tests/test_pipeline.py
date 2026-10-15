@@ -92,3 +92,37 @@ def test_task1_real_baseline_end_to_end(cfg, tmp_path):
         "fft_highfreq",
         "jpeg_bag",
     }
+
+
+def test_viewer_page(cfg, tmp_path):
+    """The viewer writes index.html + data.js with GT and per-detector matched boxes."""
+    import json
+
+    from inlayfake.stages import detect, viewer
+
+    cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
+    for stage in (sample, plan, generate, detect):
+        stage.run(cfg)
+    out = viewer.run(cfg)
+    vdir = tmp_path / "runs" / "dryrun" / "viewer"
+    assert (vdir / "index.html").exists() and out["conditions"] == ["C0", "C1"]
+    data = json.loads((vdir / "data.js").read_text().split("=", 1)[1].rstrip().rstrip(";"))
+    im = data["images"][0]
+    view = im["cond"]["C0"]
+    assert (vdir / view["src"]).resolve().exists()  # relative image path resolves
+    dets = view["det"]["fake_a"]
+    assert dets and all(d[6] >= 0 for d in dets)  # fake detector echoes GT -> all matched
+
+
+def test_match_detections_greedy_and_ignore():
+    from inlayfake.stages.viewer import IGNORE, UNMATCHED, match_detections
+
+    gt = [[0, 0, 10, 10, "cup", "coco"], [50, 50, 10, 10, "dog", "ignore"]]
+    dets = [
+        {"category": "cup", "bbox": [0, 0, 10, 10], "score": 0.9},
+        {"category": "cup", "bbox": [1, 1, 10, 10], "score": 0.8},  # duplicate -> unmatched
+        {"category": "dog", "bbox": [50, 50, 10, 10], "score": 0.7},  # on ignore region
+        {"category": "cup", "bbox": [0, 0, 10, 10], "score": 0.1},  # below min_score -> dropped
+    ]
+    out = match_detections(dets, gt, 0.5, 0.3)
+    assert [d[6] for d in out] == [0, UNMATCHED, IGNORE]

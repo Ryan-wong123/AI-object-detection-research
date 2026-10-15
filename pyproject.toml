@@ -29,6 +29,9 @@ inlayfake = "inlayfake.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+inlayfake = ["stages/*.html"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
