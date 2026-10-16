@@ -1,0 +1,11 @@
+# Second 50-source SDXL pilot: same sources and settings as pilot.yaml, but every C4/C5 box must
+# rest on a plausible surface (placement.support). The first pilot (task2_pilot, any free space)
+# got 5/84 verified insertions; see docs/RESEARCH_LOG.md 2026-10-16.
+#   python -m inlayfake insert --config configs/pilot_surface.yaml
+inherit: pilot.yaml
+run_name: task2_pilot_surface
+placement:
+  support:
+    enabled: true
+paths:
+  work: data/inlayfake_pilot_surface

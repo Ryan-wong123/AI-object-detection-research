@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InlayFake Week 1 Update</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400..700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+body{margin:0;padding:24px;background:#d9d7d0;font:15px 'IBM Plex Sans',Arial,sans-serif;color:#14213D}
+h1.page{font:600 22px 'Source Serif 4',Georgia,serif;margin:0 auto 16px;max-width:1200px}
+.slide{margin:0 auto 32px;max-width:1200px}
+.frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.frame>section{position:absolute;left:0;top:0;width:1920px;height:1080px;box-sizing:border-box;transform-origin:0 0}
+.frame section *{margin:0;box-sizing:border-box}
+.frame section ul,.frame section ol{padding-left:1.2em}
+.frame section table{border-collapse:collapse}
+.frame section th,.frame section td{padding:.35em .6em;border-bottom:1px solid #cfccc3}
+figcaption{margin-top:8px;line-height:1.5;color:#33415c}
+</style></head><body>
+<h1 class="page">InlayFake Week 1 Update (speaker notes under each slide)</h1>
+<figure class="slide"><div class="frame"><section id="cover" data-transition="fade" style="background:#14213D;color:#F7F6F2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:40px">
+<p style="font-size:32px;font-weight:600;color:#E8A06A;letter-spacing:4px;text-transform:uppercase">CVPR 2027 project · Progress briefing</p>
+<h1 style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1.05;color:#F7F6F2">InlayFake: Week 1</h1>
+<p style="font-size:44px;line-height:1.3;color:#C9D2E3;width:1400px">A real-only baseline for detectors and forensics, before any AI content</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1200px;font-size:24px;color:#9AA6BD">8–15 October 2026 · Ryan Wong</p>
+</section></div><figcaption><b>Slide 1.</b> Week 1 of five. This week measured how detectors and forensic methods behave on real photographs only, so later AI insertions have a baseline to compare against.</figcaption></figure><figure class="slide"><div class="frame"><section id="goal" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Goal of the week</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;width:1500px">Measure detectors and forensics on genuine photos first, so every later AI result has a baseline</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#ECEAE3;padding:48px;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600">Why COCO is real by provenance</h3>
+<p style="font-size:28px;line-height:1.45;color:#4A5568">The photos were collected from Flickr around 2014, before diffusion-based editors existed. Any "AI" flag on them is a false alarm.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#ECEAE3;padding:48px;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600">Two real conditions per photo</h3>
+<p style="font-size:28px;line-height:1.45;color:#4A5568"><b>C0</b> is the original file. <b>C1</b> is the same photo resaved with the benchmark's own JPEG settings (quality 95, 4:4:4).</p>
+</div>
+</div>
+</section></div><figcaption><b>Slide 2.</b> C1 matters because every AI-edited image is saved the same way. Comparing against C1 rather than C0 makes sure a method reacts to the edit, not to the resave.</figcaption></figure><figure class="slide"><div class="frame"><section id="done" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Delivered</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">The baseline dataset is built and fully measured</h2>
+<div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:32px">
+<div style="display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:40px;border:1px solid #DEDBD2;border-radius:16px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:96px;font-weight:600;line-height:1;color:#14213D">600</p>
+<p style="font-size:28px;line-height:1.35;color:#4A5568">COCO val2017 photos, split 362 / 114 / 124 by photo</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:40px;border:1px solid #DEDBD2;border-radius:16px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:96px;font-weight:600;line-height:1;color:#14213D">544</p>
+<p style="font-size:28px;line-height:1.35;color:#4A5568">with an insertion plan; 56 close-ups with no free space</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:40px;border:1px solid #DEDBD2;border-radius:16px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:96px;font-weight:600;line-height:1;color:#14213D">1,088</p>
+<p style="font-size:28px;line-height:1.35;color:#4A5568">real images: C0 and C1 for each photo</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:40px;border:1px solid #DEDBD2;border-radius:16px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:96px;font-weight:600;line-height:1;color:#B04A12">107</p>
+<p style="font-size:28px;line-height:1.35;color:#4A5568">missing COCO labels flagged; 77 added after review</p>
+</div>
+</div>
+<p style="font-size:28px;line-height:1.45;color:#4A5568"><b style="color:#14213D">Measured on every image:</b> 4 detectors (Faster R-CNN v2, YOLO11-m, RT-DETR-R50, Grounding DINO-T) and 5 forensic methods (ELA, SRM residual, noise level, FFT, JPEG blocking grid).</p>
+</section></div><figcaption><b>Slide 3.</b> The pipeline is staged and resumable, every run is seeded and logged, and 38 unit tests run on CPU. The 56 excluded photos are close-ups where one object fills the frame (median 97% covered by objects); under-representing such shots is a stated limitation.</figcaption></figure><figure class="slide"><div class="frame"><section id="detectors" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Detectors on real photos</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">All four detectors score AP 0.50–0.53, as expected on COCO</h2>
+<table style="font-size:32px;color:#14213D;width:1300px">
+<tr><th style="width:50%;text-align:left">Detector</th><th style="width:25%;text-align:right">AP C0 (original)</th><th style="width:25%;text-align:right">AP C1 (resave)</th></tr>
+<tr><td style="text-align:left">YOLO11-m</td><td style="text-align:right">0.530</td><td style="text-align:right">0.528</td></tr>
+<tr style="background:#ECEAE3"><td style="text-align:left">Grounding DINO-T</td><td style="text-align:right">0.515</td><td style="text-align:right">0.515</td></tr>
+<tr><td style="text-align:left">RT-DETR-R50</td><td style="text-align:right">0.512</td><td style="text-align:right">0.511</td></tr>
+<tr style="background:#ECEAE3"><td style="text-align:left">Faster R-CNN v2</td><td style="text-align:right">0.500</td><td style="text-align:right">0.498</td></tr>
+</table>
+<p style="font-size:28px;line-height:1.45;color:#4A5568;width:1500px">Values in the known range confirm the setup and evaluation are correct. Ground truth includes the 77 audit-added labels.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">Run task1_real_baseline · 95% CIs (bootstrap over photos, 200 resamples) in paper Table 2a</p>
+</section></div><figcaption><b>Slide 4.</b> Grounding DINO gets the same fixed prompt for every image, all 80 COCO class names, so nothing about the edits leaks into its input.</figcaption></figure><figure class="slide"><div class="frame"><section id="findings" data-transition="fade" style="background:#14213D;color:#F7F6F2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#E8A06A;letter-spacing:3px;text-transform:uppercase">Key findings</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;color:#F7F6F2">Three results that shape the rest of the study</h2>
+<div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:32px">
+<div style="display:flex;flex-direction:column;gap:16px;background:#1F2E50;padding:44px;border-radius:16px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1;color:#E8A06A">0.4–0.8%</p>
+<h3 style="font-size:32px;font-weight:600;line-height:1.25;color:#F7F6F2">of objects flip from resaving alone</h3>
+<p style="font-size:26px;line-height:1.45;color:#C9D2E3">AP moves by at most 0.002. This flip rate is the noise floor any insertion effect on real objects (H2) must beat.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#1F2E50;padding:44px;border-radius:16px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1;color:#E8A06A">up to 4.7%</p>
+<h3 style="font-size:32px;font-weight:600;line-height:1.25;color:#F7F6F2">forensic score shift from resaving</h3>
+<p style="font-size:26px;line-height:1.45;color:#C9D2E3">All five methods react (−4.7% to +3.7%). Edits must be compared with C1, not C0: the matched control is needed.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#1F2E50;padding:44px;border-radius:16px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1;color:#E8A06A">3 of 5</p>
+<h3 style="font-size:32px;font-weight:600;line-height:1.25;color:#F7F6F2">methods already flag real objects</h3>
+<p style="font-size:26px;line-height:1.45;color:#C9D2E3">ELA, SRM and noise score textured objects above their context. Calibration must use real objects; FFT and blocking grid show no bias.</p>
+</div>
+</div>
+</section></div><figcaption><b>Slide 5.</b> A fourth, smaller finding: COCO labels are incomplete. Adding the 77 confirmed missing labels raises every detector&#x27;s AP by 0.004 to 0.006.</figcaption></figure><figure class="slide"><div class="frame"><section id="fixed" data-transition="fade" style="background:#ECEAE3;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Along the way</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Three bugs fixed, and week-2 code already written</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#F7F6F2;padding:48px;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600">Fixed, each with a unit test</h3>
+<ul style="font-size:28px;line-height:1.45;color:#4A5568">
+<li>Grounding DINO crash: labels now read from the model's token scores</li>
+<li>Blocking-grid outliers from near-zero division: now a log ratio</li>
+<li>Upward-biased AP intervals: now the basic bootstrap</li>
+</ul>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#F7F6F2;padding:48px;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600">Ahead of schedule</h3>
+<ul style="font-size:28px;line-height:1.45;color:#4A5568">
+<li>AI-insertion pipeline: SDXL, SD2 and FLUX Fill inpainting, compositing, real-object paste</li>
+<li>Held-out Open Images test domain planned</li>
+<li>Paper sections 1–6 and 8 drafted; §7.1 holds these results</li>
+<li>Detector viewer web page: COCO labels next to each detector's boxes</li>
+</ul>
+</div>
+</div>
+</section></div><figcaption><b>Slide 6.</b> The interval bias came from rare categories dropping out of bootstrap resamples, which inflated resampled AP.</figcaption></figure><figure class="slide"><div class="frame"><section id="next" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Next</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Week 2 inserts the AI objects</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:3;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600">Task 2: AI insertion (15–21 Oct)</h3>
+<ol style="font-size:28px;line-height:1.45;color:#4A5568">
+<li>50-photo SDXL pilot with a visual check</li>
+<li>Verification: OWLv2 confirms each insert, SAM gives its mask</li>
+<li>Full overnight generation; FLUX held out on the test split</li>
+<li>Human audit of 10% of edits</li>
+<li>Start the Open Images download</li>
+</ol>
+</div>
+<div style="flex:2;display:flex;flex-direction:column;gap:20px;background:#FFFFFF;padding:48px;border:2px solid #B04A12;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600;color:#B04A12">To discuss</h3>
+<ul style="font-size:28px;line-height:1.45;color:#4A5568">
+<li>VLM caption study (H5) stays a must-have, weeks 3–4</li>
+<li>CVPR 2027 registration and submission dates</li>
+<li>Excluding the 9% of photos with no free space (mostly close-ups) as a stated limitation</li>
+</ul>
+</div>
+</div>
+</section></div><figcaption><b>Slide 7.</b> Generation runs on the RTX 4070 laptop. The verification stage is the main piece of new code for week 2.</figcaption></figure>
+<script>
+function fit(){document.querySelectorAll('.frame').forEach(f=>{f.firstElementChild.style.transform='scale('+f.clientWidth/1920+')';});}
+addEventListener('resize',fit);fit();
+</script></body></html>

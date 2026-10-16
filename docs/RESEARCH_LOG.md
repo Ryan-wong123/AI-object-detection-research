@@ -1,0 +1,635 @@
+# Research log
+
+Dated record of every experiment, decision and finding. Newest entries at the top.
+Format: date · run ID (if any) · what · key numbers · interpretation · next step.
+
+---
+
+## 2026-10-16: Re-plan on failure (run `task2_pilot_inphoto`): 93% of C4 with a verified object
+
+- **Author's request:** the photos must get an AI-inserted object. Loosening the verifier
+  further was advised against and not done: all 31 dropped jobs were checked by eye and their last
+  attempts contain background (or, under C5 boxes, the photo's own object), so passing them would
+  put empty `ai_inserted` boxes into the ground truth. Instead, failed jobs get new boxes.
+- **Implemented** (`stages/replan.py`, `edit.max_replans`, default 0 = unchanged): when all
+  `max_attempts` seeds fail on a box, the job gets box version n+1 (up to `max_replans`). Two
+  tracks per source: *free* (C4; C2 sham and C3 paste follow it, so controls stay matched to the
+  C4 box) and *occ* (C5). A new box rests on a surface of the class (COCO-Stuff; free space if
+  none fits) and is sized like one of the photo's own instances of that class (×0.8–1.2).
+  Version 0 keeps the original seeds, so existing images are reused; versions are stored in
+  `replans.jsonl`; `EditInfo.plan_version` records the box. `verify` and the final ledger count
+  only the current box (one C3 per source). Preview shows "box n" and marks superseded C3.
+  Fake verifier gained `fake_fail_until` for tests; 3 new tests; `pytest -q`: 62 passed.
+- **Run** (`configs/pilot_inphoto.yaml`, `max_replans: 3`, window 1.2×, looser verifier;
+  run_verify_2026-10-16T130208Z.json, paper/results/task2_pilot_inphoto_replan_verify.json;
+  boxes in paper/results/task2_pilot_inphoto_replans.jsonl; 65 min wall time):
+  31 re-plans created (13 on a surface, 14 free space, 4 with no box that fits).
+  **C4 38/41 (93%)** — box 0: 27, box 1: 4, box 2: 7, 3 dropped; **C5 25/34 (74%)** — box 0: 17,
+  box 1: 4, box 2: 1, box 3: 3, 9 dropped; **C2 39/41** clean (the 2 missing are sources where no
+  new box fit, which also have no C4). Final ledger 223 records, audit sample 10.
+- **Visual check of the 19 edits that passed on a new box:** about 16 clearly show the object
+  (dog, elephant, train, book on the floor, horse, skis, vase, dining table, traffic light,
+  airplane, surfboard on the beach); 3 are weak (a tiny boat, a blurred car, a tiny surfboard);
+  a few are still implausible (umbrella above the sea, bed in a hedge).
+- **Limits:** when no new box fits (4 crowded photos) the source loses its C2/C3 at the old box
+  as well; 85% target met for C4 (93%), not yet for C5 (74%); human audit pending.
+- **Next:** author audit (`audit_edits.csv`, 10 rows); then decide whether to run the full
+  benchmark with this configuration (re-plan of all 600 sources with the same-class rule).
+
+---
+
+## 2026-10-16: Same-class pilot at window 1.2× with a looser verifier (run `task2_pilot_inphoto`)
+
+- **Author's requirement:** the AI object must show. Generation can never guarantee it, so the
+  guarantee is on the benchmark side: only verified edits enter `ledger.jsonl`. Changes made to
+  raise the share of photos with a verified object:
+  1. **Window 1.2×, minimum 64 px** (`configs/pilot_inphoto.yaml`; new `edit.window_min_px`,
+     default 256 unchanged), the best setting of the 12-edit diagnostic. Verification keeps
+     looking at the 2.5× region (`verify.window_scale`), which equals the old crop box, so the
+     earlier pilots are unaffected.
+  2. **Looser verifier rule (author decision):** a target-class detection with score ≥ 0.2
+     passes if IoU ≥ 0.3 with the box **or ≥ 80% of it lies inside the box**
+     (`verify.min_inside: 0.8`, now the default); a detection with IoU ≥ 0.5 to a same-class
+     original object never counts (`verify.original_iou`), so the occluded real object in C5
+     is not mistaken for the insertion. Why: a CPU re-scoring of the 58 round-1 rejections
+     (paper/results/task2_verifier_iou_diagnostic.{py,txt}) found 14 with a confident
+     (≥ 0.2) detection inside the box and IoU < 0.3 (frisbee 0.74 at IoU 0.01, bus 0.77 at
+     0.08, toothbrush 0.68, cups 0.56): objects smaller than the box. C2 uses the same rule, so
+     the sham check is stricter.
+  3. **Preview** marks every attempt: "in benchmark" (verified box), "rejected … not in
+     benchmark" (dimmed) or "not needed: an earlier attempt passed". Earlier previews rebuilt.
+  4. **Safe re-verification:** `verify` checks attempts in order and stops at the first pass per
+     job; the final ledger keeps one passed record per job; rows are flushed as written.
+  Tests: 59 passed, ruff clean.
+- **Round 1 under the old rule** (run_verify_2026-10-16T104526Z.json): C2 41/41, C4 10/41,
+  C5 7/34 (17/75 = 23%; pilot 1 at 2.5×: 6%). SDXL 116 images in 50:07 (25.9 s each). Round 2
+  (58 images, 38:31, slowed by a CPU diagnostic running at the same time) was generated and
+  then the run was stopped for the rule change; the old-rule results are kept in
+  `data/inlayfake_pilot_inphoto/verify_oldrule/`.
+- **Final, new rule, up to 3 attempts** (run_verify_2026-10-16T114020Z.json,
+  paper/results/task2_pilot_inphoto_final_verify.json): **C4 27/41 (66%)** — 20 on attempt 1,
+  6 on 2, 1 on 3, 14 dropped; **C5 17/34 (50%)** — 8 / 9 / 0, 17 dropped; **C2 41/41**; final
+  ledger 208 records; audit sample 8. Round 3: 33 + 2 images (19.0 and 22.0 s each).
+- **Visual check of all 44 passed C4/C5:** nearly all show a real object of the class (dogs,
+  sheep, horse, giraffe, book, broccoli, cups, cat, traffic lights, backpacks, handbag, train).
+  Weak: a dark laptop (0.34), a faint umbrella (0.30), a thin surfboard line, a tiny baseball
+  glove (0.28). Realism is now the main problem: several float in implausible places (bus in the
+  sky, car in the trees, handbag under a hangar roof, tiny giraffe on a hilltop). The dropped
+  jobs are mostly such placements and very large classes (train, bed, dining table, surfboard).
+- **Interpretation:** the verified-object rate rose from 6% (pilot 1) to 66% C4 / 50% C5,
+  through the tighter window, the looser rule and 3 attempts together; the 85% PRD target is not
+  met yet. Photos without a verified C4/C5 simply have none in the benchmark.
+- **Next:** author's look at `preview.html` and the 8-row `audit_edits.csv`; options for the
+  rest: surface placement with the same-class rule (against floating objects), box size from the
+  photo's own instance, more attempts.
+
+---
+
+## 2026-10-16: Decision: insert a class already in the photo (run `task2_pilot_inphoto`, plan only)
+
+- **Decision (author):** the AI object must be of a class that is already in the photo's audited
+  week-1 ground truth, any COCO class except person, instead of cycling through 10 fixed
+  categories. Prompted by source 23937 (5 cows, 1 sheep) being planned as "chair". Why it helps:
+  each edited photo then has a photographed and an AI instance of the same class, a matched
+  within-class comparison for H1/H3.
+- **Before the change (week-1 plan, 544 photos):** only 196 contained any of the 10 fixed
+  classes, and the planned class was already in the photo in 20 of 544.
+- **Implemented:** `placement.class_choice: in_photo` (`stages/plan.py`). Present classes =
+  non-crowd COCO labels + week-1 audit "add" rows (`data/inlayfake/audit_decisions.csv`), minus
+  `exclude_classes: [person]`; least-used class first, ties by the seeded RNG; audit add / ignore
+  boxes block free placement. `fixed` stays the default in `default.yaml`, and it reproduces the
+  week-1 (544) and first-pilot plans byte for byte (checked). New `configs/pilot_inphoto.yaml`
+  (free-space placement, window 2.5×). 4 new tests; `pytest -q`: 57 passed; ruff clean.
+- **Re-plan of the pilot** (same 50 sources; paper/results/task2_pilot_inphoto_plan.json):
+  41 planned, 9 failed, 34 with an occlusion box (pilot 1: 46 / 4 / 38); 31 classes, the most
+  frequent surfboard 4, car 3. Source 23937 → sheep. The 9 failures are photos whose only
+  non-person classes are large or crowded (train, giraffes, zebra, 10 motorcycles, a toilet).
+- **Seen on the plan sheet:** placement is still any free space, so some boxes sit in the sky
+  again (handbag at a hangar ceiling, elephant, car, surfboard); box size comes from COCO-wide
+  statistics, not from the same-class object already in the photo. Not changed.
+- **Implications:** classes are no longer balanced and include large or non-rigid ones (bus,
+  giraffe); the week-1 counts in PAPER §4 (544 planned, 363 with C5) come from the old plan and
+  must be recomputed before the full run (`insertion.yaml` still reuses the week-1 plans).
+- **Not run yet:** generation. Open: window size (1.2× / 1.5×), surface placement, size from the
+  photo's own instance.
+
+---
+
+## 2026-10-16: Surface placement pilot (run `task2_pilot_surface`): placement is not the cause; window size is
+
+- **Decision (author):** try boxes that rest on a supporting surface. Implemented as
+  `placement.support` (`edit/support.py`; ARCHITECTURE §3.3): COCO-Stuff human labels
+  (`stuff_val2017.json`, downloaded with the author's OK from images.cocodataset.org; only that file
+  kept). A box rests on ground (floor, carpet, grass, dirt, sand, pavement, …) or a tabletop
+  (table, desk, counter, shelf) when ≥ 50% of the band from 15% of its height above the bottom
+  edge to 5% below it is surface; clocks may also sit inside a wall region. Classes → surfaces in
+  `configs/default.yaml` (off there, so week-1 plans and `insertion.yaml` are unchanged); on in
+  `configs/pilot_surface.yaml`. 5 new unit tests (hand-computed band fractions, RLE decoding, an
+  end-to-end plan); `pytest -q`: 53 passed.
+- **Plan** (same 50 sources as `task2_pilot`; paper/results/task2_pilot_surface_plan.json):
+  35 planned (pilot 1: 46), 15 failed, 19 with an occlusion box (pilot 1: 38). Surfaces: ground
+  28, wall 4, tabletop 3. Cost of the rule: fewer plannable photos, C5 halved, cup only 1.
+- **Round-1 verify** (run_verify_2026-10-16T085229Z.json; code was uncommitted at run time and is
+  committed unchanged with this entry): `C2 passed 35/35` · `C4 passed 0/35` · `C5 passed 4/19`
+  → **4/54 (7%)**, no better than pilot 1 (5/84). SDXL: 89 images in 38:07, 25.7 s each.
+  Retries stopped after round 1 again (state clean).
+- **Visual check:** the same failure in plausible places: a bench box on a lawn becomes lawn, a
+  plant box on a counter becomes counter. So implausible placement was not the main cause.
+- **Window-scale diagnostic** (scratch only; script and output in
+  `paper/results/task2_window_scale_diagnostic.{py,txt}`): 12 random failed C4 jobs of this
+  pilot, new seed, strength 0.99, the project's `local_edit` and OWLv2 rule, verified on the
+  same region. The square window around the box (`edit.window_scale`, now 2.5×, so the box is
+  only 40% of SDXL's canvas side) was varied, with the 256-px minimum window lowered to 64 for
+  the test: **2.5× → 1/12, 1.5× → 5/12, 1.2× → 7/12**. The objects look real (dog, backpacks,
+  potted plants, wall clocks, chairs) and colours match; no tinted rectangle as with strength
+  1.0. Interpretation: when the box is a small part of the canvas, SDXL completes the
+  surrounding scene; when it fills most of the canvas, SDXL paints the prompted object.
+- **Also seen:** OWLv2 misses some real insertions (a chair at 1.5× and 1.2×, a wall clock at
+  1.2×, a stopwatch at 1.5× are visible but fail), and one "bench" pass is really a chair. So the
+  verifier under-counts in places and is not a perfect label; the human audit matters. Tighter
+  windows give less context: one dog is large for its spot, one umbrella floats.
+- **Open for the author:** change `edit.window_scale` (and the 256-px minimum) to 1.2–1.5, keep
+  or drop surface placement (it costs 11 of 46 plans and half of C5), and whether to look at the
+  OWLv2 misses (threshold 0.2, query "a photo of a {category}").
+- **Next:** author decision, then a third pilot before the full run.
+
+---
+
+## 2026-10-16: SDXL pilot (run `task2_pilot`): insertion mostly fails, full run on hold
+
+- **Setup:** RTX 4070 Laptop (8 GB), 32 GB RAM (`systeminfo`: 32,471 MB; now `hardware.ram_gb`),
+  torch 2.6.0+cu124, diffusers 0.41.0, transformers 5.19.0. `pytest -q`: 48 passed. Work dir
+  `data/inlayfake_pilot`, git 0261677 (dirty only by the `ram_gb` config line).
+- **sample / plan:** 50 sources (33 train / 10 val / 7 test); 46 planned, 4 failed, 38 with an
+  occlusion box. Jobs: 46 C2 + 46 C4 + 38 C5 = 130 SDXL edits; 46 C3 pastes.
+- **Speed:** smoke test `generate --limit 3`: images 2–8 took 190 s (≈27 s each; the first
+  included the 7 GB download). Round 1 of `insert`: 122 SDXL images in 43:57, **21.6 s per
+  image** including model load (run_generate_2026-10-16T074120Z.json). OWLv2 + SAM verify: 130
+  images in 42 s.
+- **Round-1 verify** (run_verify_2026-10-16T074553Z.json, attempt 1 only):
+  `C2: passed 46/46` · `C4: passed 4/46, needs_retry 42` · `C5: passed 1/38, needs_retry 37` ·
+  final ledger 189 records · audit sample 5. Insertion success on attempt 1 is therefore
+  **5/84 (6%)**, far below the PRD target of ≥ 85%.
+- **Retries stopped on purpose:** `insert` was stopped at the start of round 2 (no round-2 image
+  was written, so the state is clean and resumable). With 6% per attempt, 3 attempts cannot reach
+  the target, and retries would use up the attempt budget before the author decides what to change.
+- **Bug hunt, no bug found:** the verifier agrees with a visual check on all 8 smoke-test edits
+  (the 2 visible insertions passed, the 6 empty boxes failed), and a 20-tile contact sheet of
+  failed C4/C5 edits shows plausible background in every box, no missed object. `compose.py`
+  (mask white = inpaint, image and mask both resized to 1024, mask-only composite) is correct.
+  So the failure is SDXL behaviour under the current settings, not a code error.
+- **Diagnostic (scratch only, not in `data/`):** 12 random failed jobs re-run with a new seed
+  through the project's `local_edit` and the OWLv2 rule: **strength 0.99 → 2/12 pass, strength
+  1.0 → 3/12**. Strength 1.0 does not fix it and adds two problems: SDXL's colour shift then
+  lands inside the mask, so the box is a visibly tinted rectangle (a forensic shortcut), and one
+  output painted a person (ethics rule 10). Guidance 12 and no negative prompt also gave background
+  on the two cases tried.
+- **Interpretation:** the failures share implausible placements: free-space boxes in empty sky,
+  mid-road, on a wall or at a night streetlight (umbrella, backpack, chair, cup). SDXL-inpainting
+  completes the scene instead of adding an object that does not belong there. The 5 passes
+  (bench, chair ×2, dog, bottle) look like real objects, but two sit in odd places (a floating
+  bottle, a chair in water).
+- **Sham caveat:** C2 passes when OWLv2 finds no object *of the target class*. Sham 31050
+  (target bottle) produced a white bird and still passed; the 0/46 "sham produced the target"
+  figure does not mean that no object appeared.
+- **Open for the author:** (a) visual judgement in `preview.html` / `audit_edits.html` and the
+  audit CSV; (b) what to change before the full run. Options: placement on supporting surfaces
+  (box bottom on a floor/table/ground region) instead of any free space; larger minimum box for
+  small classes; a prompt with scene context; or a generator better at object insertion.
+  These are research settings, so nothing was changed.
+- **Next:** author decision, then re-run the pilot (`insert` resumes) before
+  `configs/insertion.yaml`.
+
+---
+
+## 2026-10-15: Week 2 started: verification stage, insert loop, viewer for C2–C5
+
+- **Branch:** `week-2-ai-insertion` (from `week-1-coco-dataset`). Briefing folder
+  `docs/briefings/week2/` created (full, one-page, slides; results all TBD).
+- **verify** (new): OWLv2 must find the target class in the crop window (IoU ≥ 0.3 to the plan,
+  score ≥ 0.2); C2 sham passes only if it does not. SAM, prompted with the OWLv2 box and clipped to
+  the intended mask, gives the inserted mask and box. Actual changed mask (|edit − C1| > 4, 3×3
+  opening). Occluded real objects get visible mask, box and fraction (< 10% → ignore region). Real
+  objects overlapped > 10% by the changed region → `mixed_modified`. 10% human-audit sheet.
+- **Why OWLv2 and not one of the four detectors:** verifying with an evaluated detector would keep
+  only insertions that detector sees and inflate its recall on inserted objects.
+- **Retries:** failed edits are regenerated with a new seed (attempt n+1, max 3); `insert` loops
+  generate → verify. `generate` no longer loads a 7 GB model when no job is pending.
+- **Final ledger** `ledger.jsonl`: C0/C1 unchanged (tested, so week-1 results are unaffected), C3
+  with its pasted mask, one passed record per C2/C4/C5 job.
+- **Bug caught before the GPU run:** transformers 5.x removed `Owlv2Processor.post_process_object_
+  detection` (now `post_process_grounded_object_detection`); the wrapper supports both. The SAM wrapper
+  was run with random weights on CPU; real OWLv2/SAM weights cannot be downloaded in the sandbox.
+- **Viewer:** lists C2–C5 per generator; inserted objects purple, `mixed_modified` amber; detectors
+  not yet run on an image show "not run on this image yet" instead of zero detections.
+- **Tests:** 48 pass (end-to-end insert; forced verifier failure regenerated with a new seed).
+- **Open:** laptop system RAM (FLUX needs about 32 GB on an 8 GB GPU, else Kandinsky 2.2).
+- **Next:** SDXL pilot on the laptop (`configs/pilot.yaml`), then the overnight `insert` run.
+
+---
+
+## 2026-10-15: README: how to view and re-run the detector viewer
+
+- The author committed the shareable week-1 viewer (`docs/viewer/task1_real_baseline/`: 1,088
+  downscaled photos, about 70 MB).
+- README now explains how to open it without setup, how to regenerate the local viewer (`report` →
+  `viewer` → open, with timings), and how to rebuild and push the shareable copy.
+
+---
+
+## 2026-10-15: Shareable viewer (`viewer --share`)
+
+- **Why:** the author wants others to view the runs. Committing `runs/` is not enough: the page
+  loads photos from the ignored `data/` folder, and the raw run files are large and regenerable.
+- **What:** `python -m inlayfake viewer --config <cfg> --share` writes `docs/viewer/<run>/` with
+  the page, `data.js` and downscaled JPEG copies (max side 640, q80) of every shown image. This
+  folder is self-contained and can be committed, zipped or served with GitHub Pages. AGENTS.md
+  rule 8 now names it as the way to share runs.
+- **Test:** the share folder only references its own `images/`, and copies are ≤ max side.
+
+---
+
+## 2026-10-15: Viewer shows results only (slider removed)
+
+- **Why:** the author wants the page to show the results as computed, not an adjustable view: a
+  free score slider could display a different operating point from the reported numbers.
+- **Change:** boxes are drawn only at the evaluation operating point (score ≥ `eval.recall_score`
+  = 0.5, IoU ≥ 0.5). The found-rule is now identical to `evaluate.detected` / `report`, so each
+  panel's "found X/N" equals the `images_used.md` cell; an end-to-end test checks this for every
+  photo. The run's `summary.md` and the `images_used.md` totals are rendered at the top. Category,
+  split and "show only" filters were removed; the C0/C1 switch, id search and pages remain.
+- **No new results.**
+
+---
+
+## 2026-10-15: Detector viewer web page (`viewer` stage)
+
+- **Why:** the author wanted to see, per photo, the original COCO image with its labels next to what
+  each detector found, rather than only AP tables.
+- **What:** `python -m inlayfake viewer --config configs/real_baseline.yaml` writes
+  `runs/task1_real_baseline/viewer/index.html` (+ `data.js`), opened directly from disk. The page
+  has a ground-truth panel plus one panel per detector, coloured with the same matching rule as
+  `evaluate` (green matched, orange unmatched, grey on an ignore region, dashed = label missed). It
+  has a score slider, a C0/C1 switch, filters (category, split, photos with misses / unmatched boxes /
+  audit changes, id) and click-to-enlarge.
+- **Checks:** unit tests for greedy one-to-one matching (duplicates → unmatched, ignore regions)
+  and an end-to-end CPU test; rendered in headless Chromium on the synthetic fixture.
+- **No new results:** this is a visual tool; numbers in the paper are unchanged.
+
+---
+
+## 2026-10-12: Decision: weekly briefings are kept current like the paper
+
+- **Decision (author):** the briefing for the current week (`docs/briefings/weekN/`:
+  `briefing_full.md`, `one_page.md`, `slides.html`) is updated after every run, finding, decision or
+  code change for the week's task, and created at the start of a new week. Added as
+  `AGENTS.md` §Weekly briefing protocol, as step 6 of the experiment workflow, and in `CLAUDE.md`.
+  Why: the briefings had fallen behind `briefing_full.md` and the paper between sessions.
+- **Found while applying it:** week 1's `one_page.md` and `slides.html` still say the 56 unplanned
+  photos were "too cluttered" and that there are 37 unit tests; `briefing_full.md` already describes
+  them as close-ups (Key finding 4) and the log records 38 tests.
+- **Fixed (author approved):** the close-up wording now appears in PAPER §4 (Insertion plan, with the
+  median object coverage 97% vs 32%) and §8, and in the one-pager and slides. The test count reads
+  38 everywhere (`pytest -q`: 38 passed on 2026-10-12). The one-pager also gains the close-up and
+  per-photo detection findings and the VLM and CVPR-dates discussion points, so all three week-1
+  files agree.
+
+---
+
+## 2026-10-11: Task 1 final evaluate with 200 bootstrap resamples; week 1 complete
+
+- **Run:** `task1_real_baseline`, `evaluate` (run_evaluate_2026-10-11T150104Z.json, git 780a397)
+  with `eval.ap_bootstrap: 200` (`configs/real_baseline.yaml`), on the RTX 4070 laptop. Reuses the
+  saved detections and forensic scores and the confirmed audit decisions (77 add / 26 ignore /
+  4 reject). Then `report` for the per-photo table. Summary saved as
+  `paper/results/task1_real_baseline_summary_v4_200boot.md`.
+- **Check:** every point estimate (AP, AP50, AR100, recall, lost/gained, forensic means, medians,
+  p95, object contrast) is identical to v3 (`..._v3_audited.md`). Only the confidence intervals
+  changed, so the inputs are unchanged.
+- **Final AP 95% CIs (C0 / C1):** Faster R-CNN 0.500 [0.460, 0.515] / 0.498 [0.460, 0.510];
+  YOLO11-m 0.530 [0.484, 0.547] / 0.528 [0.487, 0.547]; RT-DETR 0.512 [0.479, 0.527] /
+  0.511 [0.476, 0.532]; Grounding DINO 0.515 [0.481, 0.532] / 0.515 [0.476, 0.525]. The intervals
+  are wider than the 20-resample ones and overlap heavily across detectors: on 544 photos, the AP
+  ranking of the four detectors is not resolved.
+- **Resave shift (C1 − C0) CIs:** ELA +0.188 [0.170, 0.206], SRM −0.106 [−0.114, −0.099], noise
+  −0.089 [−0.142, −0.038], FFT +0.0045 [0.0029, 0.0064], JPEG grid −0.025 [−0.027, −0.022]. All
+  still exclude zero, so Findings (ii) in §7.1 stand. They moved slightly because the random
+  generator is shared with the AP bootstrap.
+- **Per-photo table:** `docs/briefings/week1/images_used.md`. Totals found / 3,959 reproduce recall
+  C0 exactly (2938 → 0.742, 2053 → 0.519, 2387 → 0.603, 1826 → 0.461).
+- **Updated:** PAPER §7.1 Tables 2a/2b and Status box, PRD Status, briefing Key finding 5.
+- **Note:** PAPER §6 says CIs use 1000 resamples; Task 1 uses 200 (stated in Table 2a). Decide
+  before submission whether the main experiments use 1000 or §6 should say 200.
+- **Next:** Task 2 (AI insertion): SDXL pilot on 50 sources with `configs/pilot.yaml`.
+
+---
+
+## 2026-10-11: The 56 photos without a plan are close-ups; new `report` stage
+
+- **Finding:** the 56 sources that failed `plan` are not busy scenes. Their median number of
+  labelled objects is 4, the same as the 544 kept photos, but the union of their object boxes covers
+  a median 97% of the frame (kept: 32%). In 52 of 56, one object covers more than half the image,
+  most often a dining table (18), bowl (6), bed (5) or person (5). Split: 39 train, 7 val, 10 test.
+  Computed from the plan stage's `failed_sources` list (seed 20261008) and the COCO val2017
+  annotations. Interpretation: the benchmark under-represents close-up, frame-filling shots, not
+  crowded scenes. The paper's wording ("too cluttered", "very crowded scenes", §4 and §8) should
+  change; waiting for the author's go-ahead and a check of the list on the RTX 4070.
+- **Added:** the full list of 56 (COCO IDs linked to the official images, split, object count,
+  coverage, main labels) as Key finding 4 in `docs/briefings/week1/briefing_full.md`.
+- **New stage `report`:** `python -m inlayfake report --config ...` writes
+  `runs/<run>/tables/images_used.{csv,md}`, one row per C0 photo with split, planned insert,
+  labelled objects and the number found per detector (the same rule as `evaluate`'s recall, so the
+  totals reproduce recall C0). Why: the author wants the briefing to list every photo used and what
+  was detected in it. Unit test with a hand-checked example; 38 tests pass. The real table is
+  produced on the RTX 4070 (added to `TASK.md`).
+
+---
+
+## 2026-10-11: Decision: Stage 2 (VLM origin claims, H5) is a must-have
+
+- **Decision (author):** the VLM caption study is no longer optional (P1). It is part of the P0
+  scope, and H5 is a full hypothesis rather than a stretch goal. This reverses the 2026-10-08
+  decision that reduced Stage 2 to P1.
+- **Why:** Stage 2 is part of the professor's brief, and the author wants the paper to cover it.
+- **Changed:** PRD (H5 no longer "stretch"; Stage 2 moved into the P0 list; success criteria need a
+  finding for H5; new risk row; timeline: `vlm` stage, caption metrics and the plain/grounded prompts
+  in week 3, origin-aware prompts and caption evaluation in week 4). PAPER (abstract gains an H5
+  placeholder; new contribution 4; "(P1)" removed from §2 and §7.7). ARCHITECTURE (P1 labels removed
+  from `vlm` and `captions.py`). Week-1 briefing files updated.
+- **Scope kept small to fit the schedule:** two small VLMs (Florence-2, Qwen2.5-VL-3B in 4-bit),
+  three prompt settings, about 200 test images plus unedited controls. If time slips, fewer images,
+  not dropping the study.
+- **Next:** write the `vlm` stage in week 3 on the second laptop; runs that feed the paper happen on
+  the RTX 4070.
+
+---
+
+## 2026-10-11: Label audit re-checked; config set for the final `evaluate`
+
+- **Audit:** the author re-checked all 107 drafted decisions (77 add / 26 ignore / 4 reject) on a
+  review page showing each crop next to its decision, and confirmed every one. No change to
+  `audit_decisions.csv`, so Table 2a's point estimates stand.
+- **Changed:** `configs/real_baseline.yaml` now sets `eval.ap_bootstrap: 200`, the setting for the
+  paper's final tables (`default.yaml` keeps 20 for quick runs). Why in this config: the author only
+  needs to re-run `evaluate` on run `task1_real_baseline`; `detect`/`forensics` outputs are reused.
+- **PRD status** corrected: Task 1 has run; only the final `evaluate` remains.
+- **Next:** on the RTX 4070 laptop, `git pull` then
+  `python -m inlayfake evaluate --config configs/real_baseline.yaml`; record the 200-resample CIs in
+  Table 2a/2b.
+
+---
+
+## 2026-10-09: Label audit applied, final Task 1 `evaluate` (run `task1_real_baseline`)
+
+Source: `paper/results/task1_real_baseline_summary_v3_audited.md`, decisions in
+`paper/results/task1_audit_decisions.csv`.
+
+- **Audit decisions (107 candidates):** 77 add, 26 ignore, 4 reject. Drafted from a visual review of
+  every crop in `audit.html`. **The author has not re-checked them yet.** If any change, re-run
+  `evaluate` (≈ 5 min) and update Table 2a.
+  - Reject: `19742-0` (a candle, not a cup), `253742-0/1` (deer, not sheep; deer is not a COCO
+    class), `560474-0` (a doll's face, not a person).
+  - Ignore: too small or dark to judge (10), possible duplicates of an existing label, e.g. `26204-1`
+    overlaps `26204-0` (4), class doesn't clearly fit, e.g. statue cow, plush clownfish, cocoa tin as
+    cup, poster person (7), other unclear (5).
+  - Why ignore rather than guess: an ignore region is neither rewarded nor penalised, so an
+    uncertain call cannot bias AP either way.
+- **Effect on detectors:** 3,959 GT objects (was 3,882). AP rises by 0.004–0.006 for every detector
+  and condition (e.g. Faster R-CNN C0 0.494 → 0.500, YOLO11-m 0.526 → 0.530). Resave flips are
+  unchanged (0.40–0.76%). Interpretation: the missing labels made detectors look slightly worse
+  than they are; the ranking and the C0≈C1 conclusion do not change.
+- **Forensic tables unchanged:** per-object contrast is computed in the `forensics` stage over the
+  original 3,882 labels, so the 77 additions are not in Table 2b. They are 2% of objects, so this
+  is unlikely to matter; re-run `forensics` before the final version if we want them included.
+- **Pre-audit outputs kept** as `runs/task1_real_baseline/summary_preaudit.md` and
+  `metrics_preaudit.json`.
+- **Paper:** §4 Sources filled (77/26/4), Table 2a and finding (iv) updated, Status box updated.
+- **Week 1 done** apart from the author's re-check of the audit and 200-resample AP CIs.
+
+---
+
+## 2026-10-08: Task 1 re-run after fixes (v2, run `task1_real_baseline`)
+
+Source: `paper/results/task1_real_baseline_summary_v2.md`.
+
+- **jpeg_bag fixed:** image score mean 0.532 / median 0.484 / p95 0.99 (was 428.7 / 0.667). Object
+  contrast −0.003 ± 0.053 (sd was 61.8). Resave shift −0.025 [−0.028, −0.022] (−4.7%). The method
+  now behaves like the others and is sensitive to re-encoding.
+- **AP CIs (basic bootstrap):** e.g. Faster R-CNN C0 0.494 [0.462, 0.506]. Intervals now contain the
+  point estimate but are skewed downward: the resample mean is about 0.015 above the point estimate
+  (the category-dropout bias), and the reflection moves that skew below. 20 resamples only; use 200
+  for the final tables.
+- **New observation:** F4 (FFT) and F5 (blocking grid) have ≈ 0 mean object-vs-context contrast on
+  real objects, unlike ELA/SRM/noise (0.25–0.51). They may be less confounded by object texture;
+  check this when AI objects arrive (Task 3).
+- All other numbers are identical to v1, as expected (only jpeg_bag and the CI method changed).
+- **Paper:** Tables 2a/2b complete (F5 row and AP CIs filled); findings (ii) and (iii) updated.
+- **Week 1 remaining:** audit review of 107 candidates, then a final `evaluate`.
+
+---
+
+## 2026-10-08: Task 1 results (v1) and two fixes (run `task1_real_baseline`)
+
+Source: author's `summary.md`, saved as `paper/results/task1_real_baseline_summary_v1.md`.
+
+- **Detectors on real photos:** AP C0 / C1: Faster R-CNN 0.494 / 0.493, YOLO11-m 0.526 / 0.524,
+  RT-DETR 0.508 / 0.507, Grounding DINO 0.511 / 0.510. These are in the range expected for these
+  models on COCO val, a sanity check that the wrappers, the category mapping and the evaluation work.
+- **Resave effect (C0→C1):** AP changes ≤ 0.002. Per-object flips are 0.41–0.77% lost and gained,
+  roughly symmetric (3,882 objects). This is the noise floor for H2.
+- **Recall at score ≥ 0.5 differs a lot by detector** (0.46–0.74), mostly because of score
+  calibration: YOLO and Grounding DINO give lower scores. Use it only for within-detector
+  comparisons (flips), never to rank detectors.
+- **Forensics on real photos:** all methods shift significantly with resaving (ELA +3.7%, SRM −3.5%,
+  noise −0.9%, FFT +1.2%), so C1, not C0, must be the reference. Real objects have positive mean
+  contrast against their context for ELA (0.50), SRM (0.30) and noise (0.25): texture makes real
+  objects stand out, so calibration has to be against real objects.
+- **Problem 1, jpeg_bag outliers:** mean image score 428 vs median 0.67, and object-contrast sd 62.
+  The ratio on/off-grid divided ~0 by ~0 in flat or saturated regions. **Fix:** log ratio with +1 grey
+  level in numerator and denominator; regression test added (fails on the old code). Requires
+  re-running `forensics` for jpeg_bag only.
+- **Problem 2, AP CIs biased:** all 8 percentile intervals sit mostly above the point estimate
+  (e.g. 0.494 [0.479, 0.527]). COCO AP averages over the categories present, and rare, low-AP
+  categories drop out of resamples, so resampled APs are inflated. **Fix:** basic (reverse-percentile)
+  bootstrap interval; the resample mean is also stored. Requires re-running `evaluate`.
+- **Paper:** §7.1 drafted with Table 2a/2b and four findings; F5 row and AP CIs left as TBD until
+  the re-run.
+- **Next:** delete `forensics/jpeg_bag.jsonl`, re-run `forensics` and `evaluate`, then review the
+  audit.
+
+---
+
+## 2026-10-08: Task 1 `forensics`, `audit`, `evaluate` complete (run `task1_real_baseline`)
+
+- **forensics:** 1,088 images × 5 methods in 2 min 55 s (6.2 img/s on the laptop CPU).
+- **audit:** 107 candidate missing labels in 70 of 544 C0 images (12.9% of images have at least one
+  confident object, agreed by ≥ 2 detectors, that COCO did not label). This is consistent with the
+  label-incompleteness finding of *Object Detection Benchmarks are Incomplete*. No decisions yet: all
+  are "?" and are therefore treated as ignore regions in this evaluation.
+- **evaluate:** finished; `runs/task1_real_baseline/summary.md` written (1,088 records). The numbers
+  will be recorded once the author shares the summary.
+- **Next:** author pastes `summary.md`; reviews `audit.html` and fills `audit_decisions.csv`; re-run
+  `evaluate`.
+
+---
+
+## 2026-10-08: `evaluate` looked stuck: progress output added
+
+- **What:** `evaluate` printed nothing for a long time on the laptop. The cause is the AP bootstrap:
+  4 detectors × 2 conditions × (1 + 50 resamples) ≈ 400 full COCOevals on 544 images, with no
+  progress output.
+- **Fix:** progress messages per detector/condition and a progress bar for the resamples. The default
+  `eval.ap_bootstrap` is now 20 for quick runs; it will be raised to 200 for the paper's final tables
+  (wider-than-final CIs until then).
+
+---
+
+## 2026-10-08: `detect` complete for all four detectors (run `task1_real_baseline`)
+
+- **Ran (author's laptop):** after the fix, Grounding DINO processed all 1,088 images in 22 min 13 s
+  (1.23 s/img, 4 prompt chunks per image). The other three were skipped (already complete).
+- **State:** detections exist for faster_rcnn, yolo, rtdetr and grounding_dino on 544 × (C0, C1).
+- **Next:** `forensics`, `audit`, `evaluate`.
+
+---
+
+## 2026-10-08: `detect` run: 3 of 4 detectors done; Grounding DINO bug fixed
+
+- **Ran (author's laptop):** `detect` on 1,088 images. Faster R-CNN (1 min 56 s, 9.3 img/s), YOLO11-m
+  (26 s, 41 img/s) and RT-DETR (59 s, 18 img/s) completed. Grounding DINO crashed after 10 images
+  (≈1.4 s/img): `zip() argument 2 is longer than argument 1`. The installed transformers'
+  `post_process_grounded_object_detection` returned more phrase labels than boxes.
+- **Fix:** Grounding DINO labels are now decoded directly from the token logits. Each query's score
+  for a class is the max sigmoid over that class name's tokens, and the query keeps the best class if
+  that score is ≥ 0.05. This no longer depends on the processor's post-processing (which changes
+  across versions). Unit tests cover the prompt spans, token→class mapping and decoding.
+- **Action for the author:** delete the partial `grounding_dino.jsonl` (its 10 rows used the old
+  decoding) and re-run `detect`; the other three detectors are skipped automatically.
+
+---
+
+## 2026-10-08: Task 1 data stages run on the laptop (run `task1_real_baseline`)
+
+- **Ran (author, RTX 4070 laptop):** `sample`, `plan` and `generate` with `configs/real_baseline.yaml`.
+- **Numbers (as printed by the CLI):**
+  - sample: 600 sources; train 362 / val 114 / test 124 (60.3 / 19.0 / 20.7%).
+  - plan: 544 planned, **56 failed (9.3%)**, 363 of 544 with a C5 occlusion box (66.7%).
+    Categories: chair 62, bottle 56, potted plant 49, vase 50, clock 57, bench 51, backpack 65,
+    dog 44, cup 59, umbrella 51.
+  - generate: 1,088 records = 544 × (C0 + C1), real only; 27 s.
+- **Interpretation:** The splits match the 60/20/20 target. The failed plans are photos with no free
+  region for a new object (crowded scenes). All later conditions use the same 544 sources, so the
+  benchmark under-represents very cluttered scenes; this has been added to the paper's limitations.
+  C5 will cover only about 2/3 of sources; acceptable, but report C5 counts separately.
+- **Next:** `detect` (GPU; first run downloads the four detectors' weights), then `forensics`,
+  `audit`, `evaluate`.
+
+---
+
+## 2026-10-08: Windows test-environment fix
+
+- **What:** On the author's laptop, `pytest -q` gave 28 passed and 5 errors. All 5 were
+  `PermissionError [WinError 5]` on `%TEMP%\pytest-of-USER`: pytest could not open its Windows temp
+  folder, so every test that uses `tmp_path` failed during setup. This was not a bug in the
+  project code.
+- **Fix:** `pyproject.toml` now sets `--basetemp=.pytest_tmp` (a git-ignored folder inside the repo).
+- **Next:** the author re-runs `pytest -q` (expect 33 passed), then the Task 1 commands.
+
+---
+
+## 2026-10-08: Task 1 code complete (branch `week-1-coco-dataset`)
+
+- **Implemented:** `detect` (Faster R-CNN v2, YOLO11-m, RT-DETR-R50, Grounding DINO-T), `forensics`
+  (F1 ELA, F2 SRM residual variance, F3 wavelet noise-level deviation, F4 FFT high-frequency
+  deviation, F5 JPEG blocking-grid deviation), `audit` (candidate missing labels → HTML +
+  decisions CSV) and `evaluate` (Task 1 tables + `summary.md`).
+- **Checks:** 33 CPU tests pass. Forensic tests confirm that ELA and the blocking grid score higher
+  on a patch that skipped the JPEG history, and the noise method scores higher on a noisier patch.
+  The detector code paths were smoke-tested on CPU: YOLO with real weights; Faster R-CNN and RT-DETR
+  with random weights (their weight hosts are blocked in the cloud sandbox). Grounding DINO's
+  post-processing signature was checked against the installed transformers 5.x. Grounding DINO is
+  the least-tested wrapper, so watch it on the first laptop run.
+- **Speed:** all five forensic maps take ≈0.12 s per 640×480 image on CPU.
+- **Method note:** hand-crafted maps have no natural "AI" threshold. Task 1 records their behaviour
+  on real photos; the false-alarm rate is computed in Task 3 at a threshold fixed on validation data
+  with AI objects (TPR 80%). This was stated to the author.
+- **Computer use:** the author offered control of their laptop, but no desktop-control tools are
+  connected to this session. The workflow stays the same: code is written here and the author runs
+  the commands.
+- **Next:** the author runs Task 1 on the laptop and pastes `summary.md`, then reviews
+  `audit.html`.
+
+---
+
+## 2026-10-08: Work split into tasks; Task 1 = real-only COCO baseline
+
+- **Decision (author):** split the work. Task 1 runs only on real COCO photos, with no AI generation,
+  to establish how detectors and forensic methods behave on genuine photographs first.
+- **Interpretation recorded:** COCO (Flickr, about 2014) predates diffusion editors, so its photos
+  are real by provenance. Forensic methods cannot *prove* an image is non-AI. What Task 1 measures is
+  each method's **false-alarm rate on real photos**, plus detector AP on C0 vs C1 (the resave
+  effect) and the label audit.
+- **Changed:** `configs/real_baseline.yaml` (C0 and C1 only, no generators; same work dir, so Task 2
+  reuses the images). Fixed `generators_enabled: []` (it previously fell back to *all* generators).
+  New test confirms that a real-only run contains no AI records. PRD timeline reordered (Task 1 → 2 →
+  3). PAPER §7.1 placeholder for the real-photo baseline.
+- **Next:** implement the `detect` stage (4 detectors) and the hand-crafted forensic methods so that
+  Task 1 can run on the laptop.
+
+---
+
+## 2026-10-08: Generation pipeline implemented (week 1)
+
+- **Hardware recorded:** NVIDIA GeForce RTX 4070 Laptop GPU, 8 GB (from the author's `nvidia-smi`).
+  This matches the 8 GB plan, so no config change was needed beyond recording it.
+- **Implemented:** stages `sample`, `plan`, `generate`, `preview`; COCO index; encoding policy;
+  local inpainting + feathered compositing; real-object paste with donor selection; diffusers
+  wrappers for SDXL / SD2 / Kandinsky / FLUX Fill (lazy, 8 GB defaults); run provenance (`runlog`).
+- **Design decisions:**
+  - Rectangular dilated mask with a linear feather that is exactly 0 at the mask border. Why: it
+    guarantees that pixels outside the intended mask are unchanged, so any detector or forensic
+    difference outside the edit is a JPEG-block effect we can measure, not generator leakage.
+  - G3 (held-out FLUX) only on test-split sources (~120). Why: a held-out generator must never be
+    seen in train/val. The earlier "300 sources" figure was inconsistent with a 20% test split.
+  - The insertion size is sampled from real COCO instances of the category, excluding those under 1%
+    of the image area. Why: tiny inserts rarely produce a recognisable object.
+- **Verified on CPU** (fake inpainter, synthetic COCO): 18 tests pass. They check that the policy
+  JPEGs are q95 4:4:4, that C4 decodes identically to C1 outside the mask (±1 JPEG block), that every
+  condition is produced, and that a second run is a no-op (resumable).
+- **No experimental results yet.**
+- **Next:** the author runs the 50-source pilot with SDXL on the laptop and checks `preview.html`.
+  Then the `verify` stage (OWLv2 + SAM) and `audit`.
+
+---
+
+## 2026-10-08: Added held-out source domain (decision)
+
+- **What:** The author asked for a small second-dataset test in week 4.
+- **Decision:** About 100 **Open Images V7** validation photos, test-only, conditions C1–C4, generators
+  G1 (seen) and G3 (held out). Every model and threshold is fit on COCO and transferred unchanged.
+- **Why Open Images, not Objects365:** Grounding DINO is pretrained on Objects365, so Objects365 would
+  not be unseen for one of our detectors. LVIS reuses COCO images.
+- **Caveat recorded:** Open Images boxes are exhaustive only for image-level-verified classes. We score
+  verified classes only; the rest become ignore regions.
+- **Changed:** PRD (scope, risks, week 4), ARCHITECTURE (adapter stage, ledger `source_dataset`), config
+  `ood:` block, ledger code + tests, PAPER §4/§7.4/§8.
+
+---
+
+## 2026-10-08: Project setup (week 1, day 1)
+
+- **What:** Read the professor's InlayFake brief. Scope agreed with the author: both detector study and
+  forensic origin detection ("traditional" = off-the-shelf detectors **and** hand-crafted forensics,
+  plus learned forensic baselines). Target: CVPR 2027 (submission 16 Nov 2026 AoE per official CFP
+  via search; confirm, including the registration date).
+- **Decisions:**
+  - 5-week plan: benchmark + baseline study (the brief's suggested "constrained first paper"). Stage 2
+    (VLM captions) reduced to P1.
+  - Source pool = COCO val2017 (unseen by COCO-trained detectors).
+  - Generators: SDXL-Inpainting, SD-2-Inpainting (seen); FLUX.1-Fill-dev (held out).
+  - Verifier for insertions = OWLv2, excluded from the evaluated detectors to avoid selection bias.
+  - Identical JPEG q=95 encoding for C1–C5 to remove format shortcuts.
+- **Created:** AGENTS.md, CLAUDE.md, PRD.md, ARCHITECTURE.md, paper/PAPER.md, config and ledger
+  schema.
+- **Open:** laptop GPU model and VRAM; professor sign-off on the scope.
+- **Next:** COCO download + `sample` and `plan` stages; generator wrapper for G1; 50-source pilot.
