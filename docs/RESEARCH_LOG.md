@@ -5,6 +5,46 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-16: Surface placement pilot (run `task2_pilot_surface`): placement is not the cause; window size is
+
+- **Decision (author):** try boxes that rest on a supporting surface. Implemented as
+  `placement.support` (`edit/support.py`; ARCHITECTURE §3.3): COCO-Stuff human labels
+  (`stuff_val2017.json`, downloaded with the author's OK from images.cocodataset.org; only that file
+  kept). A box rests on ground (floor, carpet, grass, dirt, sand, pavement, …) or a tabletop
+  (table, desk, counter, shelf) when ≥ 50% of the band from 15% of its height above the bottom
+  edge to 5% below it is surface; clocks may also sit inside a wall region. Classes → surfaces in
+  `configs/default.yaml` (off there, so week-1 plans and `insertion.yaml` are unchanged); on in
+  `configs/pilot_surface.yaml`. 5 new unit tests (hand-computed band fractions, RLE decoding, an
+  end-to-end plan); `pytest -q`: 53 passed.
+- **Plan** (same 50 sources as `task2_pilot`; paper/results/task2_pilot_surface_plan.json):
+  35 planned (pilot 1: 46), 15 failed, 19 with an occlusion box (pilot 1: 38). Surfaces: ground
+  28, wall 4, tabletop 3. Cost of the rule: fewer plannable photos, C5 halved, cup only 1.
+- **Round-1 verify** (run_verify_2026-10-16T085229Z.json; code was uncommitted at run time and is
+  committed unchanged with this entry): `C2 passed 35/35` · `C4 passed 0/35` · `C5 passed 4/19`
+  → **4/54 (7%)**, no better than pilot 1 (5/84). SDXL: 89 images in 38:07, 25.7 s each.
+  Retries stopped after round 1 again (state clean).
+- **Visual check:** the same failure in plausible places: a bench box on a lawn becomes lawn, a
+  plant box on a counter becomes counter. So implausible placement was not the main cause.
+- **Window-scale diagnostic** (scratch only; script and output in
+  `paper/results/task2_window_scale_diagnostic.{py,txt}`): 12 random failed C4 jobs of this
+  pilot, new seed, strength 0.99, the project's `local_edit` and OWLv2 rule, verified on the
+  same region. The square window around the box (`edit.window_scale`, now 2.5×, so the box is
+  only 40% of SDXL's canvas side) was varied, with the 256-px minimum window lowered to 64 for
+  the test: **2.5× → 1/12, 1.5× → 5/12, 1.2× → 7/12**. The objects look real (dog, backpacks,
+  potted plants, wall clocks, chairs) and colours match; no tinted rectangle as with strength
+  1.0. Interpretation: when the box is a small part of the canvas, SDXL completes the
+  surrounding scene; when it fills most of the canvas, SDXL paints the prompted object.
+- **Also seen:** OWLv2 misses some real insertions (a chair at 1.5× and 1.2×, a wall clock at
+  1.2×, a stopwatch at 1.5× are visible but fail), and one "bench" pass is really a chair. So the
+  verifier under-counts in places and is not a perfect label; the human audit matters. Tighter
+  windows give less context: one dog is large for its spot, one umbrella floats.
+- **Open for the author:** change `edit.window_scale` (and the 256-px minimum) to 1.2–1.5, keep
+  or drop surface placement (it costs 11 of 46 plans and half of C5), and whether to look at the
+  OWLv2 misses (threshold 0.2, query "a photo of a {category}").
+- **Next:** author decision, then a third pilot before the full run.
+
+---
+
 ## 2026-10-16: SDXL pilot (run `task2_pilot`): insertion mostly fails, full run on hold
 
 - **Setup:** RTX 4070 Laptop (8 GB), 32 GB RAM (`systeminfo`: 32,471 MB; now `hardware.ram_gb`),

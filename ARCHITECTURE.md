@@ -105,6 +105,16 @@ For each source, pick a target category (balanced across categories), then a box
 - **C4**: box with IoU = 0 against every GT box and an 8-px margin; inside the image.
 - **C5**: box that covers 20–50% of the area of one chosen original instance (the "occluded" one).
 - C2 and C3 reuse the C4 box, so all conditions share **one geometric plan**.
+- **Surface placement** (`placement.support`, `edit/support.py`; off in `default.yaml`, on in
+  `configs/pilot_surface.yaml`): the C4 and C5 boxes must also *rest on* a surface from the
+  COCO-Stuff human labels (`stuff_val2017.json`). "On": at least 50% of the band from 15% of the
+  box height above its bottom edge to 5% below it (central 80% of the width) is surface. Groups:
+  ground (floor, carpet, rug, grass, dirt, sand, pavement, …), tabletop (table, desk, counter,
+  shelf), wall ("inside": 50% of the box is wall). Allowed groups per class are in the config
+  (e.g. chair → ground; cup → tabletop; clock → wall, tabletop). The box is anchored on a random
+  surface pixel (bottom-centre for "on"). Why: in the first SDXL pilot, free-space boxes in sky
+  or mid-road were mostly filled with background (5/84 verified). Thing surfaces (dining table,
+  bed) are not used, because C4 must not overlap any GT box.
 
 ### 3.4 `generate` ✅ (`edit/`, `stages/generate.py`)
 - `encode.py` **Encoding policy** (critical): every image a model sees in C1–C5 is produced by

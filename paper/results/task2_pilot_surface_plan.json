@@ -1,0 +1,57 @@
+{
+  "stage": "plan",
+  "utc": "2026-10-16T08:12:45Z",
+  "git_commit": "fb326cbd51ceacb6916cac6336e009a3688aa474",
+  "git_dirty": true,
+  "config_hash": "67281aa0dffc",
+  "seed": 20261008,
+  "python": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU (8.0 GiB)",
+  "packages": {
+    "numpy": "2.4.6",
+    "pillow": "12.3.0",
+    "torch": "2.6.0+cu124",
+    "diffusers": "0.41.0",
+    "transformers": "5.19.0",
+    "ultralytics": "8.4.174",
+    "pycocotools": "2.0.11"
+  },
+  "n_plans": 35,
+  "n_failed": 15,
+  "n_with_occlusion": 19,
+  "categories": {
+    "chair": 4,
+    "potted plant": 3,
+    "clock": 4,
+    "bench": 6,
+    "backpack": 3,
+    "dog": 2,
+    "bottle": 4,
+    "vase": 4,
+    "cup": 1,
+    "umbrella": 4
+  },
+  "supports": {
+    "ground": 28,
+    "wall": 4,
+    "tabletop": 3
+  },
+  "failed_sources": [
+    54164,
+    107851,
+    151857,
+    210394,
+    243867,
+    360137,
+    382030,
+    395903,
+    421455,
+    441286,
+    454661,
+    457848,
+    477441,
+    541634,
+    558558
+  ]
+}

@@ -31,6 +31,29 @@ placement:
   margin_px: 8
   occlusion_frac: [0.2, 0.5]           # C5: fraction of the occluded original instance covered
   max_tries: 200
+  support:                             # boxes rest on a plausible surface (COCO-Stuff labels)
+    enabled: false                     # off here so week-1 plans stay valid; on in pilot_surface.yaml
+    stuff_annotations: data/coco/annotations/stuff_val2017.json
+    band: [0.15, 0.05]                 # "on": rows from 15% of h above to 5% below the box bottom
+    min_frac: 0.5                      # share of surface pixels in that band (central 80% width)
+    groups:
+      ground: {mode: "on", classes: [floor-marble, floor-other, floor-stone, floor-tile, floor-wood,
+               carpet, rug, mat, grass, gravel, ground-other, dirt, sand, pavement, playingfield,
+               platform, snow, mud]}
+      tabletop: {mode: "on", classes: [table, desk-stuff, counter, shelf]}
+      wall: {mode: "inside", classes: [wall-brick, wall-concrete, wall-other, wall-panel,
+             wall-stone, wall-tile, wall-wood]}
+    categories:                        # allowed surfaces per class, tried in order
+      chair: [ground]
+      bench: [ground]
+      dog: [ground]
+      backpack: [ground]
+      umbrella: [ground]
+      potted plant: [ground, tabletop]
+      cup: [tabletop]
+      bottle: [tabletop, ground]
+      vase: [tabletop, ground]
+      clock: [wall, tabletop]
 
 conditions: [C0, C1, C2, C3, C4, C5]
 

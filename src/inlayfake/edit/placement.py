@@ -83,16 +83,32 @@ def place_free(
     margin: float,
     rng: np.random.Generator,
     max_tries: int,
+    support=None,
 ) -> Box | None:
-    """Box inside the image that does not touch any (margin-expanded) GT box (condition C4)."""
+    """Box inside the image that does not touch any (margin-expanded) GT box (condition C4).
+
+    With ``support`` (an ``edit.support.Support``), the box is anchored on a surface pixel and
+    must rest on that surface.
+    """
     if w > width or h > height:
         return None
     blocked = [expand(b, margin) for b in gt_boxes]
     for _ in range(max_tries):
-        cand = [float(rng.uniform(0, width - w)), float(rng.uniform(0, height - h)), w, h]
+        if support is None:
+            cand = [float(rng.uniform(0, width - w)), float(rng.uniform(0, height - h)), w, h]
+        else:
+            cand = support.sample_box(w, h, rng)
+            if cand is None:
+                return None
+            if not _inside(cand, width, height) or not support.accepts(cand):
+                continue
         if all(intersection(cand, b) == 0 for b in blocked):
             return cand
     return None
+
+
+def _inside(b: Box, width: int, height: int) -> bool:
+    return b[0] >= 0 and b[1] >= 0 and b[0] + b[2] <= width and b[1] + b[3] <= height
 
 
 def place_occluding(
@@ -106,23 +122,33 @@ def place_occluding(
     rng: np.random.Generator,
     max_tries: int,
     max_other_frac: float = 0.05,
+    support=None,
 ) -> Box | None:
     """Box covering ``frac_range`` of ``target``'s box area (condition C5).
 
     Other GT boxes may be covered by at most ``max_other_frac`` of their area so that only one
-    original object is deliberately occluded.
+    original object is deliberately occluded. With ``support``, the box must also rest on it.
     """
     if w > width or h > height:
         return None
     lo, hi = frac_range
     t_area = box_area(target)
+    # candidate centres lie in the target's box grown by half the insert size
+    cx0, cx1 = target[0] - w / 2, target[0] + target[2] + w / 2
+    cy0, cy1 = target[1] - h / 2, target[1] + target[3] + h / 2
     for _ in range(max_tries):
-        # sample the candidate's centre near the target's border region
-        cx = rng.uniform(target[0] - w / 2, target[0] + target[2] + w / 2)
-        cy = rng.uniform(target[1] - h / 2, target[1] + target[3] + h / 2)
-        x = float(np.clip(cx - w / 2, 0, width - w))
-        y = float(np.clip(cy - h / 2, 0, height - h))
-        cand = [x, y, w, h]
+        if support is None:
+            cx, cy = rng.uniform(cx0, cx1), rng.uniform(cy0, cy1)
+            x = float(np.clip(cx - w / 2, 0, width - w))
+            y = float(np.clip(cy - h / 2, 0, height - h))
+            cand = [x, y, w, h]
+        else:  # anchor = bottom-centre ("on") or centre ("inside") of the box
+            dy = h / 2 if support.mode == "on" else 0.0
+            cand = support.sample_box(w, h, rng, (cx0, cy0 + dy, cx1, cy1 + dy))
+            if cand is None:
+                return None
+            if not _inside(cand, width, height) or not support.accepts(cand):
+                continue
         if not lo <= intersection(cand, target) / t_area <= hi:
             continue
         if all(intersection(cand, o) <= max_other_frac * box_area(o) for o in others):
@@ -137,11 +163,16 @@ def plan_source(
     stats: dict,
     cfg: dict,
     rng: np.random.Generator,
+    supports_for=None,
 ) -> dict | None:
     """One shared geometric plan for a source photo (used by C2, C3, C4 and C5).
 
-    Tries categories in ``category_order`` until both a free box and an occluding box are found.
-    Returns None if no category fits.
+    Tries categories in ``category_order`` until a free box is found (the occluding box is
+    optional). Returns None if no category fits.
+
+    ``supports_for(category) -> [Support]`` (from ``edit.support``) switches on surface
+    placement: the free and the occluding box must rest on one of that category's surfaces, tried
+    in order. Without it, any free space is allowed (the original design).
     """
     W, H = source["width"], source["height"]
     gt = [a for a in anns if not a.get("iscrowd", 0)]
@@ -150,7 +181,14 @@ def plan_source(
     targets = [a for a in gt if box_area(a["bbox"]) >= (2 * cfg["min_side_px"]) ** 2]
     for cat in category_order:
         w, h = sample_size(stats[cat], W, H, rng, cfg["min_side_px"], cfg["max_area_frac"])
-        free = place_free(W, H, w, h, gt_boxes, cfg["margin_px"], rng, cfg["max_tries"])
+        supports = [None] if supports_for is None else supports_for(cat)
+        free, sup = None, None
+        for sup in supports:
+            free = place_free(
+                W, H, w, h, gt_boxes, cfg["margin_px"], rng, cfg["max_tries"], support=sup
+            )
+            if free is not None:
+                break
         if free is None:
             continue
         occ, occ_ann = None, None
@@ -167,11 +205,12 @@ def plan_source(
                 tuple(cfg["occlusion_frac"]),
                 rng,
                 cfg["max_tries"],
+                support=sup,
             )
             if occ is not None:
                 occ_ann = target["id"]
                 break
-        return {
+        plan = {
             "source_id": source["source_id"],
             "split": source["split"],
             "category": cat,
@@ -179,4 +218,7 @@ def plan_source(
             "box_occ": occ,  # None -> C5 skipped for this source
             "occluded_ann_id": occ_ann,
         }
+        if sup is not None:
+            plan["support"] = sup.name  # the surface both boxes rest on
+        return plan
     return None

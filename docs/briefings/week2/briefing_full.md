@@ -81,12 +81,27 @@ cloud sandbox, so their first real run is the pilot.
   sham (target bottle) produced a bird.
 - Retries were stopped after round 1 so that no attempts are wasted before the design changes.
 
+### 5. Second pilot: boxes on supporting surfaces (16 Oct, run `task2_pilot_surface`)
+- **New option `placement.support`:** each box must rest on a floor, ground or table surface
+  from the COCO-Stuff human labels (clocks may hang on a wall). Off by default, so week-1 plans
+  are unchanged; 5 new unit tests, 53 pass.
+- Same 50 photos: 35 get a plan (was 46) and 19 an occlusion box (was 38).
+- **Result: no better.** C4 0/35, C5 4/19 (7%). SDXL again filled boxes with background, now
+  in plausible places (a bench box on a lawn became lawn). Placement was not the main cause.
+- **The cause is the edit window.** The generator sees a square of 2.5× the box, so the object is
+  only 40% of its canvas side. On 12 failed edits, a tighter window gave many more insertions:
+  window 2.5× → 1/12, 1.5× → 5/12, 1.2× → 7/12, with natural colours (a diagnostic, not a run).
+- The check also showed OWLv2 missing some objects that are clearly there (a chair, a wall clock),
+  so the verifier under-counts in places.
+
 ## Results
 
 | Item | Value |
 |---|---|
 | Pilot (46 photos, SDXL, attempt 1): insertion confirmed by verifier | C4 4/46, C5 1/38 (5/84 = 6%) <!-- run:task2_pilot, file:paper/results/task2_pilot_round1_verify.json --> |
 | Pilot: sham edits in which the verifier found the target class | 0/46 (one sham produced a non-target object, a bird) <!-- run:task2_pilot --> |
+| Surface pilot (35 photos, SDXL, attempt 1): insertion confirmed | C4 0/35, C5 4/19 (4/54 = 7%) <!-- run:task2_pilot_surface, file:paper/results/task2_pilot_surface_round1_verify.json --> |
+| Window-size diagnostic (12 failed edits): confirmed at 2.5× / 1.5× / 1.2× | 1 / 5 / 7 of 12 <!-- file:paper/results/task2_window_scale_diagnostic.txt (scratch diagnostic, not a run) --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
@@ -95,7 +110,7 @@ cloud sandbox, so their first real run is the pilot.
 
 ## Next steps
 
-1. Decide how to change the insertion design (see "To discuss"), then re-run the 50-photo pilot.
+1. Decide the edit-window size (see "To discuss"), then a third 50-photo pilot.
 2. Only when the pilot reaches a usable success rate, start the full run.
 3. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.
 4. Human audit of 10% of edits, then record the success rates here, in the paper and in the log.
@@ -108,8 +123,9 @@ cloud sandbox, so their first real run is the pilot.
   (`systeminfo`: 32,471 MB, 16 Oct; now `hardware.ram_gb` in `configs/default.yaml`). That is at
   the threshold, not above it: FLUX with sequential offload should fit but may page; a short FLUX
   smoke test (or the GGUF-quantised transformer) decides before the full G3 run.
-- **How to fix the 6% insertion rate.** Options: place boxes on supporting surfaces (floor,
-  table, ground) instead of any free space; a larger minimum box for small classes (cup, bottle);
-  a prompt that mentions the scene; or a generator that is better at adding objects. More
-  attempts alone will not reach the 85% target.
+- **How to fix the insertion rate.** Surface placement was tried and did not help (7%). The
+  evidence points to a tighter edit window (1.2–1.5× instead of 2.5×; 7/12 at 1.2×). To decide:
+  which window size, whether to keep surface placement (it costs 11 of 46 plans and half of C5),
+  then a third pilot before the full run.
+- Whether OWLv2's misses need a closer look (it rejected some clearly visible objects).
 - Whether the sham check should look for any new object, not only the target class.
