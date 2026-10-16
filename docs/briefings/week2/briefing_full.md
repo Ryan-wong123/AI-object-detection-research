@@ -166,14 +166,13 @@ cloud sandbox, so their first real run is the pilot.
   fits the occlusion rule. 69 tests pass.
 
 ### 13. Full run set up (17 Oct, run `task2_insertion`)
-- `configs/insertion_inphoto.yaml`: the pilot's settings on all 600 photos, in a new folder
+- `configs/insertion_inphoto.yaml`: the pilot's settings on **the same 544 photos as the week-1
+  baseline** (author decision, so weeks 1–3 use one photo set), in a new folder
   (`data/inlayfake_v2`) so week-1 data is untouched; SDXL only for now.
-- All 600 photos get a plan (126 of them occlusion-only, 7 placed anywhere); 1,413 images in the
-  first round.
-- **Expected GPU time ~28–30 h** (estimate from the pilot's retry rates at ~20 s per image), so
+- All 544 get a plan (70 of them occlusion-only, 1 placed anywhere); 1,355 images in the first
+  round (~7.5 h).
+- **Expected GPU time ~28 h** (estimate from the pilot's retry rates at ~20 s per image), so
   about two nights; the run can be stopped and resumed.
-- The 56 close-up photos new to the plan were not in the week-1 label audit; they need it
-  before week 3.
 
 ### 12. Decision: a box anywhere as the very last resort (17 Oct)
 - **Rule:** if no box satisfies the placement rules, an occluding (C5) edit may be placed
@@ -200,7 +199,7 @@ cloud sandbox, so their first real run is the pilot.
 | Plus C5 boxes sized from the covered object: C4 / C5; photos with an AI object | 39/41 / 37/42; 48 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_targetsize_verify.json --> |
 | Plus a class not in the photo as last resort: C4 / C5; photos with an AI object | 39/41 / 38/42; 49 of 50 (1 out-of-photo edit) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_outside_verify.json --> |
 | Plus a C5 box anywhere as very last resort: C4 / C5; photos with an AI object | 39/41 / 39/43; **50 of 50** (1 doubtful) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_anywhere_verify.json --> |
-| Full run plan: photos planned / first-round images / expected GPU time | 600 of 600 / 1,413 / ~28–30 h (estimate) <!-- run:task2_insertion (plan only), file:paper/results/task2_insertion_plan.json --> |
+| Full run plan (week-1 photo set): photos planned / first-round images / expected GPU time | 544 of 544 / 1,355 / ~28 h (estimate) <!-- run:task2_insertion (plan only), file:paper/results/task2_insertion_plan.json --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |

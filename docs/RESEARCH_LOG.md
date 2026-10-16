@@ -5,6 +5,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Decision: the full run uses only the 544 week-1 baseline photos
+
+- **Decision (author):** week 1 sampled 600 photos but its baseline (detectors, forensics,
+  label audit on C0/C1) used the 544 that had a plan; the full insertion run must use the same
+  544, so weeks 1–3 share one photo set.
+- **Implemented:** `sampling.only_sources` (a jsonl with `source_id` rows) restricts the plan
+  stage; `configs/insertion_inphoto.yaml` sets it to `data/inlayfake/plans.jsonl` (the week-1
+  plans). Test added; `pytest -q`: 73 passed.
+- **Re-plan** (run_plan_2026-10-16T180641Z.json, paper/results/task2_insertion_plan.json;
+  nothing had been generated yet): 544 of 544 planned, all inside the week-1 set; 474 with a
+  free box, 407 with an occlusion box, 70 C5-only, 2 with a class not in the photo, 1 anywhere.
+  First round: 474 C2 + 474 C4 + 407 C5 = 1,355 images (~7.5 h); total at the pilot's rates
+  ~5,100 images, **~28 h** (estimate).
+- **Resolved:** the caveat about 56 unaudited close-ups no longer applies (they are out).
+
+---
+
 ## 2026-10-17: Full insertion run set up (run `task2_insertion`, plan only so far)
 
 - **Config** `configs/insertion_inphoto.yaml`: the `pilot_inphoto` settings (test: placement,

@@ -22,6 +22,7 @@ sampling:
   n_sources: 600
   split: {train: 0.6, val: 0.2, test: 0.2}
   max_person_area_frac: 0.30
+  only_sources: null                   # plan only these source_ids (a jsonl with source_id rows)
   min_image_side: 256
   categories: [chair, cup, bottle, potted plant, vase, clock, bench, umbrella, backpack, dog]
 

@@ -23,6 +23,7 @@ def test_full_run_uses_the_pilot_settings():
     assert full["sampling"]["n_sources"] == 600 and pilot["sampling"]["n_sources"] == 50
     assert full["paths"]["work"] not in ("data/inlayfake", pilot["paths"]["work"])
     assert full["run_name"] == "task2_insertion"
+    assert full["sampling"]["only_sources"] == "data/inlayfake/plans.jsonl"  # week-1 photos
 
 
 def test_cli_help():

@@ -1,4 +1,4 @@
-# Task 2 (week 2): full AI-insertion run on all 600 sampled sources, with the settings of the
+# Task 2 (week 2): full AI-insertion run on the 544 week-1 baseline sources, with the settings of the
 # same-class pilot (configs/pilot_inphoto.yaml, run task2_pilot_inphoto: 50 of 50 photos with a
 # verified AI object). New work dir, so the week-1 data in data/inlayfake stays untouched.
 #
@@ -18,6 +18,10 @@
 inherit: default.yaml
 run_name: task2_insertion
 generators_enabled: [G1]
+sampling:
+  # author, 2026-10-17: only the 544 photos of the week-1 baseline (task1_real_baseline), so
+  # weeks 1-3 use one photo set; the 56 close-ups week 1 could not plan stay out
+  only_sources: data/inlayfake/plans.jsonl
 placement:
   class_choice: in_photo
   audit_decisions: data/inlayfake/audit_decisions.csv

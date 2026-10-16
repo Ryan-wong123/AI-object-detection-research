@@ -48,6 +48,22 @@ def test_audit_anns_block_but_skip_rejects(tmp_path):
     assert audit_anns(None) == {}
 
 
+def test_only_sources_restricts_the_plan(cfg, tmp_path):
+    """sampling.only_sources keeps exactly the listed photos (e.g. the week-1 baseline set)."""
+    from inlayfake.config import deep_merge
+    from inlayfake.stages import plan, sample
+
+    sample.run(cfg)
+    ids = [json.loads(line)["source_id"] for line in (tmp_path / "work" / "sources.jsonl").open()]
+    keep = ids[::2]
+    lst = tmp_path / "keep.jsonl"
+    lst.write_text("".join(json.dumps({"source_id": i}) + "\n" for i in keep))
+    cfg = deep_merge(cfg, {"sampling": {"only_sources": str(lst)}})
+    plan.run(cfg)
+    got = {json.loads(line)["source_id"] for line in (tmp_path / "work" / "plans.jsonl").open()}
+    assert got and got <= set(keep)
+
+
 def test_plan_stage_in_photo(cfg, tmp_path):
     """Every plan's class is one of that photo's own GT classes, never person."""
     from inlayfake.config import deep_merge
