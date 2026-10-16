@@ -176,6 +176,10 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   C3 follow so the controls stay on the C4 box) and *occ* (C5). New boxes rest on a surface of
   the class when COCO-Stuff is available (free space otherwise) and are sized like the photo's
   own instance of the class (×0.8–1.2). Only the current box counts in the final ledger.
+  After the new boxes, `edit.max_class_switches` further versions switch to another class
+  already in the photo (smallest first; class stored per version; C2/C3 follow C4). Versions
+  where no box fits are skipped. In `in_photo` plans, a photo without free space may get a
+  C5-only plan (`box_free` null), searched with its own generator so other plans are unchanged.
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological

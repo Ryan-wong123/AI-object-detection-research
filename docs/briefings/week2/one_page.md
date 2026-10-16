@@ -1,6 +1,6 @@
 # InlayFake: Week 2 progress (15–21 Oct 2026)
 
-16 Oct 2026 · Ryan Wong
+17 Oct 2026 · Ryan Wong
 
 Week 2 turns the 544 planned real photos into the benchmark by inserting AI objects under matched
 controls (sham edit, real-object paste, insertion with and without occlusion), and verifies every
@@ -11,8 +11,9 @@ instead (tighter window: 7/12 inserted). The full run waits for that change. Des
 the AI object is now of a class already in the photo (e.g. a sheep among sheep, not a chair).
 With a tighter window (1.2×) and a looser verifier check, the same-class pilot has a verified
 AI object in 66% of C4 and 50% of C5 edits (was 6%). Giving failed edits a new box on a
-surface raised this to **93% of C4 and 74% of C5**; edits without a verified object are dropped,
-never labelled.
+surface raised this to **93% of C4 and 74% of C5**; switching to another class in the photo as
+a last resort gives **46 of 50 photos** at least one verified AI object. Edits without a verified
+object are dropped, never labelled.
 
 ## Done this week
 
@@ -43,6 +44,7 @@ never labelled.
 | Same-class plan (50 photos): planned / with occlusion / classes | 41 / 34 / 31 <!-- run:task2_pilot_inphoto --> |
 | Same-class pilot, verified C4 / C5 / clean C2 (≤ 3 attempts) | 27/41 / 17/34 / 41/41 <!-- run:task2_pilot_inphoto --> |
 | With re-plan on failure (≤ 4 boxes) | 38/41 / 25/34 / 39/41 <!-- run:task2_pilot_inphoto --> |
+| Plus class switch: C4 / C5; photos with an AI object | 39/41 / 35/41; 46 of 50 <!-- run:task2_pilot_inphoto --> |
 | Final images per condition (C2 / C3 / C4 / C5) | [[TBD]] |
 | C4 success per generator | [[TBD]] |
 | Human audit: present / realistic / other change | [[TBD]] |

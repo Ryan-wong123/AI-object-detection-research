@@ -187,7 +187,7 @@ def _generative_one(
     if _exists(wd, rid):
         return False
     ecfg = cfg["edit"]
-    cat = plan["category"]
+    cat = plan.get("category_occ", plan["category"]) if cond == "C5" else plan["category"]
     if cond == "C2":
         prompt, negative = ecfg["sham_prompt"], f"{cat}, object, " + ecfg["negative_prompt"]
     else:
@@ -288,8 +288,8 @@ def run(cfg: dict, limit: int | None = None) -> dict:
         effective_plan(
             p,
             versions,
-            track_version(cfg, state, p["source_id"], FREE),
-            track_version(cfg, state, p["source_id"], OCC),
+            track_version(cfg, state, p["source_id"], FREE, versions),
+            track_version(cfg, state, p["source_id"], OCC, versions),
         )
         for p in raw
     ]

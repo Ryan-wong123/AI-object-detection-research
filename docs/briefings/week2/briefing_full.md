@@ -1,6 +1,6 @@
 # InlayFake: Week 2 progress (15–21 Oct 2026)
 
-Last updated 16 Oct 2026 · Ryan Wong
+Last updated 17 Oct 2026 · Ryan Wong
 
 Briefing for the project professor. Branch `week-2-ai-insertion`. Generation runs on the RTX 4070
 laptop. The SDXL pilot (run `task2_pilot`, `data/inlayfake_pilot`) ran on 16 Oct; full-run
@@ -135,6 +135,17 @@ cloud sandbox, so their first real run is the pilot.
 - **Remaining:** 3 C4 and 9 C5 edits without an object (4 crowded photos had no room for a new
   box); human audit pending. 62 tests pass.
 
+### 9. Another class as a last resort (17 Oct, run `task2_pilot_inphoto`)
+- **Change:** if the new boxes also fail, the edit switches to another class already in the
+  photo, smallest first (sham and paste switch with it). Photos with no free space at all may
+  still get a C5 edit (an object partly covering a real one). Week-1 and earlier pilot plans are
+  unchanged (checked). 65 tests pass.
+- **Result:** **46 of the 50 photos** now have at least one verified AI object (was 39);
+  C4 39/41, C5 35/41. The new objects include a toilet, motorcycles, a giraffe, a handbag and a
+  spoon; 2 are very small.
+- **Still without one (4):** a single train, a single zebra, and two crowded street scenes where
+  no box fits for any class.
+
 ## Results
 
 | Item | Value |
@@ -148,6 +159,7 @@ cloud sandbox, so their first real run is the pilot.
 | Same-class pilot (window 1.2×, looser check, ≤ 3 attempts): verified C4 / C5 / clean C2 | 27/41 (66%) / 17/34 (50%) / 41/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_final_verify.json --> |
 | Same-class pilot, attempt 1, old rule: C4 / C5 | 10/41 / 7/34 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_round1_oldrule_verify.json --> |
 | Same-class pilot with re-plan (≤ 4 boxes × 3 seeds): verified C4 / C5 / clean C2 | 38/41 (93%) / 25/34 (74%) / 39/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_replan_verify.json --> |
+| Plus class switch and C5-only plans: verified C4 / C5; photos with an AI object | 39/41 / 35/41; **46 of 50** <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_classswitch_verify.json --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
@@ -156,7 +168,7 @@ cloud sandbox, so their first real run is the pilot.
 
 ## Next steps
 
-1. Author's visual check of the same-class pilot and its 10-row audit sheet.
+1. Author's visual check of the same-class pilot and its 11-row audit sheet.
 2. Re-plan the full 600 sources with the same-class rule (the week-1 plan used fixed classes).
 3. Only when the pilot reaches a usable success rate, start the full run.
 4. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.

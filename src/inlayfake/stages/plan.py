@@ -21,7 +21,7 @@ from inlayfake.data.audit import read_decisions
 from inlayfake.edit.placement import plan_source, size_stats
 from inlayfake.edit.support import StuffIndex, category_supports
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import load_coco, read_jsonl, work_dir, write_jsonl
+from inlayfake.stages.common import derive_seed, load_coco, read_jsonl, work_dir, write_jsonl
 
 
 def audit_anns(path: str | None) -> dict[int, list[dict]]:
@@ -111,7 +111,10 @@ def run(cfg: dict) -> dict:
                     src["source_id"], src["height"], src["width"], cat, stuff, scfg
                 )
 
-        p = plan_source(src, anns, order, stats, pcfg, rng, supports_for)
+        occ_rng = (
+            np.random.default_rng(derive_seed(cfg["seed"], sid, "occ_only")) if in_photo else None
+        )
+        p = plan_source(src, anns, order, stats, pcfg, rng, supports_for, occ_only_rng=occ_rng)
         if p is None:
             failed.append(sid)
         else:
@@ -126,6 +129,7 @@ def run(cfg: dict) -> dict:
     }
     if in_photo:
         summary["n_no_insertable_class"] = len(no_class)
+        summary["n_occlusion_only"] = sum(p["box_free"] is None for p in plans)
     if stuff is not None:
         summary["supports"] = dict(Counter(p["support"] for p in plans))
     write_run_info(wd / "runs", "plan", cfg, summary | {"failed_sources": failed})
