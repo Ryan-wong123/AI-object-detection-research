@@ -61,6 +61,10 @@ def run(cfg: dict) -> dict:
     index = load_coco(cfg)
     wd = work_dir(cfg)
     sources = read_jsonl(wd / "sources.jsonl")
+    only = cfg["sampling"].get("only_sources")  # e.g. the week-1 plans: keep the same photo set
+    if only:
+        keep = {r["source_id"] for r in read_jsonl(Path(only))}
+        sources = [s for s in sources if s["source_id"] in keep]
     pcfg = cfg["placement"]
     in_photo = pcfg.get("class_choice", "fixed") == "in_photo"
     exclude = set(pcfg.get("exclude_classes", ["person"]))
