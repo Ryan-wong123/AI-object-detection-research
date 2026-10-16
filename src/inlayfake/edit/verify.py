@@ -151,11 +151,17 @@ class SamSegmenter:
 class FakeFinder:
     """Test double: 'finds' the planned box in C4/C5 (unless told to fail) and nothing in C2."""
 
-    def __init__(self, fail_ids: set[str] | None = None) -> None:
+    def __init__(
+        self, fail_ids: set[str] | None = None, fail_until: dict[str, int] | None = None
+    ) -> None:
         self.fail_ids = fail_ids or set()
+        self.fail_until = fail_until or {}  # "<sid>|<cond>" -> fail while plan_version < this
 
     def __call__(self, crop, category, record):
         if record.condition.value == "C2" or record.image_id in self.fail_ids:
+            return []
+        key = f"{record.source_id}|{record.condition.value}"
+        if record.edit.plan_version < self.fail_until.get(key, 0):
             return []
         x, y, w, h = record.edit.plan_box
         cx, cy = record.edit.crop_box[0], record.edit.crop_box[1]
@@ -175,7 +181,8 @@ class FakeSegmenter:
 
 def build_verifier(vcfg: dict, device: str) -> tuple[Finder, Segmenter]:
     if vcfg["model_id"] == "fake":
-        return FakeFinder(set(vcfg.get("fake_fail_ids", []))), FakeSegmenter()
+        finder = FakeFinder(set(vcfg.get("fake_fail_ids", [])), vcfg.get("fake_fail_until"))
+        return finder, FakeSegmenter()
     return (
         OwlV2Finder(vcfg["model_id"], device, vcfg.get("candidate_threshold", 0.05)),
         SamSegmenter(vcfg["sam_model_id"], device),

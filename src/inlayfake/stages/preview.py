@@ -24,12 +24,18 @@ ORDER = ["C0", "C1", "C2", "C3", "C4", "C5"]
 EDITED = ("C2", "C4", "C5")
 
 
-def _status(rec: dict, verified: dict[str, dict], passed_keys: set[str]) -> tuple[str, str]:
+def _status(
+    rec: dict, verified: dict[str, dict], passed_keys: set[str], final_ids: set[str]
+) -> tuple[str, str]:
     """(css class, caption suffix) for one record."""
+    if rec["condition"] == "C3" and final_ids and rec["image_id"] not in final_ids:
+        return "rej", "superseded: the box was re-planned · not in benchmark"
     if rec["condition"] not in EDITED:
         return "", ""
     row = verified.get(rec["image_id"])
     attempt = f"attempt {rec['edit'].get('attempts', 1)}"
+    if rec["edit"].get("plan_version"):
+        attempt += f" · box {rec['edit']['plan_version']}"
     if row is None:
         key = f"{rec['source_id']}|{rec['condition']}|{rec['generator']}"
         if key in passed_keys:
@@ -67,6 +73,8 @@ def run(cfg: dict, limit: int | None = 50, thumb: int = 240) -> dict:
     vpath = wd / "verify.jsonl"
     verified = {r["image_id"]: r for r in read_jsonl(vpath)} if vpath.exists() else {}
     passed_keys = {r["key"] for r in verified.values() if r["passed"]}
+    lpath = wd / "ledger.jsonl"
+    final_ids = {r["image_id"] for r in read_jsonl(lpath)} if lpath.exists() else set()
     by_src: dict[int, list[dict]] = defaultdict(list)
     for line in (wd / "ledger_generated.jsonl").read_text(encoding="utf-8").splitlines():
         if line.strip():
@@ -86,7 +94,9 @@ def run(cfg: dict, limit: int | None = 50, thumb: int = 240) -> dict:
             ),
         )
         cat = next((r["edit"]["target_category"] for r in recs if r.get("edit")), "")
-        panels = "".join(_panel(r, wd, thumb, *_status(r, verified, passed_keys)) for r in recs)
+        panels = "".join(
+            _panel(r, wd, thumb, *_status(r, verified, passed_keys, final_ids)) for r in recs
+        )
         rows.append(f"<section><h3>source {sid} · {html.escape(cat)}</h3>{panels}</section>")
     page = (
         "<!doctype html><meta charset=utf-8><title>InlayFake preview</title><style>"

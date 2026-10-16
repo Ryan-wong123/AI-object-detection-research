@@ -70,6 +70,7 @@ class EditInfo:
     donor: dict | None = None  # C3: {"image_id": ..., "ann_id": ...}
     attempts: int = 1
     verifier_score: float | None = None
+    plan_version: int = 0  # 0 = the original plan box; n = n-th re-plan after failed attempts
 
 
 @dataclass

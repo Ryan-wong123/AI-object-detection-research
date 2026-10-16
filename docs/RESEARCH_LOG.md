@@ -5,6 +5,39 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-16: Re-plan on failure (run `task2_pilot_inphoto`): 93% of C4 with a verified object
+
+- **Author's request:** the photos must get an AI-inserted object. Loosening the verifier
+  further was advised against and not done: all 31 dropped jobs were checked by eye and their last
+  attempts contain background (or, under C5 boxes, the photo's own object), so passing them would
+  put empty `ai_inserted` boxes into the ground truth. Instead, failed jobs get new boxes.
+- **Implemented** (`stages/replan.py`, `edit.max_replans`, default 0 = unchanged): when all
+  `max_attempts` seeds fail on a box, the job gets box version n+1 (up to `max_replans`). Two
+  tracks per source: *free* (C4; C2 sham and C3 paste follow it, so controls stay matched to the
+  C4 box) and *occ* (C5). A new box rests on a surface of the class (COCO-Stuff; free space if
+  none fits) and is sized like one of the photo's own instances of that class (×0.8–1.2).
+  Version 0 keeps the original seeds, so existing images are reused; versions are stored in
+  `replans.jsonl`; `EditInfo.plan_version` records the box. `verify` and the final ledger count
+  only the current box (one C3 per source). Preview shows "box n" and marks superseded C3.
+  Fake verifier gained `fake_fail_until` for tests; 3 new tests; `pytest -q`: 62 passed.
+- **Run** (`configs/pilot_inphoto.yaml`, `max_replans: 3`, window 1.2×, looser verifier;
+  run_verify_2026-10-16T130208Z.json, paper/results/task2_pilot_inphoto_replan_verify.json;
+  boxes in paper/results/task2_pilot_inphoto_replans.jsonl; 65 min wall time):
+  31 re-plans created (13 on a surface, 14 free space, 4 with no box that fits).
+  **C4 38/41 (93%)** — box 0: 27, box 1: 4, box 2: 7, 3 dropped; **C5 25/34 (74%)** — box 0: 17,
+  box 1: 4, box 2: 1, box 3: 3, 9 dropped; **C2 39/41** clean (the 2 missing are sources where no
+  new box fit, which also have no C4). Final ledger 223 records, audit sample 10.
+- **Visual check of the 19 edits that passed on a new box:** about 16 clearly show the object
+  (dog, elephant, train, book on the floor, horse, skis, vase, dining table, traffic light,
+  airplane, surfboard on the beach); 3 are weak (a tiny boat, a blurred car, a tiny surfboard);
+  a few are still implausible (umbrella above the sea, bed in a hedge).
+- **Limits:** when no new box fits (4 crowded photos) the source loses its C2/C3 at the old box
+  as well; 85% target met for C4 (93%), not yet for C5 (74%); human audit pending.
+- **Next:** author audit (`audit_edits.csv`, 10 rows); then decide whether to run the full
+  benchmark with this configuration (re-plan of all 600 sources with the same-class rule).
+
+---
+
 ## 2026-10-16: Same-class pilot at window 1.2× with a looser verifier (run `task2_pilot_inphoto`)
 
 - **Author's requirement:** the AI object must show. Generation can never guarantee it, so the

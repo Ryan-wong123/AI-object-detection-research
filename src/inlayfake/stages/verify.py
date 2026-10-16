@@ -47,6 +47,14 @@ from inlayfake.forensics.instance_scores import bbox_mask
 from inlayfake.ledger import ImageRecord, Origin, read_ledger, write_ledger
 from inlayfake.runlog import write_run_info
 from inlayfake.stages.common import load_coco, read_jsonl, work_dir
+from inlayfake.stages.replan import (
+    FREE,
+    load_versions,
+    next_job,
+    rows_at,
+    track_of,
+    track_version,
+)
 
 EDITED = ("C2", "C4", "C5")
 
@@ -192,14 +200,20 @@ def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool,
     return True, "ok", info
 
 
-def build_final_ledger(wd: Path, generated: list[ImageRecord], state: dict) -> list[ImageRecord]:
-    """C0/C1 unchanged; C3 with its pasted mask; one passed record per C2/C4/C5 job."""
+def build_final_ledger(
+    wd: Path, generated: list[ImageRecord], state: dict, cfg: dict | None = None
+) -> list[ImageRecord]:
+    """C0/C1 unchanged; C3 with its pasted mask; one passed record per C2/C4/C5 job. With
+    re-plans, C3 and every job count only on the source's current box version."""
     final = []
     for r in generated:
         cond = r.condition.value
         if cond in ("C0", "C1"):
             final.append(r)
         elif cond == "C3":
+            v = track_version(cfg, state, r.source_id, FREE) if cfg else 0
+            if r.edit.plan_version != v:
+                continue  # pasted at a box that was later re-planned
             insts = [
                 replace(i, mask_path=r.edit.intended_mask_path)
                 if i.origin is Origin.REAL_PASTED
@@ -207,12 +221,14 @@ def build_final_ledger(wd: Path, generated: list[ImageRecord], state: dict) -> l
                 for i in r.instances
             ]
             final.append(replace(r, instances=insts))
-    # one passed record per job: its first passing attempt
-    passed = {
-        next(row["image_id"] for row in rows if row["passed"])
-        for rows in state.values()
-        if any(row["passed"] for row in rows)
-    }
+    # one passed record per job: its first passing attempt on the job's current box
+    passed = set()
+    for key, rows in state.items():
+        sid, cond, _ = key.split("|")
+        v = track_version(cfg, state, int(sid), track_of(cond)) if cfg else 0
+        ok = [row for row in rows_at(rows, v) if row["passed"]]
+        if ok:
+            passed.add(ok[0]["image_id"])
     for image_id in sorted(passed):
         p = wd / "verified" / f"{image_id}.json"
         if p.exists():
@@ -298,7 +314,7 @@ def run(cfg: dict) -> dict:
     # first passing attempt and later attempts of that job are left out
     todo = sorted(
         (r for r in generated if r.condition.value in EDITED and r.image_id not in checked),
-        key=lambda r: (job_key(r), r.edit.attempts),
+        key=lambda r: (job_key(r), r.edit.plan_version, r.edit.attempts),
     )
 
     n_verified = 0
@@ -307,8 +323,9 @@ def run(cfg: dict) -> dict:
         finder, segmenter = build_verifier(vcfg, cfg["hardware"]["device"])
         with (wd / "verify.jsonl").open("a", encoding="utf-8") as f:
             for r in tqdm(todo, desc="verify"):
-                if next_attempt(state, job_key(r), max_attempts) is None:
-                    continue  # job already passed (or out of attempts): not needed
+                done_here = rows_at(state.get(job_key(r), []), r.edit.plan_version)
+                if any(x["passed"] for x in done_here) or len(done_here) >= max_attempts:
+                    continue  # this box already passed (or is out of attempts): not needed
                 n_verified += 1
                 img, ref = load_rgb(r.path), load_rgb(c1[r.source_id].path)
                 passed, reason, info = verify_one(r, img, ref, finder, segmenter, vcfg, index, wd)
@@ -318,6 +335,7 @@ def run(cfg: dict) -> dict:
                     "condition": r.condition.value,
                     "generator": r.generator,
                     "attempt": r.edit.attempts,
+                    "version": r.edit.plan_version,
                     "passed": passed,
                     "reason": reason,
                 } | info
@@ -332,17 +350,22 @@ def run(cfg: dict) -> dict:
         except ImportError:
             pass
 
-    final = build_final_ledger(wd, generated, state)
+    final = build_final_ledger(wd, generated, state, cfg)
     write_ledger(final, wd / "ledger.jsonl")
     n_audit = audit_sheet(wd, final, vcfg.get("audit_fraction", 0.1), cfg["seed"] + 7, vcfg)
 
+    versions = load_versions(wd)
     by_cond: dict[str, Counter] = defaultdict(Counter)
-    for rows in state.values():
-        cond = rows[-1]["condition"]
-        if any(r["passed"] for r in rows):
+    for key, rows in state.items():
+        sid, cond, gen = key.split("|")
+        v = track_version(cfg, state, int(sid), track_of(cond))
+        here = rows_at(rows, v)
+        if any(r["passed"] for r in here):
             by_cond[cond]["passed"] += 1
-            by_cond[cond][f"passed_on_attempt_{len(rows)}"] += 1
-        elif len(rows) >= max_attempts:
+            by_cond[cond][f"passed_on_attempt_{len(rows)}"] += 1  # total tries, all boxes
+            if cfg["edit"].get("max_replans", 0):
+                by_cond[cond][f"passed_on_box_{v}"] += 1  # 0 = original plan box
+        elif next_job(cfg, state, int(sid), cond, gen, versions) is None:
             by_cond[cond]["dropped"] += 1
         else:
             by_cond[cond]["needs_retry"] += 1

@@ -73,7 +73,8 @@ edit:
   mask_dilate_px: 6
   feather_px: 3
   composite: mask                      # mask (default) | window (ablation: keep VAE output for the whole window)
-  max_attempts: 3
+  max_attempts: 3                      # seeds per box
+  max_replans: 0                       # new boxes after all seeds failed (stages/replan.py)
   prompt: "a photo of a {category}, realistic, natural lighting"
   negative_prompt: "text, watermark, cartoon, painting, drawing, blurry"
   sham_prompt: "empty background, nothing"

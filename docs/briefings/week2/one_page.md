@@ -10,7 +10,9 @@ surfaces (run `task2_pilot_surface`) did no better (7%); a diagnostic points to 
 instead (tighter window: 7/12 inserted). The full run waits for that change. Design change:
 the AI object is now of a class already in the photo (e.g. a sheep among sheep, not a chair).
 With a tighter window (1.2×) and a looser verifier check, the same-class pilot has a verified
-AI object in 66% of C4 and 50% of C5 edits (was 6%); edits without one are dropped.
+AI object in 66% of C4 and 50% of C5 edits (was 6%). Giving failed edits a new box on a
+surface raised this to **93% of C4 and 74% of C5**; edits without a verified object are dropped,
+never labelled.
 
 ## Done this week
 
@@ -23,6 +25,7 @@ AI object in 66% of C4 and 50% of C5 edits (was 6%); edits without one are dropp
 | Audit | Random 10% of edits on a before/after page with a y/n sheet. |
 | Viewer | Shows C2–C5, inserted objects in purple, altered real objects in amber. |
 | Tests | 48 CPU tests pass, including a forced verifier failure that is retried with a new seed. |
+| Re-plan on failure | After 3 failed seeds an edit gets a new box on a surface, sized like the photo's own object (sham and paste move with it); up to 3 new boxes. 62 tests pass. |
 | Verifier and window | Window 1.2× (was 2.5×); an object mostly inside the box passes even if smaller than it; preview labels each attempt "in benchmark" or "rejected". 59 tests pass. |
 | Same-class insert | The inserted class is one already in the photo's audited labels (any class except person); the old 10-class cycle reproduces week 1 exactly. 57 tests pass. |
 | Surface placement | New `placement.support`: boxes rest on floor/ground/table from COCO-Stuff labels (off by default); 53 tests pass. |
@@ -39,6 +42,7 @@ AI object in 66% of C4 and 50% of C5 edits (was 6%); edits without one are dropp
 | Window 2.5× / 1.5× / 1.2× (12 failed edits, diagnostic) | 1 / 5 / 7 inserted <!-- file:paper/results/task2_window_scale_diagnostic.txt --> |
 | Same-class plan (50 photos): planned / with occlusion / classes | 41 / 34 / 31 <!-- run:task2_pilot_inphoto --> |
 | Same-class pilot, verified C4 / C5 / clean C2 (≤ 3 attempts) | 27/41 / 17/34 / 41/41 <!-- run:task2_pilot_inphoto --> |
+| With re-plan on failure (≤ 4 boxes) | 38/41 / 25/34 / 39/41 <!-- run:task2_pilot_inphoto --> |
 | Final images per condition (C2 / C3 / C4 / C5) | [[TBD]] |
 | C4 success per generator | [[TBD]] |
 | Human audit: present / realistic / other change | [[TBD]] |

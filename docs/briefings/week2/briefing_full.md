@@ -123,6 +123,18 @@ cloud sandbox, so their first real run is the pilot.
 - **What is left:** below the 85% target; several objects float in implausible places (a bus
   in the sky, a car in the trees), and very large classes (train, bed) usually fail.
 
+### 8. Re-plan on failure (16 Oct, run `task2_pilot_inphoto`)
+- **Why not loosen the check further:** the 31 dropped edits were checked by eye and contain
+  only background, so accepting them would put empty "AI object" labels into the benchmark.
+- **Instead:** when all 3 seeds fail on a box, the edit gets a **new box** resting on a ground
+  or table surface and sized like the photo's own object of that class, up to 3 new boxes. The
+  sham and paste controls move with the C4 box, so they stay matched.
+- **Result:** a verified AI object in **38 of 41 C4** edits (93%) and **25 of 34 C5** edits
+  (74%); 39 of 41 shams clean. Most of the 19 objects gained on new boxes are clear (dog,
+  elephant, train, horse, airplane); 3 are weak and a few still sit in odd places.
+- **Remaining:** 3 C4 and 9 C5 edits without an object (4 crowded photos had no room for a new
+  box); human audit pending. 62 tests pass.
+
 ## Results
 
 | Item | Value |
@@ -135,6 +147,7 @@ cloud sandbox, so their first real run is the pilot.
 | Week-1 plan: photos containing any of the 10 fixed classes | 196 of 544 <!-- run:task1_real_baseline plans + COCO val2017 annotations --> |
 | Same-class pilot (window 1.2×, looser check, ≤ 3 attempts): verified C4 / C5 / clean C2 | 27/41 (66%) / 17/34 (50%) / 41/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_final_verify.json --> |
 | Same-class pilot, attempt 1, old rule: C4 / C5 | 10/41 / 7/34 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_round1_oldrule_verify.json --> |
+| Same-class pilot with re-plan (≤ 4 boxes × 3 seeds): verified C4 / C5 / clean C2 | 38/41 (93%) / 25/34 (74%) / 39/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_replan_verify.json --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
@@ -143,8 +156,7 @@ cloud sandbox, so their first real run is the pilot.
 
 ## Next steps
 
-1. Author's visual check of the same-class pilot and its 8-row audit sheet; decide how to
-   reduce floating objects (surface placement, box size from the photo's own instance).
+1. Author's visual check of the same-class pilot and its 10-row audit sheet.
 2. Re-plan the full 600 sources with the same-class rule (the week-1 plan used fixed classes).
 3. Only when the pilot reaches a usable success rate, start the full run.
 4. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.

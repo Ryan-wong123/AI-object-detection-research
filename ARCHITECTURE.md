@@ -170,6 +170,12 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   added 2026-10-16 for objects smaller than the box); a box with IoU ≥ 0.5 to a same-class
   original object never counts (`verify.original_iou`). On failure, retry with a new seed
   (max 3), then drop and log it. Attempts are verified in order; the first pass ends the job.
+- **Re-plan on failure** (`stages/replan.py`, `edit.max_replans`, 0 by default, 3 in
+  `pilot_inphoto.yaml`): after all seeds fail on a box, the job gets a new box version (stored in
+  `<work>/replans.jsonl`, recorded as `EditInfo.plan_version`). Tracks: *free* (C4 leads, C2 and
+  C3 follow so the controls stay on the C4 box) and *occ* (C5). New boxes rest on a surface of
+  the class when COCO-Stuff is available (free space otherwise) and are sized like the photo's
+  own instance of the class (×0.8–1.2). Only the current box counts in the final ledger.
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological

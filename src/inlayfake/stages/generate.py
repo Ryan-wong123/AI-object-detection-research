@@ -28,7 +28,16 @@ from inlayfake.edit.paste import choose_donor, paste_instance
 from inlayfake.edit.placement import box_area, intersection
 from inlayfake.ledger import EditInfo, ImageRecord, Instance, Origin
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import derive_seed, load_coco, read_jsonl, work_dir
+from inlayfake.stages.common import load_coco, read_jsonl, work_dir
+from inlayfake.stages.replan import (
+    FREE,
+    OCC,
+    effective_plan,
+    ensure_versions,
+    job_seed,
+    next_job,
+    track_version,
+)
 
 
 def _original_instances(index, source_id: int) -> list[Instance]:
@@ -104,8 +113,9 @@ def _non_generative(cfg, index, plan, src, wd, enc) -> int:
         )
         n += 1
 
-    if "C3" in cfg["conditions"]:
-        seed = derive_seed(cfg["seed"], sid, "C3")
+    if "C3" in cfg["conditions"] and plan["box_free"] is not None:
+        version = plan.get("free_version", 0)  # C3 follows the C4 box (re-plan on failure)
+        seed = job_seed(cfg, sid, "C3", None, 0, version)
         rid = ImageRecord.make_id(sid, "C3", None, seed)
         if not _exists(wd, rid):
             rng = np.random.default_rng(seed)
@@ -126,6 +136,7 @@ def _non_generative(cfg, index, plan, src, wd, enc) -> int:
                     plan_box=plan["box_free"],
                     intended_mask_path=mpath,
                     donor={"image_id": donor["image_id"], "ann_id": donor["id"]},
+                    plan_version=version,
                 )
                 _write_record(
                     ImageRecord(
@@ -153,23 +164,25 @@ def _generative_jobs(cfg: dict, plan: dict, gen: str) -> list[tuple[str, list[fl
         return []
     jobs = []
     roles = cfg["generation"]
-    if "C2" in cfg["conditions"] and gen in roles["sham_generators"]:
+    free = plan["box_free"] is not None  # None: no box could be re-planned
+    if "C2" in cfg["conditions"] and gen in roles["sham_generators"] and free:
         jobs.append(("C2", plan["box_free"]))
-    if "C4" in cfg["conditions"] and gen in roles["insert_generators"]:
+    if "C4" in cfg["conditions"] and gen in roles["insert_generators"] and free:
         jobs.append(("C4", plan["box_free"]))
     if "C5" in cfg["conditions"] and gen in roles["occlusion_generators"] and plan["box_occ"]:
         jobs.append(("C5", plan["box_occ"]))
     return jobs
 
 
-def _generative_one(cfg, index, plan, src, gen, cond, box, inpainter, wd, enc, state) -> bool:
+def _generative_one(
+    cfg, index, plan, src, gen, cond, box, inpainter, wd, enc, state, versions
+) -> bool:
     sid, split = plan["source_id"], plan["split"]
-    from inlayfake.stages.verify import next_attempt
-
-    attempt = next_attempt(state, f"{sid}|{cond}|{gen}", cfg["edit"]["max_attempts"])
-    if attempt is None:  # already verified as passed, or out of attempts
+    nxt = next_job(cfg, state, sid, cond, gen, versions)
+    if nxt is None:  # already verified as passed, or out of attempts and re-plans
         return False
-    seed = derive_seed(cfg["seed"], sid, cond, gen, attempt)
+    version, attempt = nxt
+    seed = job_seed(cfg, sid, cond, gen, attempt, version)
     rid = ImageRecord.make_id(sid, cond, gen, seed)
     if _exists(wd, rid):
         return False
@@ -220,6 +233,7 @@ def _generative_one(cfg, index, plan, src, gen, cond, box, inpainter, wd, enc, s
         crop_box=[float(v) for v in win],
         intended_mask_path=mpath,
         attempts=attempt + 1,
+        plan_version=version,
     )
     _write_record(
         ImageRecord(
@@ -240,15 +254,15 @@ def _generative_one(cfg, index, plan, src, gen, cond, box, inpainter, wd, enc, s
     return True
 
 
-def _pending(cfg: dict, plan: dict, cond: str, gen: str, state: dict, wd: Path) -> bool:
-    """True if this job still needs an image (first attempt or a retry after a failed verify)."""
-    from inlayfake.stages.verify import next_attempt
-
+def _pending(cfg, plan, cond, gen, state, versions, wd: Path) -> bool:
+    """True if this job still needs an image (first attempt, a retry after a failed verify, or
+    the first attempt on a re-planned box)."""
     sid = plan["source_id"]
-    attempt = next_attempt(state, f"{sid}|{cond}|{gen}", cfg["edit"]["max_attempts"])
-    if attempt is None:
+    nxt = next_job(cfg, state, sid, cond, gen, versions)
+    if nxt is None:
         return False
-    seed = derive_seed(cfg["seed"], sid, cond, gen, attempt)
+    version, attempt = nxt
+    seed = job_seed(cfg, sid, cond, gen, attempt, version)
     return not _exists(wd, ImageRecord.make_id(sid, cond, gen, seed))
 
 
@@ -265,7 +279,20 @@ def run(cfg: dict, limit: int | None = None) -> dict:
     wd = work_dir(cfg)
     enc = cfg["encoding"]
     sources = {s["source_id"]: s for s in read_jsonl(wd / "sources.jsonl")}
-    plans = read_jsonl(wd / "plans.jsonl")[:limit]
+    from inlayfake.stages.verify import verify_state
+
+    state = verify_state(wd)
+    raw = read_jsonl(wd / "plans.jsonl")[:limit]
+    versions = ensure_versions(cfg, index, sources, raw, state, wd)
+    plans = [
+        effective_plan(
+            p,
+            versions,
+            track_version(cfg, state, p["source_id"], FREE),
+            track_version(cfg, state, p["source_id"], OCC),
+        )
+        for p in raw
+    ]
     counts: dict[str, int] = {"non_generative": 0}
 
     for plan in tqdm(plans, desc="C0/C1/C3"):
@@ -273,15 +300,12 @@ def run(cfg: dict, limit: int | None = None) -> dict:
             cfg, index, plan, sources[plan["source_id"]], wd, enc
         )
 
-    from inlayfake.stages.verify import verify_state
-
-    state = verify_state(wd)
     for gen in _gen_enabled(cfg):
         jobs = [
             (p, c, b)
             for p in plans
             for c, b in _generative_jobs(cfg, p, gen)
-            if _pending(cfg, p, c, gen, state, wd)
+            if _pending(cfg, p, c, gen, state, versions, wd)
         ]
         if not jobs:  # nothing to (re)generate: do not load the model
             counts[gen] = 0
@@ -301,6 +325,7 @@ def run(cfg: dict, limit: int | None = None) -> dict:
                 wd,
                 enc,
                 state,
+                versions,
             )
         counts[gen] = done
         del inpainter
