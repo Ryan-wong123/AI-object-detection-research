@@ -21,6 +21,53 @@ pytest -q
 python -m inlayfake --help
 ```
 
+## Week 2: AI insertion run
+
+Inserts an SDXL-generated object into each of the 544 week-1 baseline photos (conditions C2–C5)
+and keeps only edits in which the verifier (OWLv2) finds the object. The settings come from the
+same-class pilot; see `configs/insertion_inphoto.yaml` and `docs/RESEARCH_LOG.md` (17 Oct 2026).
+Output goes to `data\inlayfake_v2` (git-ignored); the week-1 data in `data\inlayfake` is untouched.
+
+Commands (PowerShell, in the repo folder). First activate the environment:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Start the run, which writes progress to a log file:
+
+```powershell
+python -m inlayfake insert --config configs/insertion_inphoto.yaml *> data\inlayfake_v2\insert.log
+```
+
+To check progress from a second PowerShell window:
+
+```powershell
+Get-Content data\inlayfake_v2\insert.log -Tail 3
+```
+
+When it's done, build the preview page:
+
+```powershell
+python -m inlayfake preview --config configs/insertion_inphoto.yaml
+```
+
+Then open `data\inlayfake_v2\preview.html` (every attempt, labelled "in benchmark" or "rejected")
+and fill the human-audit sheet `data\inlayfake_v2\audit_edits.csv` (y/n for object_ok, realistic,
+other_change; before/after crops in `audit_edits.html`).
+
+Notes:
+
+- **Time:** about 28 h of GPU time on the RTX 4070 laptop (estimate from the pilot: ~5,100 SDXL
+  images at ~20 s each; the first round of 1,355 images takes ~7.5 h), so plan for about two
+  nights. Keep the laptop plugged in and stop Windows from sleeping.
+- **Resumable:** if it stops for any reason, run the same `insert` command again; finished images
+  and checks are kept.
+- **Already done:** `sample` and `plan` for this run (544 of 544 photos planned). To redo them:
+  `python -m inlayfake sample --config configs/insertion_inphoto.yaml`, then `plan` the same way.
+- The final counts are in the JSON at the end of `insert.log`; record them in the research log,
+  the paper and the week-2 briefing.
+
 ## Viewing the detector results
 
 The detector viewer is a web page that shows each photo's COCO labels next to every detector's
