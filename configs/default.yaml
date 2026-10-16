@@ -76,6 +76,8 @@ edit:
   max_attempts: 3                      # seeds per box
   max_replans: 0                       # new boxes after all seeds failed (stages/replan.py)
   max_class_switches: 0                # then other classes already in the photo, smallest first
+  max_outside_classes: 0               # last resort: classes NOT in the photo (class_in_photo false),
+                                       # from placement.outside_classes (default sampling.categories)
   prompt: "a photo of a {category}, realistic, natural lighting"
   negative_prompt: "text, watermark, cartoon, painting, drawing, blurry"
   sham_prompt: "empty background, nothing"

@@ -155,6 +155,16 @@ cloud sandbox, so their first real run is the pilot.
 - **Left out (2):** an AI train painted over the real train merges with it and cannot be told
   apart, and a car-interior shot has no valid box. Both would need a rule change.
 
+### 11. Decision: a class not in the photo as the very last resort (17 Oct)
+- **Rule:** only when a photo has no verified AI object of its own classes, it may get one of
+  the 10 original categories that it does not contain. These edits are flagged
+  (`class_in_photo: false`) and left out of the same-class comparison. A first version applied
+  this too broadly (6 photos that already had an object got an extra one); fixed before use.
+- **Result: 49 of 50 photos** have a verified AI object. The train photo got a clock painted
+  over the windscreen: clearly there, but implausible, so it is flagged for the audit.
+- **Still without one (1):** the car-interior shot, where the class is not the problem: no box
+  fits the occlusion rule. 69 tests pass.
+
 ## Results
 
 | Item | Value |
@@ -169,7 +179,8 @@ cloud sandbox, so their first real run is the pilot.
 | Same-class pilot, attempt 1, old rule: C4 / C5 | 10/41 / 7/34 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_round1_oldrule_verify.json --> |
 | Same-class pilot with re-plan (≤ 4 boxes × 3 seeds): verified C4 / C5 / clean C2 | 38/41 (93%) / 25/34 (74%) / 39/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_replan_verify.json --> |
 | Plus class switch and C5-only plans: verified C4 / C5; photos with an AI object | 39/41 / 35/41; 46 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_classswitch_verify.json --> |
-| Plus C5 boxes sized from the covered object: C4 / C5; photos with an AI object | 39/41 / 37/42; **48 of 50** <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_targetsize_verify.json --> |
+| Plus C5 boxes sized from the covered object: C4 / C5; photos with an AI object | 39/41 / 37/42; 48 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_targetsize_verify.json --> |
+| Plus a class not in the photo as last resort: C4 / C5; photos with an AI object | 39/41 / 38/42; **49 of 50** (1 out-of-photo edit) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_outside_verify.json --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |

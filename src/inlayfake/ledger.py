@@ -71,6 +71,7 @@ class EditInfo:
     attempts: int = 1
     verifier_score: float | None = None
     plan_version: int = 0  # 0 = the original plan box; n = n-th re-plan after failed attempts
+    class_in_photo: bool = True  # False: last-resort class that is not in the source photo
 
 
 @dataclass

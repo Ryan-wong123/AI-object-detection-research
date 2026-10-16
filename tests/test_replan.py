@@ -168,6 +168,100 @@ def test_occluding_box_sized_to_a_frame_filling_object():
         assert 0 <= box[0] and box[0] + box[2] <= 640 and 0 <= box[1] and box[1] + box[3] <= 453
 
 
+class _Idx:
+    cat_name = {1: "person", 2: "train", 3: "dog"}
+
+    def image_anns(self, sid):
+        return [
+            {"id": 1, "category_id": 2, "bbox": [0, 0, 100, 100], "iscrowd": 0},
+            {"id": 2, "category_id": 1, "bbox": [0, 0, 10, 10], "iscrowd": 0},
+        ]
+
+
+def test_outside_classes_and_version_layout():
+    from inlayfake.stages.replan import outside_classes, version_class
+
+    cfg = {
+        "seed": 1,
+        "edit": {"max_replans": 2, "max_class_switches": 1, "max_outside_classes": 2},
+        "placement": {"exclude_classes": ["person"], "outside_classes": None},
+        "sampling": {"categories": ["chair", "train", "person", "dog", "cup"]},
+    }
+    outs = outside_classes(cfg, _Idx(), 7, [])
+    assert sorted(outs) == ["chair", "cup", "dog"]  # not train (in photo), not person
+    assert outs == outside_classes(cfg, _Idx(), 7, [])  # deterministic per source
+    plan = {"source_id": 7, "category": "train"}
+    assert version_class(cfg, _Idx(), plan, 1, []) == ("train", True)  # new box, same class
+    assert version_class(cfg, _Idx(), plan, 2, []) == ("train", True)
+    assert version_class(cfg, _Idx(), plan, 3, []) == (None, True)  # no other class in photo
+    assert version_class(cfg, _Idx(), plan, 4, []) == (outs[0], False)  # not in the photo
+    assert version_class(cfg, _Idx(), plan, 5, []) == (outs[1], False)
+    assert version_class(cfg, _Idx(), plan, 6, []) == (None, False)
+
+
+def test_outside_class_is_marked_in_ledger(cfg, tmp_path):
+    """Every box of the photo's own classes fails for C4 and C5; a class not in the photo then
+    passes and the ledger says class_in_photo = False for C4 and the C2/C3 that follow it."""
+    from inlayfake.data.coco import CocoIndex
+
+    cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
+    sample.run(cfg)
+    plan.run(cfg)
+    wd = tmp_path / "work"
+    sid = json.loads((wd / "plans.jsonl").open().readline())["source_id"]
+    cfg = deep_merge(
+        cfg,
+        {
+            "generators_enabled": ["G1"],
+            "edit": {"max_replans": 0, "max_class_switches": 1, "max_outside_classes": 1},
+            # own class and the class switch fail, for both edits of this photo
+            "verify": {"fake_fail_until": {f"{sid}|C4": 2, f"{sid}|C5": 2}},
+        },
+    )
+    insert.run(cfg)
+    final = [r for r in read_ledger(wd / "ledger.jsonl") if r.source_id == sid]
+    c4 = next(r for r in final if r.condition.value == "C4")
+    index = CocoIndex.load(cfg["paths"]["coco_annotations"], cfg["paths"]["coco_images"])
+    own = {index.cat_name[a["category_id"]] for a in index.image_anns(sid)}
+    assert c4.edit.plan_version == 2 and c4.edit.class_in_photo is False
+    assert c4.edit.target_category not in own
+    for cond in ("C2", "C3"):
+        r = next(x for x in final if x.condition.value == cond)
+        assert r.edit.class_in_photo is False and r.edit.target_category == c4.edit.target_category
+    others = [r for r in read_ledger(wd / "ledger.jsonl") if r.source_id != sid and r.edit]
+    assert all(r.edit.class_in_photo for r in others)
+
+
+def test_no_outside_class_when_photo_already_has_an_ai_object():
+    """C4 ran out of in-photo versions, but C5 passed with the photo's own class: C4 must not
+    move on to a class that is not in the photo (it is dropped instead)."""
+    cfg = {
+        "edit": {
+            "max_attempts": 1,
+            "max_replans": 0,
+            "max_class_switches": 1,
+            "max_outside_classes": 2,
+        },
+        "conditions": ["C4", "C5"],
+        "generation": {"insert_generators": ["G1"], "occlusion_generators": ["G1"]},
+        "generators_enabled": ["G1"],
+    }
+    c4_fail = [{"passed": False, "version": 0}, {"passed": False, "version": 1}]
+    state = {"7|C4|G1": c4_fail, "7|C5|G1": [{"passed": True, "version": 0}]}
+    assert track_version(cfg, state, 7, FREE, {}) == 1  # capped at the last in-photo version
+    assert next_job(cfg, state, 7, "C4", "G1", {}) is None  # dropped
+    # C5 still trying with the photo's own classes: wait, do not go outside yet
+    state["7|C5|G1"] = [{"passed": False, "version": 0}]
+    assert track_version(cfg, state, 7, FREE, {}) == 1
+    # C5 exhausted too: now C4 may use a class that is not in the photo
+    state["7|C5|G1"] = [{"passed": False, "version": 0}, {"passed": False, "version": 1}]
+    assert track_version(cfg, state, 7, FREE, {}) == 2
+    # a pass at an outside version no longer counts once C5 has an in-photo pass
+    state["7|C4|G1"] = [*c4_fail, {"passed": True, "version": 2}]
+    state["7|C5|G1"] = [{"passed": True, "version": 0}]
+    assert track_version(cfg, state, 7, FREE, {}) == 1
+
+
 def test_replan_drops_after_all_boxes(cfg, tmp_path):
     sample.run(cfg)
     plan.run(cfg)

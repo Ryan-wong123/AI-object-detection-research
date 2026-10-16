@@ -65,7 +65,9 @@ def rows_at(rows: list[dict], version: int) -> list[dict]:
 
 def max_version(cfg: dict) -> int:
     e = cfg["edit"]
-    return e.get("max_replans", 0) + e.get("max_class_switches", 0)
+    return (
+        e.get("max_replans", 0) + e.get("max_class_switches", 0) + e.get("max_outside_classes", 0)
+    )
 
 
 def _no_box(versions: dict | None, sid: int, track: str, v: int) -> bool:
@@ -75,24 +77,60 @@ def _no_box(versions: dict | None, sid: int, track: str, v: int) -> bool:
     return row is not None and row["box"] is None
 
 
-def track_version(
-    cfg: dict, state: dict, sid: int, track: str, versions: dict | None = None
-) -> int:
-    """Current box version of one track of one source (versions without a box are skipped)."""
-    lead = leader(cfg, track)
-    if lead is None:
-        return 0
-    rows = state.get(f"{sid}|{lead[0]}|{lead[1]}", [])
+def _core_version(cfg, rows, sid, track, versions, top) -> int:
+    """Version of a track counting only versions ≤ ``top``."""
+    rows = [r for r in rows if r.get("version", 0) <= top]
     passed = [r for r in rows if r["passed"]]
     if passed:
         return passed[0].get("version", 0)
-    top = max_version(cfg)
     v = max((r.get("version", 0) for r in rows), default=0)
     if len(rows_at(rows, v)) >= cfg["edit"]["max_attempts"] and v < top:
         v += 1
     while _no_box(versions, sid, track, v) and v < top:
         v += 1
     return v
+
+
+def _exhausted(cfg, rows, sid, track, versions, top) -> bool:
+    """True if the track has no pass up to ``top`` and cannot go on within it."""
+    if any(r["passed"] for r in rows if r.get("version", 0) <= top):
+        return False
+    v = _core_version(cfg, rows, sid, track, versions, top)
+    out_of_tries = len(rows_at(rows, v)) >= cfg["edit"]["max_attempts"]
+    return v == top and (out_of_tries or _no_box(versions, sid, track, v))
+
+
+def _leader_rows(cfg, state, sid, track) -> list[dict] | None:
+    lead = leader(cfg, track)
+    return None if lead is None else state.get(f"{sid}|{lead[0]}|{lead[1]}", [])
+
+
+def track_version(
+    cfg: dict, state: dict, sid: int, track: str, versions: dict | None = None
+) -> int:
+    """Current box version of one track of one source (versions without a box are skipped).
+
+    Versions with a class that is not in the photo (``max_outside_classes``) are used only if
+    the photo has no verified AI object of its own classes: this track is exhausted within its
+    in-photo versions, and the other track has no in-photo pass and is not still trying.
+    """
+    rows = _leader_rows(cfg, state, sid, track)
+    if rows is None:
+        return 0
+    e = cfg["edit"]
+    top_in = e.get("max_replans", 0) + e.get("max_class_switches", 0)
+    v_in = _core_version(cfg, rows, sid, track, versions, top_in)
+    if not e.get("max_outside_classes", 0) or not _exhausted(
+        cfg, rows, sid, track, versions, top_in
+    ):
+        return v_in
+    other = OCC if track == FREE else FREE
+    orows = _leader_rows(cfg, state, sid, other) or []
+    if any(r["passed"] for r in orows if r.get("version", 0) <= top_in):
+        return v_in  # the photo already has an AI object of its own class
+    if orows and not _exhausted(cfg, orows, sid, other, versions, top_in):
+        return v_in  # the other edit may still succeed with the photo's own classes
+    return _core_version(cfg, rows, sid, track, versions, max_version(cfg))
 
 
 def next_job(
@@ -133,7 +171,15 @@ def load_versions(wd: Path) -> dict[tuple[int, str, int], dict]:
 def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
     """The plan with the boxes and classes of the given versions (box None if none fits).
     ``category`` is the free track's class (C2, C3, C4), ``category_occ`` the C5 class."""
-    p = dict(plan, free_version=v_free, occ_version=v_occ, category_occ=plan["category"])
+    base_in = plan.get("class_in_photo", True)
+    p = dict(
+        plan,
+        free_version=v_free,
+        occ_version=v_occ,
+        category_occ=plan["category"],
+        class_in_photo=base_in,
+        class_in_photo_occ=base_in,
+    )
     sid = plan["source_id"]
     if v_free:
         row = versions.get((sid, FREE, v_free))
@@ -142,6 +188,7 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
         else:
             p["box_free"] = row["box"]
             p["category"] = row.get("category") or plan["category"]
+            p["class_in_photo"] = row.get("class_in_photo", base_in)
     if v_occ:
         row = versions.get((sid, OCC, v_occ))
         if row is None or row["box"] is None:
@@ -149,6 +196,7 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
         else:
             p["box_occ"], p["occluded_ann_id"] = row["box"], row["occluded_ann_id"]
             p["category_occ"] = row.get("category") or plan["category"]
+            p["class_in_photo_occ"] = row.get("class_in_photo", base_in)
     return p
 
 
@@ -190,13 +238,42 @@ def alternate_classes(cfg, index, sid: int, base: str, extra: list[dict]) -> lis
     return sorted(classes, key=lambda c: (area(c), c))
 
 
-def version_class(cfg, index, plan: dict, version: int, extra: list[dict]) -> str | None:
-    """Class used by a version: the planned class up to max_replans, then alternates."""
-    k = version - cfg["edit"].get("max_replans", 0) - 1
+def outside_classes(cfg, index, sid: int, extra: list[dict], seed_parts=()) -> list[str]:
+    """Last-resort classes that are NOT in the photo: ``placement.outside_classes`` (default:
+    the 10 original benchmark categories), minus the photo's classes and excluded ones, in a
+    seeded order per source."""
+    from inlayfake.stages.plan import present_classes
+
+    pcfg = cfg["placement"]
+    pool = list(pcfg.get("outside_classes") or cfg["sampling"]["categories"])
+    exclude = set(pcfg.get("exclude_classes", ["person"]))
+    own = set(present_classes(index, index.image_anns(sid), extra, set()))
+    pool = [c for c in pool if c not in own and c not in exclude]
+    rng = np.random.default_rng(derive_seed(cfg["seed"], sid, "outside", *seed_parts))
+    return [pool[i] for i in rng.permutation(len(pool))]
+
+
+def version_class(
+    cfg, index, plan: dict, version: int, extra: list[dict]
+) -> tuple[str | None, bool]:
+    """(class, class_in_photo) of a version. Versions 1..max_replans keep the planned class;
+    the next max_class_switches use other classes in the photo; the last max_outside_classes
+    use classes that are not in the photo."""
+    e = cfg["edit"]
+    k = version - e.get("max_replans", 0) - 1
+    base_in = plan.get("class_in_photo", True)
     if k < 0:
-        return plan["category"]
-    alts = alternate_classes(cfg, index, plan["source_id"], plan["category"], extra)
-    return alts[k] if k < len(alts) else None
+        return plan["category"], base_in
+    if k < e.get("max_class_switches", 0):
+        alts = alternate_classes(cfg, index, plan["source_id"], plan["category"], extra)
+        return (alts[k], True) if k < len(alts) else (None, True)
+    j = k - e.get("max_class_switches", 0)
+    if j >= e.get("max_outside_classes", 0):
+        return None, False
+    outs = [
+        c for c in outside_classes(cfg, index, plan["source_id"], extra) if c != plan["category"]
+    ]
+    return (outs[j], False) if j < len(outs) else (None, False)
 
 
 def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, stuff, extra) -> dict:
@@ -208,12 +285,13 @@ def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, st
     rng = np.random.default_rng(derive_seed(cfg["seed"], sid, "replan", track, version))
     pcfg = cfg["placement"]
     anns = index.image_anns(sid) + extra
-    cat = version_class(cfg, index, plan, version, extra)
+    cat, in_photo = version_class(cfg, index, plan, version, extra)
     row = {
         "source_id": sid,
         "track": track,
         "version": version,
         "category": cat,
+        "class_in_photo": in_photo,
         "box": None,
         "occluded_ann_id": None,
         "support": None,
