@@ -5,6 +5,53 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-16: SDXL pilot (run `task2_pilot`): insertion mostly fails, full run on hold
+
+- **Setup:** RTX 4070 Laptop (8 GB), 32 GB RAM (`systeminfo`: 32,471 MB; now `hardware.ram_gb`),
+  torch 2.6.0+cu124, diffusers 0.41.0, transformers 5.19.0. `pytest -q`: 48 passed. Work dir
+  `data/inlayfake_pilot`, git 0261677 (dirty only by the `ram_gb` config line).
+- **sample / plan:** 50 sources (33 train / 10 val / 7 test); 46 planned, 4 failed, 38 with an
+  occlusion box. Jobs: 46 C2 + 46 C4 + 38 C5 = 130 SDXL edits; 46 C3 pastes.
+- **Speed:** smoke test `generate --limit 3`: images 2–8 took 190 s (≈27 s each; the first
+  included the 7 GB download). Round 1 of `insert`: 122 SDXL images in 43:57, **21.6 s per
+  image** including model load (run_generate_2026-10-16T074120Z.json). OWLv2 + SAM verify: 130
+  images in 42 s.
+- **Round-1 verify** (run_verify_2026-10-16T074553Z.json, attempt 1 only):
+  `C2: passed 46/46` · `C4: passed 4/46, needs_retry 42` · `C5: passed 1/38, needs_retry 37` ·
+  final ledger 189 records · audit sample 5. Insertion success on attempt 1 is therefore
+  **5/84 (6%)**, far below the PRD target of ≥ 85%.
+- **Retries stopped on purpose:** `insert` was stopped at the start of round 2 (no round-2 image
+  was written, so the state is clean and resumable). With 6% per attempt, 3 attempts cannot reach
+  the target, and retries would use up the attempt budget before the author decides what to change.
+- **Bug hunt, no bug found:** the verifier agrees with a visual check on all 8 smoke-test edits
+  (the 2 visible insertions passed, the 6 empty boxes failed), and a 20-tile contact sheet of
+  failed C4/C5 edits shows plausible background in every box, no missed object. `compose.py`
+  (mask white = inpaint, image and mask both resized to 1024, mask-only composite) is correct.
+  So the failure is SDXL behaviour under the current settings, not a code error.
+- **Diagnostic (scratch only, not in `data/`):** 12 random failed jobs re-run with a new seed
+  through the project's `local_edit` and the OWLv2 rule: **strength 0.99 → 2/12 pass, strength
+  1.0 → 3/12**. Strength 1.0 does not fix it and adds two problems: SDXL's colour shift then
+  lands inside the mask, so the box is a visibly tinted rectangle (a forensic shortcut), and one
+  output painted a person (ethics rule 10). Guidance 12 and no negative prompt also gave background
+  on the two cases tried.
+- **Interpretation:** the failures share implausible placements: free-space boxes in empty sky,
+  mid-road, on a wall or at a night streetlight (umbrella, backpack, chair, cup). SDXL-inpainting
+  completes the scene instead of adding an object that does not belong there. The 5 passes
+  (bench, chair ×2, dog, bottle) look like real objects, but two sit in odd places (a floating
+  bottle, a chair in water).
+- **Sham caveat:** C2 passes when OWLv2 finds no object *of the target class*. Sham 31050
+  (target bottle) produced a white bird and still passed; the 0/46 "sham produced the target"
+  figure does not mean that no object appeared.
+- **Open for the author:** (a) visual judgement in `preview.html` / `audit_edits.html` and the
+  audit CSV; (b) what to change before the full run. Options: placement on supporting surfaces
+  (box bottom on a floor/table/ground region) instead of any free space; larger minimum box for
+  small classes; a prompt with scene context; or a generator better at object insertion.
+  These are research settings, so nothing was changed.
+- **Next:** author decision, then re-run the pilot (`insert` resumes) before
+  `configs/insertion.yaml`.
+
+---
+
 ## 2026-10-15: Week 2 started: verification stage, insert loop, viewer for C2–C5
 
 - **Branch:** `week-2-ai-insertion` (from `week-1-coco-dataset`). Briefing folder

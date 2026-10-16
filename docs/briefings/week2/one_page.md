@@ -1,11 +1,11 @@
 # InlayFake: Week 2 progress (15–21 Oct 2026)
 
-15 Oct 2026 · Ryan Wong
+16 Oct 2026 · Ryan Wong
 
 Week 2 turns the 544 planned real photos into the benchmark by inserting AI objects under matched
 controls (sham edit, real-object paste, insertion with and without occlusion), and verifies every
-insertion. The code is written and tested on CPU; generation on the RTX 4070 laptop has not started,
-so all results are `[[TBD]]`.
+insertion. The 50-photo SDXL pilot ran on 16 Oct (run `task2_pilot`): the pipeline works end to end,
+but SDXL inserted the object in only 6% of edits, so the design changes before the full run.
 
 ## Done this week
 
@@ -18,24 +18,28 @@ so all results are `[[TBD]]`.
 | Audit | Random 10% of edits on a before/after page with a y/n sheet. |
 | Viewer | Shows C2–C5, inserted objects in purple, altered real objects in amber. |
 | Tests | 48 CPU tests pass, including a forced verifier failure that is retried with a new seed. |
+| Pilot | 46 planned photos, 130 SDXL edits + 46 pastes. Failed edits contain background, not a missed object (checked by eye); no code bug found. Failed boxes are in implausible places (sky, mid-road). Retries stopped after round 1. |
 
 ## Results
 
 | Item | Value |
 | --- | --- |
-| Pilot insertion success (50 photos, SDXL) | [[TBD]] |
-| Sham edits that produced an object | [[TBD]] |
+| Pilot insertion success (46 photos, SDXL, attempt 1) | C4 4/46, C5 1/38 (6%) <!-- run:task2_pilot --> |
+| Sham edits in which the verifier found the target class | 0/46 (one produced a bird) <!-- run:task2_pilot --> |
+| SDXL time per image | 21.6 s <!-- run:task2_pilot --> |
 | Final images per condition (C2 / C3 / C4 / C5) | [[TBD]] |
 | C4 success per generator | [[TBD]] |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss
 
-**Rest of week 2:** pilot with a visual check, then the overnight `insert` run, the 10% human audit
-and the Open Images download.
+**Rest of week 2:** change the insertion design and re-run the pilot, then the overnight `insert`
+run, the 10% human audit and the Open Images download.
 
 **To discuss:**
 
+- How to fix the 6% insertion rate: boxes on supporting surfaces, larger boxes for small classes,
+  a scene-aware prompt, or a different generator. More attempts alone will not reach 85%.
+- Whether the sham check should look for any new object, not only the target class.
 - FLUX.1-Fill needs about 32 GB of system RAM on an 8 GB GPU; otherwise Kandinsky 2.2 is the held-out
-  generator. [[TBD: laptop RAM]]
-- Whether 3 attempts per edit is enough.
+  generator. The laptop has 32 GB (at the threshold): a short FLUX smoke test decides.

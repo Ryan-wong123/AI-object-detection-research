@@ -15,6 +15,7 @@ hardware:
   dtype: float16
   gpu: NVIDIA GeForce RTX 4070 Laptop GPU  # nvidia-smi, 2026-10-08
   vram_gb: 8
+  ram_gb: 32                         # systeminfo "Total Physical Memory: 32,471 MB", 2026-10-16
   cpu_offload: true
 
 sampling:
