@@ -14,7 +14,8 @@ AI object in 66% of C4 and 50% of C5 edits (was 6%). Giving failed edits a new b
 surface raised this to **93% of C4 and 74% of C5**; switching to another class in the photo as
 a last resort, sizing occluding boxes from the object they cover, and finally allowing a class
 not in the photo (flagged) and an occluding box anywhere (flagged) gives **50 of 50 photos** at
-least one verified AI object (one of them a doubtful tiny object). Edits without a verified
+least one verified AI object (one of them a doubtful tiny object). The full run on all 600
+photos is set up (all planned; ~28–30 h of GPU time expected, resumable). Edits without a verified
 object are dropped, never labelled.
 
 ## Done this week

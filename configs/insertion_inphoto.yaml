@@ -1,0 +1,32 @@
+# Task 2 (week 2): full AI-insertion run on all 600 sampled sources, with the settings of the
+# same-class pilot (configs/pilot_inphoto.yaml, run task2_pilot_inphoto: 50 of 50 photos with a
+# verified AI object). New work dir, so the week-1 data in data/inlayfake stays untouched.
+#
+#   class:      one already in the photo's audited week-1 GT (never person); last resort: one of
+#               the 10 original categories not in the photo (class_in_photo: false)
+#   window:     generator sees 1.2x the box (min 64 px); verification looks at 2.5x
+#   verifier:   OWLv2 score >= 0.2 and IoU >= 0.3 or >= 80% inside the box
+#   on failure: 3 seeds per box, then up to 3 new boxes, 3 other in-photo classes, 3 outside
+#               classes; very last resort: a C5 box anywhere (placement_rule: anywhere)
+#   generator:  SDXL (G1) only, as in the pilot. SD2 / FLUX (or Kandinsky) are separate later
+#               runs in the same work dir (generators_enabled), once tested with these settings.
+#
+#   python -m inlayfake sample --config configs/insertion_inphoto.yaml
+#   python -m inlayfake plan   --config configs/insertion_inphoto.yaml
+#   python -m inlayfake insert --config configs/insertion_inphoto.yaml    (overnight, resumable)
+#   python -m inlayfake preview --config configs/insertion_inphoto.yaml
+inherit: default.yaml
+run_name: task2_insertion
+generators_enabled: [G1]
+placement:
+  class_choice: in_photo
+  audit_decisions: data/inlayfake/audit_decisions.csv
+  allow_anywhere: true
+edit:
+  window_scale: 1.2
+  window_min_px: 64
+  max_replans: 3
+  max_class_switches: 3
+  max_outside_classes: 3
+paths:
+  work: data/inlayfake_v2

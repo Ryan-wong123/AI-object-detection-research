@@ -5,6 +5,30 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Full insertion run set up (run `task2_insertion`, plan only so far)
+
+- **Config** `configs/insertion_inphoto.yaml`: the `pilot_inphoto` settings (test: placement,
+  edit, verify, generators and encoding identical) on all 600 sampled sources, work dir
+  `data/inlayfake_v2` (week-1 `data/inlayfake` untouched), SDXL (G1) only. SD2 and FLUX /
+  Kandinsky are later runs in the same work dir once tested with these settings. 72 tests pass.
+  The old `configs/insertion.yaml` (week-1 plans, fixed classes) is kept but superseded.
+- **sample:** 600 sources, identical to week 1 (362 train / 114 val / 124 test).
+- **plan** (run_plan_2026-10-16T171841Z.json, paper/results/task2_insertion_plan.json): 600 of
+  600 planned; 474 with a free box (C2/C3/C4), 465 with an occlusion box, 126 C5-only, 4 with a
+  class not in the photo, 7 placed anywhere. First-attempt jobs: 474 C2 + 474 C4 + 465 C5 =
+  1,413 SDXL images.
+- **Time estimate (from the same-class pilot, not measured on this run):** the pilot generated
+  469 images for 125 first-attempt jobs (3.75×; C2 1.6, C4 3.6, C5 6.0 — includes some images
+  wasted by the rule changes mid-pilot), at ~19–20 s per image in large rounds. Applied here:
+  ~5,200 images, **~28–30 h** of GPU time (±20%); round 1 alone ~8 h. Not a single night;
+  the run is resumable.
+- **Caveat:** 56 of the 600 photos were not planned in week 1 (the close-ups), so their labels
+  were not in the week-1 audit (77 add / 26 ignore / 4 reject covered the 544). They need the
+  label audit before week-3 evaluation.
+- **Next:** author starts `insert` on the laptop; then preview, audit, and log the final counts.
+
+---
+
 ## 2026-10-17: Decision: a box anywhere as the very last resort: 50 of 50 photos
 
 - **Decision (author):** relax the rule so every photo always has a valid box: the AI object
