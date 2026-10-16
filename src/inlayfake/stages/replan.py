@@ -28,7 +28,14 @@ from pathlib import Path
 
 import numpy as np
 
-from inlayfake.edit.placement import box_area, place_free, place_occluding, sample_size, size_stats
+from inlayfake.edit.placement import (
+    box_area,
+    occluding_sized_to_target,
+    place_free,
+    place_occluding,
+    sample_size,
+    size_stats,
+)
 from inlayfake.stages.common import derive_seed, read_jsonl
 
 FREE, OCC = "free", "occ"
@@ -261,6 +268,26 @@ def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, st
                     if box is not None:
                         occ_id = tgt["id"]
                         break
+            if box is not None:
+                row.update(
+                    box=[float(v) for v in box],
+                    occluded_ann_id=occ_id,
+                    support=sup.name if sup else None,
+                )
+                return row
+    if track == OCC:  # last try: size the box from the object it must cover
+        targets = [
+            a
+            for a in anns
+            if not a.get("iscrowd", 0) and box_area(a["bbox"]) >= (2 * pcfg["min_side_px"]) ** 2
+        ]
+        own = _own(index, anns, cat)
+        if own:
+            aspect = float(np.median([a["bbox"][2] / a["bbox"][3] for a in own]))
+        else:
+            aspect = float(np.median(size_stats(index, [cat], pcfg["max_area_frac"])[cat][:, 1]))
+        for sup in [*supports, None]:
+            box, occ_id = occluding_sized_to_target(W, H, aspect, targets, anns, pcfg, rng, sup)
             if box is not None:
                 row.update(
                     box=[float(v) for v in box],

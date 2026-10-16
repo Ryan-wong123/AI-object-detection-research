@@ -180,6 +180,9 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   already in the photo (smallest first; class stored per version; C2/C3 follow C4). Versions
   where no box fits are skipped. In `in_photo` plans, a photo without free space may get a
   C5-only plan (`box_free` null), searched with its own generator so other plans are unchanged.
+  When the class's usual size cannot cover 20% of any object (e.g. one train filling the frame),
+  the C5 box is sized from the object it covers (`placement.occluding_sized_to_target`: 30–60% of
+  that object's box area, the class's aspect ratio).
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological

@@ -140,6 +140,34 @@ def test_occlusion_only_plan_keeps_other_plans():
     assert a.random() == b.random()  # same state of the shared generator afterwards
 
 
+def test_occluding_box_sized_to_a_frame_filling_object():
+    """One train filling 2/3 of the frame: a typical-size box (2% of the image) can never cover
+    20% of it, a box sized from the train can."""
+    import numpy as np
+
+    from inlayfake.edit.placement import intersection, occluding_sized_to_target, place_occluding
+
+    pcfg = {
+        "min_side_px": 32,
+        "max_area_frac": 0.25,
+        "occlusion_frac": [0.2, 0.5],
+        "max_tries": 200,
+    }
+    train = {"id": 1, "bbox": [20, 40, 589, 328], "iscrowd": 0}  # 589x328 in 640x453
+    rng = np.random.default_rng(0)
+    small = place_occluding(640, 453, 76, 76, train["bbox"], [], (0.2, 0.5), rng, 200)
+    assert small is None  # 76x76 = 3% of the train box at most
+    for seed in range(10):
+        box, tid = occluding_sized_to_target(
+            640, 453, 2.0, [train], [train], pcfg, np.random.default_rng(seed)
+        )
+        assert tid == 1 and box is not None
+        frac = intersection(box, train["bbox"]) / (589 * 328)
+        assert 0.2 <= frac <= 0.5
+        assert box[2] * box[3] <= 0.25 * 640 * 453 + 1e-6
+        assert 0 <= box[0] and box[0] + box[2] <= 640 and 0 <= box[1] and box[1] + box[3] <= 453
+
+
 def test_replan_drops_after_all_boxes(cfg, tmp_path):
     sample.run(cfg)
     plan.run(cfg)
