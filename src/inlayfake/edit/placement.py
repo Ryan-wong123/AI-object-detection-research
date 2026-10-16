@@ -164,11 +164,15 @@ def plan_source(
     cfg: dict,
     rng: np.random.Generator,
     supports_for=None,
+    occ_only_rng: np.random.Generator | None = None,
 ) -> dict | None:
     """One shared geometric plan for a source photo (used by C2, C3, C4 and C5).
 
     Tries categories in ``category_order`` until a free box is found (the occluding box is
-    optional). Returns None if no category fits.
+    optional). With ``occ_only_rng``, a photo with no free space for any class may still get an
+    occluding box alone (``box_free`` None: C5 only); that search uses its own generator, so the
+    shared ``rng`` and therefore every other photo's plan are unchanged. Returns None if nothing
+    fits.
 
     ``supports_for(category) -> [Support]`` (from ``edit.support``) switches on surface
     placement: the free and the occluding box must rest on one of that category's surfaces, tried
@@ -191,25 +195,7 @@ def plan_source(
                 break
         if free is None:
             continue
-        occ, occ_ann = None, None
-        for t in rng.permutation(len(targets)) if targets else []:
-            target = targets[t]
-            others = [a["bbox"] for a in anns if a["id"] != target["id"]]
-            occ = place_occluding(
-                W,
-                H,
-                w,
-                h,
-                target["bbox"],
-                others,
-                tuple(cfg["occlusion_frac"]),
-                rng,
-                cfg["max_tries"],
-                support=sup,
-            )
-            if occ is not None:
-                occ_ann = target["id"]
-                break
+        occ, occ_ann = _occluding(W, H, w, h, targets, anns, cfg, rng, sup)
         plan = {
             "source_id": source["source_id"],
             "split": source["split"],
@@ -221,4 +207,40 @@ def plan_source(
         if sup is not None:
             plan["support"] = sup.name  # the surface both boxes rest on
         return plan
+    if occ_only_rng is not None:  # no free space for any class: an occluding box still gives C5
+        r2 = occ_only_rng
+        for cat in category_order:
+            w, h = sample_size(stats[cat], W, H, r2, cfg["min_side_px"], cfg["max_area_frac"])
+            occ, occ_ann = _occluding(W, H, w, h, targets, anns, cfg, r2, None)
+            if occ is not None:
+                return {
+                    "source_id": source["source_id"],
+                    "split": source["split"],
+                    "category": cat,
+                    "box_free": None,  # -> no C2, C3, C4 for this source
+                    "box_occ": occ,
+                    "occluded_ann_id": occ_ann,
+                }
     return None
+
+
+def _occluding(W, H, w, h, targets, anns, cfg, rng, sup) -> tuple[Box | None, object]:
+    """First occluding box over a random target (C5), and that target's annotation id."""
+    for t in rng.permutation(len(targets)) if targets else []:
+        target = targets[t]
+        others = [a["bbox"] for a in anns if a["id"] != target["id"]]
+        occ = place_occluding(
+            W,
+            H,
+            w,
+            h,
+            target["bbox"],
+            others,
+            tuple(cfg["occlusion_frac"]),
+            rng,
+            cfg["max_tries"],
+            support=sup,
+        )
+        if occ is not None:
+            return occ, target["id"]
+    return None, None

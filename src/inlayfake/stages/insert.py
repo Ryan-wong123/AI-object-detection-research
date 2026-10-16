@@ -13,7 +13,9 @@ from inlayfake.stages import generate, verify
 def run(cfg: dict, limit: int | None = None) -> dict:
     rounds = []
     # every box gets max_attempts seeds; with re-plans (edit.max_replans) a job may use new boxes
-    n_rounds = cfg["edit"]["max_attempts"] * (1 + cfg["edit"].get("max_replans", 0))
+    from inlayfake.stages.replan import max_version
+
+    n_rounds = cfg["edit"]["max_attempts"] * (1 + max_version(cfg))
     for i in range(n_rounds):
         g = generate.run(cfg, limit=limit)
         v = verify.run(cfg)

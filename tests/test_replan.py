@@ -64,6 +64,82 @@ def test_replan_moves_c2_c3_with_c4(cfg, tmp_path):
     assert any(r["source_id"] == sid and r["track"] == "free" and r["version"] == 1 for r in rows)
 
 
+def test_version_without_box_is_skipped():
+    cfg = {
+        "edit": {"max_attempts": 1, "max_replans": 1, "max_class_switches": 2},
+        "conditions": ["C4"],
+        "generation": {"insert_generators": ["G1"], "occlusion_generators": ["G1"]},
+        "generators_enabled": ["G1"],
+    }
+    state = {"7|C4|G1": [{"passed": False, "version": 0}]}
+    versions = {(7, FREE, 1): {"box": None}, (7, FREE, 2): {"box": [0, 0, 9, 9]}}
+    assert track_version(cfg, state, 7, FREE, versions) == 2  # v1 had no box -> v2
+    assert next_job(cfg, state, 7, "C4", "G1", versions) == (2, 0)
+    versions[(7, FREE, 2)] = {"box": None}
+    versions[(7, FREE, 3)] = {"box": None}
+    assert track_version(cfg, state, 7, FREE, versions) == 3
+    assert next_job(cfg, state, 7, "C4", "G1", versions) is None  # nothing left: dropped
+
+
+def test_class_switch_after_boxes_fail(cfg, tmp_path):
+    """C4 fails on the planned class's boxes, passes with another class already in the photo;
+    C2 and C3 switch class with it."""
+    from inlayfake.data.coco import CocoIndex
+
+    cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
+    sample.run(cfg)
+    plan.run(cfg)
+    wd = tmp_path / "work"
+    first = json.loads((wd / "plans.jsonl").open().readline())
+    sid = first["source_id"]
+    cfg = deep_merge(
+        cfg,
+        {
+            "generators_enabled": ["G1"],
+            "edit": {"max_replans": 1, "max_class_switches": 1},
+            "verify": {"fake_fail_until": {f"{sid}|C4": 2}},  # box 0 and box 1 fail
+        },
+    )
+    insert.run(cfg)
+    final = [r for r in read_ledger(wd / "ledger.jsonl") if r.source_id == sid]
+    c4 = next(r for r in final if r.condition.value == "C4")
+    c2 = next(r for r in final if r.condition.value == "C2")
+    c3 = next(r for r in final if r.condition.value == "C3")
+    index = CocoIndex.load(cfg["paths"]["coco_annotations"], cfg["paths"]["coco_images"])
+    own = {index.cat_name[a["category_id"]] for a in index.image_anns(sid)}
+    assert c4.edit.plan_version == 2
+    assert c4.edit.target_category != first["category"] and c4.edit.target_category in own
+    assert c2.edit.target_category == c3.edit.target_category == c4.edit.target_category
+    assert c2.edit.plan_box == c3.edit.plan_box == c4.edit.plan_box
+
+
+def test_occlusion_only_plan_keeps_other_plans():
+    """A photo without free space gets a C5-only plan from its own generator; the shared
+    generator (every later photo's plan) is untouched."""
+    import numpy as np
+
+    from inlayfake.edit.placement import plan_source
+
+    pcfg = {
+        "min_side_px": 32,
+        "max_area_frac": 0.25,
+        "margin_px": 8,
+        "occlusion_frac": [0.2, 0.5],
+        "max_tries": 200,
+    }
+    stats = {"cup": np.array([[0.2, 1.0]])}  # a ~155 px square box
+    full = [  # two objects fill the frame: no free space, but a box can cover 40% of one
+        {"id": 1, "bbox": [0, 0, 200, 300], "iscrowd": 0, "category_id": 2},
+        {"id": 2, "bbox": [200, 0, 200, 300], "iscrowd": 0, "category_id": 2},
+    ]
+    src = {"source_id": 5, "split": "test", "width": 400, "height": 300}
+    a, b = np.random.default_rng(3), np.random.default_rng(3)
+    assert plan_source(src, full, ["cup"], stats, pcfg, a) is None
+    p = plan_source(src, full, ["cup"], stats, pcfg, b, occ_only_rng=np.random.default_rng(9))
+    assert p["box_free"] is None and p["box_occ"] is not None and p["occluded_ann_id"] in (1, 2)
+    assert a.random() == b.random()  # same state of the shared generator afterwards
+
+
 def test_replan_drops_after_all_boxes(cfg, tmp_path):
     sample.run(cfg)
     plan.run(cfg)

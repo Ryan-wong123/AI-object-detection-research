@@ -5,6 +5,35 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Class switch and C5-only plans (run `task2_pilot_inphoto`): 46 of 50 photos have an AI object
+
+- **Author's request:** as many photos as possible must get an AI-inserted object.
+- **Class switch** (`edit.max_class_switches`, 0 by default, 3 in `pilot_inphoto.yaml`): after the
+  re-planned boxes of the planned class fail, a track moves on to another class already in the
+  photo (same rules: audited GT, never person), smallest median instance area in the photo
+  first, one class per version. Versions where no box fits are skipped instead of ending the
+  job. The class is stored per version (`category` in `replans.jsonl`); C2/C3 follow the C4
+  class and box, C5 uses its own track's class.
+- **C5-only plans:** in `in_photo` mode a photo with no free space for any class may still get
+  an occluding box (no C2/C3/C4). That search uses its own seeded generator, so the other plans
+  are unchanged: checked byte for byte — week 1 544/544, pilot 1 46/46, same-class pilot 41/41
+  identical; 7 photos gained a C5-only plan (48 of 50 planned; run_plan_2026-10-16T155841Z.json).
+- **Tests:** 3 new (version skipping, class switch with matched C2/C3, C5-only plan leaves the
+  shared generator untouched); `pytest -q`: 65 passed.
+- **Run** (run_verify_2026-10-16T162120Z.json,
+  paper/results/task2_pilot_inphoto_classswitch_verify.json; 22 min): **C4 39/41**, **C5 35/41**
+  (6 of them after a class switch: motorcycle ×2, bus, surfboard, dining table, handbag),
+  **C2 39/41** clean, final ledger 248 records, audit sample 11.
+- **Per photo:** **46 of 50** sampled photos now have at least one verified AI object (C4 or
+  C5); 39 have a C4. Before the change: 39. The 4 without one: a photo with a single train, one
+  with a single zebra, and two crowded street scenes (dog, phone, car, truck; 3 motorcycles among
+  5 people) where no box fits for any class.
+- **Visual check of the 10 new C5 objects:** 8 clear (toilet, motorcycles, giraffe, handbag,
+  spoon, dining table), 2 weak (a tiny surfboard on the sand, a very small bus).
+- **Next:** author audit (11 rows); full-run configuration (re-plan of all 600 sources).
+
+---
+
 ## 2026-10-16: Re-plan on failure (run `task2_pilot_inphoto`): 93% of C4 with a verified object
 
 - **Author's request:** the photos must get an AI-inserted object. Loosening the verifier

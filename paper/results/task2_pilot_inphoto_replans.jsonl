@@ -59,3 +59,56 @@
 {"source_id": 477441, "track": "free", "version": 3, "box": [58.09826960911041, 8.045612409961352, 374.3320243230636, 127.14802993247316], "occluded_ann_id": null, "support": null}
 {"source_id": 518326, "track": "occ", "version": 3, "box": [486.6930870791226, 0.47287716977250227, 153.30691292087735, 149.14322157015502], "occluded_ann_id": 1956690, "support": null}
 {"source_id": 519764, "track": "occ", "version": 3, "box": [17.547813069043002, 54.165932985915035, 41.904373861913996, 68.33406701408497], "occluded_ann_id": 2134493, "support": "tabletop"}
+{"source_id": 107851, "track": "occ", "version": 4, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 107851, "track": "occ", "version": 5, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 107851, "track": "occ", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 210394, "track": "free", "version": 2, "category": "bus", "box": [21.094552236387504, 6.7923175630648736, 150.84367593860938, 157.77144239708247], "occluded_ann_id": null, "support": null}
+{"source_id": 210394, "track": "occ", "version": 4, "category": "motorcycle", "box": [419.4095921482893, 274.35615659223726, 39.24028587739994, 48.075987595937626], "occluded_ann_id": 1231167, "support": null}
+{"source_id": 226154, "track": "occ", "version": 4, "category": "motorcycle", "box": [45.30740679433725, 328.6049291879156, 78.38955865015983, 84.74423543201677], "occluded_ann_id": 148985, "support": null}
+{"source_id": 243867, "track": "free", "version": 2, "category": "car", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 243867, "track": "free", "version": 3, "category": "car", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 243867, "track": "free", "version": 4, "category": "bus", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 243867, "track": "free", "version": 5, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 243867, "track": "free", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 243867, "track": "occ", "version": 4, "category": "bus", "box": [26.401084227139535, 29.68268654290729, 400.12752085900405, 171.14543846668022], "occluded_ann_id": 366397, "support": null}
+{"source_id": 273715, "track": "occ", "version": 2, "category": "skis", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 273715, "track": "occ", "version": 3, "category": "skis", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 273715, "track": "occ", "version": 4, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 273715, "track": "occ", "version": 5, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 273715, "track": "occ", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 312489, "track": "occ", "version": 2, "category": "boat", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 312489, "track": "occ", "version": 3, "category": "boat", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 312489, "track": "occ", "version": 4, "category": "surfboard", "box": [143.6659652031219, 229.57667901665604, 157.66806959375617, 46.92332098334394], "occluded_ann_id": 482173, "support": "ground"}
+{"source_id": 430073, "track": "occ", "version": 4, "category": "cup", "box": [403.0914544327452, 178.109519100686, 32.0, 32.0], "occluded_ann_id": 1745746, "support": null}
+{"source_id": 477441, "track": "free", "version": 4, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 477441, "track": "free", "version": 5, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 477441, "track": "free", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 518326, "track": "occ", "version": 4, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 518326, "track": "occ", "version": 5, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 518326, "track": "occ", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 519764, "track": "occ", "version": 4, "category": "cat", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 519764, "track": "occ", "version": 5, "category": "chair", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 519764, "track": "occ", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 151857, "track": "occ", "version": 1, "category": "train", "box": [208.04215868986486, 251.67747138669426, 360.9156826202703, 200.82252861330574], "occluded_ann_id": 170892, "support": "ground"}
+{"source_id": 279887, "track": "occ", "version": 1, "category": "motorcycle", "box": [521.9741016619847, 210.32241993951757, 113.05179667603056, 95.17758006048243], "occluded_ann_id": 1790079, "support": "ground"}
+{"source_id": 287545, "track": "occ", "version": 1, "category": "giraffe", "box": [0.0, 0.0, 329.22862779792115, 233.27254532415523], "occluded_ann_id": 595493, "support": null}
+{"source_id": 382030, "track": "occ", "version": 1, "category": "potted plant", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 382030, "track": "occ", "version": 2, "category": "potted plant", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 382030, "track": "occ", "version": 3, "category": "potted plant", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 382030, "track": "occ", "version": 4, "category": "sports ball", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 382030, "track": "occ", "version": 5, "category": "umbrella", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 382030, "track": "occ", "version": 6, "category": "dining table", "box": [248.26856431961616, 188.78964501074134, 251.73143568038384, 186.21035498925866], "occluded_ann_id": 1965218, "support": null}
+{"source_id": 430073, "track": "occ", "version": 5, "category": "handbag", "box": [543.5, 290.5, 32.0, 32.0], "occluded_ann_id": 290713, "support": "ground"}
+{"source_id": 457848, "track": "occ", "version": 1, "category": "motorcycle", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 457848, "track": "occ", "version": 2, "category": "motorcycle", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 457848, "track": "occ", "version": 3, "category": "motorcycle", "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 457848, "track": "occ", "version": 4, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 457848, "track": "occ", "version": 5, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 457848, "track": "occ", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 541634, "track": "occ", "version": 1, "category": "spoon", "box": [155.6244621441361, 335.79732703294667, 33.933493168573555, 32.0], "occluded_ann_id": 1057860, "support": null}
+{"source_id": 151857, "track": "occ", "version": 2, "category": "train", "box": [177.04215868986483, 249.67747138669426, 360.91568262027033, 200.82252861330574], "occluded_ann_id": 170892, "support": "ground"}
+{"source_id": 287545, "track": "occ", "version": 2, "category": "giraffe", "box": [206.24656987358912, 313.4012140688096, 74.3620204163939, 116.33593846030064], "occluded_ann_id": 594518, "support": null}
+{"source_id": 151857, "track": "occ", "version": 3, "category": "train", "box": [155.04215868986486, 250.67747138669426, 360.9156826202703, 200.82252861330574], "occluded_ann_id": 170892, "support": "ground"}
+{"source_id": 151857, "track": "occ", "version": 4, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 151857, "track": "occ", "version": 5, "category": null, "box": null, "occluded_ann_id": null, "support": null}
+{"source_id": 151857, "track": "occ", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}

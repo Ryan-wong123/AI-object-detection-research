@@ -206,12 +206,13 @@ def build_final_ledger(
     """C0/C1 unchanged; C3 with its pasted mask; one passed record per C2/C4/C5 job. With
     re-plans, C3 and every job count only on the source's current box version."""
     final = []
+    versions = load_versions(wd)
     for r in generated:
         cond = r.condition.value
         if cond in ("C0", "C1"):
             final.append(r)
         elif cond == "C3":
-            v = track_version(cfg, state, r.source_id, FREE) if cfg else 0
+            v = track_version(cfg, state, r.source_id, FREE, versions) if cfg else 0
             if r.edit.plan_version != v:
                 continue  # pasted at a box that was later re-planned
             insts = [
@@ -225,7 +226,7 @@ def build_final_ledger(
     passed = set()
     for key, rows in state.items():
         sid, cond, _ = key.split("|")
-        v = track_version(cfg, state, int(sid), track_of(cond)) if cfg else 0
+        v = track_version(cfg, state, int(sid), track_of(cond), versions) if cfg else 0
         ok = [row for row in rows_at(rows, v) if row["passed"]]
         if ok:
             passed.add(ok[0]["image_id"])
@@ -358,7 +359,7 @@ def run(cfg: dict) -> dict:
     by_cond: dict[str, Counter] = defaultdict(Counter)
     for key, rows in state.items():
         sid, cond, gen = key.split("|")
-        v = track_version(cfg, state, int(sid), track_of(cond))
+        v = track_version(cfg, state, int(sid), track_of(cond), versions)
         here = rows_at(rows, v)
         if any(r["passed"] for r in here):
             by_cond[cond]["passed"] += 1
