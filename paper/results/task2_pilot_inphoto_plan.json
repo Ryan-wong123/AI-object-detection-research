@@ -1,7 +1,7 @@
 {
   "stage": "plan",
-  "utc": "2026-10-16T15:58:41Z",
-  "git_commit": "7a2b7179747eb6d02e45a707ac6ff7beeebed002",
+  "utc": "2026-10-16T16:29:44Z",
+  "git_commit": "62139f2d45aefa24b6d28e7fd702e983302aa9ba",
   "git_dirty": true,
   "config_hash": "6368032570ae",
   "seed": 20261008,
@@ -17,9 +17,9 @@
     "ultralytics": "8.4.174",
     "pycocotools": "2.0.11"
   },
-  "n_plans": 48,
-  "n_failed": 2,
-  "n_with_occlusion": 41,
+  "n_plans": 49,
+  "n_failed": 1,
+  "n_with_occlusion": 42,
   "categories": {
     "sheep": 1,
     "traffic light": 2,
@@ -54,12 +54,12 @@
     "airplane": 1,
     "bed": 1,
     "laptop": 1,
-    "spoon": 1
+    "spoon": 1,
+    "zebra": 1
   },
   "n_no_insertable_class": 0,
-  "n_occlusion_only": 7,
+  "n_occlusion_only": 8,
   "failed_sources": [
-    421455,
-    562443
+    421455
   ]
 }

@@ -5,6 +5,36 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: C5 boxes sized from the covered object: 48 of 50 photos have an AI object
+
+- **Question (author):** how to give the 4 remaining photos a box. Diagnosis per photo (COCO
+  boxes): 151857 one train covering 67% of the frame; 562443 one zebra box 61%; 457848 three
+  overlapping motorcycles (61%, 52%, 22%) and 5 people, boxes cover 83%; 421455 a car-interior
+  shot whose "car" box covers 88% with dog, phone and person inside. None has free space for C4.
+- **Bug found:** C5 boxes were sized from the class's usual COCO size (often ~2% of an image),
+  which can never cover 20% of an object filling most of the frame. Fix:
+  `placement.occluding_sized_to_target` sizes the C5 box from the object it must cover (30–60%
+  of its box area, the class's aspect ratio, ≤ `max_area_frac`), used when the usual size fails,
+  in the C5-only plan fallback and in C5 re-plans. The C5 rules (20–50% of one object, ≤ 5% of
+  any other) are unchanged. Test with a frame-filling train; `pytest -q`: 66 passed. Plans
+  re-checked: week 1 544/544, pilot 1 46/46, same-class pilot 48/48 identical; 562443 gained a
+  plan (run_plan_2026-10-16T162944Z.json).
+- **Correction:** 151857 and 457848 already had C5-only plans; their objects failed. The 6
+  re-plan rows of 457848 were empty because they were computed with the old sizing; they were
+  removed (backup `data/inlayfake_pilot_inphoto/replans_before_targetsize.jsonl`) and
+  recomputed.
+- **Run** (run_verify_2026-10-16T163304Z.json,
+  paper/results/task2_pilot_inphoto_targetsize_verify.json; 3 min): 562443 zebra passed on
+  attempt 2 (an AI zebra head covering the grazing zebra's head, convincing); 457848 passed on
+  box 2 (a small AI motorcycle, real but small for the scene). Totals: C4 39/41, **C5 37/42**,
+  C2 39/41; final ledger 252, audit sample 12. **48 of 50 photos have a verified AI object.**
+- **Still without one (2):** 151857, 12 attempts at a train over the real train: SDXL extends
+  the real train, which the original-object guard correctly refuses, and there is no other class
+  in the photo; 421455, no box satisfies the C5 rules. Fixing these would need a rule change
+  (another class not in the photo, or a different occlusion rule), so they are left out.
+
+---
+
 ## 2026-10-17: Class switch and C5-only plans (run `task2_pilot_inphoto`): 46 of 50 photos have an AI object
 
 - **Author's request:** as many photos as possible must get an AI-inserted object.

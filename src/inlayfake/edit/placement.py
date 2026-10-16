@@ -212,6 +212,9 @@ def plan_source(
         for cat in category_order:
             w, h = sample_size(stats[cat], W, H, r2, cfg["min_side_px"], cfg["max_area_frac"])
             occ, occ_ann = _occluding(W, H, w, h, targets, anns, cfg, r2, None)
+            if occ is None:  # the class's usual size may be far smaller than the photo's objects
+                aspect = float(np.median(stats[cat][:, 1]))
+                occ, occ_ann = occluding_sized_to_target(W, H, aspect, targets, anns, cfg, r2)
             if occ is not None:
                 return {
                     "source_id": source["source_id"],
@@ -222,6 +225,51 @@ def plan_source(
                     "occluded_ann_id": occ_ann,
                 }
     return None
+
+
+def occluding_sized_to_target(
+    W: int,
+    H: int,
+    aspect: float,
+    targets: list[dict],
+    anns: list[dict],
+    cfg: dict,
+    rng: np.random.Generator,
+    sup=None,
+    tries_per_target: int = 4,
+) -> tuple[Box | None, object]:
+    """C5 box whose size comes from the object it must cover: area 30–60% of the target's box
+    (so a 20–50% overlap is reachable), with the inserted class's aspect ratio (w/h), kept within
+    ``max_area_frac`` of the image and ``min_side_px``. Used where the class's usual size is far
+    too small for the photo's objects (e.g. one train filling the frame)."""
+    for t in rng.permutation(len(targets)) if targets else []:
+        target = targets[t]
+        others = [a["bbox"] for a in anns if a["id"] != target["id"]]
+        for _ in range(tries_per_target):
+            area = box_area(target["bbox"]) * float(rng.uniform(0.3, 0.6))
+            area = min(area, cfg["max_area_frac"] * W * H)
+            w, h = float(np.sqrt(area * aspect)), float(np.sqrt(area / aspect))
+            if min(w, h) < cfg["min_side_px"]:
+                s = cfg["min_side_px"] / min(w, h)
+                w, h = w * s, h * s
+            if w > 0.95 * W or h > 0.95 * H:
+                k = min(0.95 * W / w, 0.95 * H / h)
+                w, h = w * k, h * k
+            occ = place_occluding(
+                W,
+                H,
+                w,
+                h,
+                target["bbox"],
+                others,
+                tuple(cfg["occlusion_frac"]),
+                rng,
+                cfg["max_tries"],
+                support=sup,
+            )
+            if occ is not None:
+                return occ, target["id"]
+    return None, None
 
 
 def _occluding(W, H, w, h, targets, anns, cfg, rng, sup) -> tuple[Box | None, object]:
