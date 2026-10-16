@@ -1,7 +1,9 @@
 # Third 50-source SDXL pilot: same sources as pilot.yaml, but the inserted class is one already
 # in the photo's audited week-1 ground truth (any COCO class except person), so each edited photo
 # holds a photographed and an AI object of the same class. Free-space placement as in pilot.yaml
-# (surface placement did not help in task2_pilot_surface). Edit window still 2.5x (undecided).
+# (surface placement did not help in task2_pilot_surface). Tight generator window 1.2x, min 64 px:
+# in a 12-edit diagnostic it inserted the object in 7/12 vs 1/12 at 2.5x (RESEARCH_LOG 2026-10-16).
+# Verification still looks at the 2.5x region (verify.window_scale).
 #   python -m inlayfake plan   --config configs/pilot_inphoto.yaml
 #   python -m inlayfake insert --config configs/pilot_inphoto.yaml
 inherit: pilot.yaml
@@ -9,5 +11,8 @@ run_name: task2_pilot_inphoto
 placement:
   class_choice: in_photo
   audit_decisions: data/inlayfake/audit_decisions.csv
+edit:
+  window_scale: 1.2
+  window_min_px: 64
 paths:
   work: data/inlayfake_pilot_inphoto

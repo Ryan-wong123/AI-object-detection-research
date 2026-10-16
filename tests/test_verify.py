@@ -33,6 +33,28 @@ def test_occlusion_and_best_candidate():
     assert best_candidate(cands, [80, 80, 5, 5], 0.3, 0.2) is None
 
 
+def test_best_candidate_accepts_small_object_inside_box():
+    from inlayfake.edit.verify import best_candidate, inside_frac
+
+    plan = [100, 100, 200, 100]  # 200 x 100 box
+    small = [150, 140, 20, 20]  # a small object fully inside: IoU = 400 / 20000 = 0.02
+    assert inside_frac(small, plan) == 1.0
+    assert best_candidate([(small, 0.7)], plan, 0.3, 0.2) is None  # IoU rule alone rejects it
+    got = best_candidate([(small, 0.7)], plan, 0.3, 0.2, min_inside=0.8)
+    assert got is not None and got[0] == small and abs(got[2] - 0.02) < 1e-9
+    # half outside the box: 50% inside -> still rejected
+    straddle = [290, 140, 20, 20]
+    assert best_candidate([(straddle, 0.7)], plan, 0.3, 0.2, min_inside=0.8) is None
+    # too weak a detection never counts
+    assert best_candidate([(small, 0.1)], plan, 0.3, 0.2, min_inside=0.8) is None
+    # the photo's own same-class object (C5: the occluded original) is not the insertion
+    orig = [140, 130, 30, 40]
+    on_orig = [142, 132, 28, 36]  # IoU with orig ≈ 0.84
+    assert best_candidate([(on_orig, 0.9)], plan, 0.3, 0.2, 0.8, [orig]) is None
+    both = best_candidate([(on_orig, 0.9), (small, 0.5)], plan, 0.3, 0.2, 0.8, [orig])
+    assert both[0] == small
+
+
 def test_next_attempt():
     state = {"k": [{"passed": False}]}
     assert next_attempt({}, "k", 3) == 0
@@ -98,6 +120,43 @@ def test_failed_edit_is_regenerated_with_new_seed(cfg, tmp_path):
     assert mine[0]["image_id"] != mine[1]["image_id"]  # new seed -> new image
     final_ids = {r.image_id for r in read_ledger(wd / "ledger.jsonl")}
     assert mine[1]["image_id"] in final_ids and first_c4.image_id not in final_ids
+
+    # the preview never presents the rejected attempt as a benchmark image
+    from inlayfake.stages import preview
+
+    preview.run(cfg)
+    page = (wd / "preview.html").read_text(encoding="utf-8")
+    fig = page.split(f"{first_c4.image_id}.jpg")[0].rsplit("<figure", 1)[1]
+    assert 'class="rej"' in fig
+    after = page.split(f"{first_c4.image_id}.jpg")[1].split("</figure>")[0]
+    assert "rejected" in after and "not in benchmark" in after
+    ok = page.split(f"{mine[1]['image_id']}.jpg")[1].split("</figure>")[0]
+    assert "in benchmark" in ok and "rejected" not in ok
+
+
+def test_tight_window_changes_generation_not_verification(cfg, tmp_path):
+    """edit.window_scale 1.2 shrinks the generator window; verify still uses the 2.5x region."""
+    from inlayfake.edit.compose import crop_window
+    from inlayfake.stages.verify import verify_window
+
+    cfg = deep_merge(_cfg(cfg), {"edit": {"window_scale": 1.2, "window_min_px": 64}})
+    sample.run(cfg)
+    plan.run(cfg)
+    insert.run(cfg)
+    wd = tmp_path / "work"
+    edits = [r for r in read_ledger(wd / "ledger_generated.jsonl") if r.condition.value == "C4"]
+    assert edits
+    for r in edits:
+        x, y, w, h = r.edit.plan_box
+        side = r.edit.crop_box[2] - r.edit.crop_box[0]
+        assert (
+            side
+            == crop_window(r.edit.plan_box, r.width, r.height, 1.2, 64)[2]
+            - (crop_window(r.edit.plan_box, r.width, r.height, 1.2, 64)[0])
+        )
+        assert side < 2.5 * max(w, h)
+        v = verify_window(r, r.width, r.height, cfg["verify"])
+        assert v == crop_window(r.edit.plan_box, r.width, r.height, 2.5, 256)
 
 
 def test_viewer_shows_edited_conditions(cfg, tmp_path):

@@ -68,7 +68,8 @@ encoding:
   subsampling: 0                       # 4:4:4
 
 edit:
-  window_scale: 2.5
+  window_scale: 2.5                    # generator window = scale × box side (box = 1/scale of canvas)
+  window_min_px: 256                   # smallest generator window side (raises tiny windows)
   mask_dilate_px: 6
   feather_px: 3
   composite: mask                      # mask (default) | window (ablation: keep VAE output for the whole window)
@@ -99,6 +100,11 @@ verify:
   model_id: google/owlv2-base-patch16-ensemble
   min_iou: 0.3
   min_score: 0.2
+  min_inside: 0.8                      # ...or ≥ 80% of the detection inside the box (objects smaller
+                                       # than the box; IoU alone rejected 14/58, 2026-10-16)
+  original_iou: 0.5                    # detections matching a same-class original never count
+  window_scale: 2.5                    # region OWLv2/SAM look at, independent of edit.window_scale
+  window_min_px: 256
   sam_model_id: facebook/sam-vit-base
   changed_pixel_threshold: 4
   mixed_modified_overlap: 0.10

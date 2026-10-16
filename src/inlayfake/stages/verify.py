@@ -34,6 +34,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
+from inlayfake.edit.compose import crop_window
 from inlayfake.edit.encode import load_rgb
 from inlayfake.edit.verify import (
     best_candidate,
@@ -97,16 +98,38 @@ def _original_mask(inst, index, shape) -> np.ndarray:
     return bbox_mask(inst.bbox, shape)
 
 
+def verify_window(rec, W: int, H: int, vcfg: dict) -> list[int]:
+    """Region OWLv2 and SAM look at: a square of ``verify.window_scale`` (2.5×) the planned box,
+    at least ``verify.window_min_px`` (256), independent of the generation window. With the
+    default generation window it equals the edit's crop box."""
+    return crop_window(
+        rec.edit.plan_box, W, H, vcfg.get("window_scale", 2.5), vcfg.get("window_min_px", 256)
+    )
+
+
 def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool, str, dict]:
     """Returns (passed, reason, info) and, if passed, writes the annotated record."""
     H, W = img.shape[:2]
-    x0, y0, x1, y1 = (int(round(v)) for v in rec.edit.crop_box)
+    x0, y0, x1, y1 = verify_window(rec, W, H, vcfg)
     crop = img[y0:y1, x0:x1]
     cat = rec.edit.target_category
     cands = [
         ([b[0] + x0, b[1] + y0, b[2] - b[0], b[3] - b[1]], s) for b, s in finder(crop, cat, rec)
     ]
-    best = best_candidate(cands, rec.edit.plan_box, vcfg["min_iou"], vcfg["min_score"])
+    originals = [
+        i.bbox
+        for i in rec.instances
+        if i.category == cat and i.origin is not Origin.AI_INSERTED and not i.iscrowd
+    ]
+    best = best_candidate(
+        cands,
+        rec.edit.plan_box,
+        vcfg["min_iou"],
+        vcfg["min_score"],
+        vcfg.get("min_inside"),
+        originals,
+        vcfg.get("original_iou", 0.5),
+    )
     info = {"n_candidates": len(cands), "score": best[1] if best else None}
 
     actual = changed_mask(img, ref, vcfg["changed_pixel_threshold"])
@@ -184,7 +207,12 @@ def build_final_ledger(wd: Path, generated: list[ImageRecord], state: dict) -> l
                 for i in r.instances
             ]
             final.append(replace(r, instances=insts))
-    passed = {row["image_id"] for rows in state.values() for row in rows if row["passed"]}
+    # one passed record per job: its first passing attempt
+    passed = {
+        next(row["image_id"] for row in rows if row["passed"])
+        for rows in state.values()
+        if any(row["passed"] for row in rows)
+    }
     for image_id in sorted(passed):
         p = wd / "verified" / f"{image_id}.json"
         if p.exists():
@@ -192,7 +220,9 @@ def build_final_ledger(wd: Path, generated: list[ImageRecord], state: dict) -> l
     return final
 
 
-def audit_sheet(wd: Path, records: list[ImageRecord], fraction: float, seed: int) -> int:
+def audit_sheet(
+    wd: Path, records: list[ImageRecord], fraction: float, seed: int, vcfg: dict | None = None
+) -> int:
     """HTML + CSV for the human check of a random sample of edits. Never overwrites the CSV."""
     edits = sorted((r for r in records if r.condition.value in EDITED), key=lambda r: r.image_id)
     if not edits:
@@ -206,7 +236,7 @@ def audit_sheet(wd: Path, records: list[ImageRecord], fraction: float, seed: int
     cards = []
     for r in sample:
         ref = c1.get(r.source_id)
-        x0, y0, x1, y1 = (int(round(v)) for v in r.edit.crop_box)
+        x0, y0, x1, y1 = verify_window(r, r.width, r.height, vcfg or {})
         figs = []
         for tag, path in (("before", ref.path if ref else r.path), ("after", r.path)):
             out = crops / f"{r.image_id}_{tag}.jpg"
@@ -264,13 +294,22 @@ def run(cfg: dict) -> dict:
     state = verify_state(wd)
     checked = {row["image_id"] for rows in state.values() for row in rows}
     c1 = {r.source_id: r for r in generated if r.condition.value == "C1"}
-    todo = [r for r in generated if r.condition.value in EDITED and r.image_id not in checked]
+    # attempt order per job, so that a re-verification (e.g. after a rule change) stops at the
+    # first passing attempt and later attempts of that job are left out
+    todo = sorted(
+        (r for r in generated if r.condition.value in EDITED and r.image_id not in checked),
+        key=lambda r: (job_key(r), r.edit.attempts),
+    )
 
+    n_verified = 0
     if todo:
         index = load_coco(cfg)
         finder, segmenter = build_verifier(vcfg, cfg["hardware"]["device"])
         with (wd / "verify.jsonl").open("a", encoding="utf-8") as f:
             for r in tqdm(todo, desc="verify"):
+                if next_attempt(state, job_key(r), max_attempts) is None:
+                    continue  # job already passed (or out of attempts): not needed
+                n_verified += 1
                 img, ref = load_rgb(r.path), load_rgb(c1[r.source_id].path)
                 passed, reason, info = verify_one(r, img, ref, finder, segmenter, vcfg, index, wd)
                 row = {
@@ -283,6 +322,7 @@ def run(cfg: dict) -> dict:
                     "reason": reason,
                 } | info
                 f.write(json.dumps(row) + "\n")
+                f.flush()  # an interrupted run keeps every finished row
                 state[row["key"]].append(row)
         del finder, segmenter
         try:
@@ -294,7 +334,7 @@ def run(cfg: dict) -> dict:
 
     final = build_final_ledger(wd, generated, state)
     write_ledger(final, wd / "ledger.jsonl")
-    n_audit = audit_sheet(wd, final, vcfg.get("audit_fraction", 0.1), cfg["seed"] + 7)
+    n_audit = audit_sheet(wd, final, vcfg.get("audit_fraction", 0.1), cfg["seed"] + 7, vcfg)
 
     by_cond: dict[str, Counter] = defaultdict(Counter)
     for rows in state.values():
@@ -307,7 +347,7 @@ def run(cfg: dict) -> dict:
         else:
             by_cond[cond]["needs_retry"] += 1
     summary = {
-        "verified_now": len(todo),
+        "verified_now": n_verified,
         "final_ledger_records": len(final),
         "by_condition": {c: dict(v) for c, v in sorted(by_cond.items())},
         "needs_retry": sum(v["needs_retry"] for v in by_cond.values()),

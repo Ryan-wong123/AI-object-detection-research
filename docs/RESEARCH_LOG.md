@@ -5,6 +5,53 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-16: Same-class pilot at window 1.2× with a looser verifier (run `task2_pilot_inphoto`)
+
+- **Author's requirement:** the AI object must show. Generation can never guarantee it, so the
+  guarantee is on the benchmark side: only verified edits enter `ledger.jsonl`. Changes made to
+  raise the share of photos with a verified object:
+  1. **Window 1.2×, minimum 64 px** (`configs/pilot_inphoto.yaml`; new `edit.window_min_px`,
+     default 256 unchanged), the best setting of the 12-edit diagnostic. Verification keeps
+     looking at the 2.5× region (`verify.window_scale`), which equals the old crop box, so the
+     earlier pilots are unaffected.
+  2. **Looser verifier rule (author decision):** a target-class detection with score ≥ 0.2
+     passes if IoU ≥ 0.3 with the box **or ≥ 80% of it lies inside the box**
+     (`verify.min_inside: 0.8`, now the default); a detection with IoU ≥ 0.5 to a same-class
+     original object never counts (`verify.original_iou`), so the occluded real object in C5
+     is not mistaken for the insertion. Why: a CPU re-scoring of the 58 round-1 rejections
+     (paper/results/task2_verifier_iou_diagnostic.{py,txt}) found 14 with a confident
+     (≥ 0.2) detection inside the box and IoU < 0.3 (frisbee 0.74 at IoU 0.01, bus 0.77 at
+     0.08, toothbrush 0.68, cups 0.56): objects smaller than the box. C2 uses the same rule, so
+     the sham check is stricter.
+  3. **Preview** marks every attempt: "in benchmark" (verified box), "rejected … not in
+     benchmark" (dimmed) or "not needed: an earlier attempt passed". Earlier previews rebuilt.
+  4. **Safe re-verification:** `verify` checks attempts in order and stops at the first pass per
+     job; the final ledger keeps one passed record per job; rows are flushed as written.
+  Tests: 59 passed, ruff clean.
+- **Round 1 under the old rule** (run_verify_2026-10-16T104526Z.json): C2 41/41, C4 10/41,
+  C5 7/34 (17/75 = 23%; pilot 1 at 2.5×: 6%). SDXL 116 images in 50:07 (25.9 s each). Round 2
+  (58 images, 38:31, slowed by a CPU diagnostic running at the same time) was generated and
+  then the run was stopped for the rule change; the old-rule results are kept in
+  `data/inlayfake_pilot_inphoto/verify_oldrule/`.
+- **Final, new rule, up to 3 attempts** (run_verify_2026-10-16T114020Z.json,
+  paper/results/task2_pilot_inphoto_final_verify.json): **C4 27/41 (66%)** — 20 on attempt 1,
+  6 on 2, 1 on 3, 14 dropped; **C5 17/34 (50%)** — 8 / 9 / 0, 17 dropped; **C2 41/41**; final
+  ledger 208 records; audit sample 8. Round 3: 33 + 2 images (19.0 and 22.0 s each).
+- **Visual check of all 44 passed C4/C5:** nearly all show a real object of the class (dogs,
+  sheep, horse, giraffe, book, broccoli, cups, cat, traffic lights, backpacks, handbag, train).
+  Weak: a dark laptop (0.34), a faint umbrella (0.30), a thin surfboard line, a tiny baseball
+  glove (0.28). Realism is now the main problem: several float in implausible places (bus in the
+  sky, car in the trees, handbag under a hangar roof, tiny giraffe on a hilltop). The dropped
+  jobs are mostly such placements and very large classes (train, bed, dining table, surfboard).
+- **Interpretation:** the verified-object rate rose from 6% (pilot 1) to 66% C4 / 50% C5,
+  through the tighter window, the looser rule and 3 attempts together; the 85% PRD target is not
+  met yet. Photos without a verified C4/C5 simply have none in the benchmark.
+- **Next:** author's look at `preview.html` and the 8-row `audit_edits.csv`; options for the
+  rest: surface placement with the same-class rule (against floating objects), box size from the
+  photo's own instance, more attempts.
+
+---
+
 ## 2026-10-16: Decision: insert a class already in the photo (run `task2_pilot_inphoto`, plan only)
 
 - **Decision (author):** the AI object must be of a class that is already in the photo's audited

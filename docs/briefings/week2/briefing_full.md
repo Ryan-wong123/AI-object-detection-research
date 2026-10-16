@@ -109,6 +109,20 @@ cloud sandbox, so their first real run is the pilot.
   placement is still any free space. The old design stays available and reproduces the week-1
   plan exactly. 57 tests pass.
 
+### 7. Same-class pilot: tighter window and a looser check (16 Oct, run `task2_pilot_inphoto`)
+- **Goal:** the AI object must show. A generator cannot guarantee it, so the benchmark does:
+  only edits in which the verifier finds the object are kept; the rest are retried with a new
+  seed and, after 3 attempts, dropped. The preview now labels every attempt "in benchmark" or
+  "rejected", so a failed attempt is no longer mistaken for a benchmark image.
+- **Changes:** generator window 1.2× the box (was 2.5×); the verifier now also accepts an object
+  that lies mostly inside the box even if it is much smaller than the box. Why: 14 of 58
+  rejections had a confident detection inside the box (e.g. a frisbee at score 0.74) that failed
+  only the overlap rule. A detection on the photo's own same-class object never counts.
+- **Result:** a verified AI object in **27 of 41 C4** edits (66%) and **17 of 34 C5** edits (50%),
+  up from 6% in the first pilot; all 41 sham edits stay clean. 59 tests pass.
+- **What is left:** below the 85% target; several objects float in implausible places (a bus
+  in the sky, a car in the trees), and very large classes (train, bed) usually fail.
+
 ## Results
 
 | Item | Value |
@@ -119,6 +133,8 @@ cloud sandbox, so their first real run is the pilot.
 | Window-size diagnostic (12 failed edits): confirmed at 2.5× / 1.5× / 1.2× | 1 / 5 / 7 of 12 <!-- file:paper/results/task2_window_scale_diagnostic.txt (scratch diagnostic, not a run) --> |
 | Same-class plan (50 photos): planned / with occlusion / classes | 41 / 34 / 31 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_plan.json --> |
 | Week-1 plan: photos containing any of the 10 fixed classes | 196 of 544 <!-- run:task1_real_baseline plans + COCO val2017 annotations --> |
+| Same-class pilot (window 1.2×, looser check, ≤ 3 attempts): verified C4 / C5 / clean C2 | 27/41 (66%) / 17/34 (50%) / 41/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_final_verify.json --> |
+| Same-class pilot, attempt 1, old rule: C4 / C5 | 10/41 / 7/34 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_round1_oldrule_verify.json --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
@@ -127,7 +143,8 @@ cloud sandbox, so their first real run is the pilot.
 
 ## Next steps
 
-1. Decide the edit-window size (see "To discuss"), then generate the same-class pilot.
+1. Author's visual check of the same-class pilot and its 8-row audit sheet; decide how to
+   reduce floating objects (surface placement, box size from the photo's own instance).
 2. Re-plan the full 600 sources with the same-class rule (the week-1 plan used fixed classes).
 3. Only when the pilot reaches a usable success rate, start the full run.
 4. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.

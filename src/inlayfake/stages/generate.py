@@ -192,6 +192,7 @@ def _generative_one(cfg, index, plan, src, gen, cond, box, inpainter, wd, enc, s
         ecfg["mask_dilate_px"],
         ecfg["feather_px"],
         ecfg.get("composite", "mask"),
+        ecfg.get("window_min_px", 256),
     )
     path = wd / "images" / f"{rid}.jpg"
     sha = save_policy(out, path, enc)

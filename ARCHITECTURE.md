@@ -164,8 +164,12 @@ is `audit_edits.html` + `audit_edits.csv` (before/after crops; object_ok / reali
 Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml` for CPU tests).
 
 - **Insertion success**: OWLv2 (`google/owlv2-base-patch16-ensemble`, **not** an evaluated detector)
-  queried with the category name inside the crop window. Pass = a box with IoU ≥ 0.3 to the plan and
-  score ≥ τ. On failure, retry with a new seed (max 3), then drop and log it.
+  queried with the category name inside a 2.5× region around the plan (`verify.window_scale`,
+  independent of the generation window `edit.window_scale`). Pass = a box with score ≥ τ (0.2)
+  and either IoU ≥ 0.3 to the plan or ≥ 80% of its area inside the plan (`verify.min_inside`,
+  added 2026-10-16 for objects smaller than the box); a box with IoU ≥ 0.5 to a same-class
+  original object never counts (`verify.original_iou`). On failure, retry with a new seed
+  (max 3), then drop and log it. Attempts are verified in order; the first pass ends the job.
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological

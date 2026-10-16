@@ -13,7 +13,7 @@ from collections.abc import Callable
 import numpy as np
 from PIL import Image, ImageFilter
 
-from inlayfake.edit.placement import Box, iou
+from inlayfake.edit.placement import Box, intersection, iou
 
 # finder(crop_rgb, category, record) -> [(xyxy_in_crop, score)]; segmenter(crop_rgb, xyxy) -> mask
 Finder = Callable[[np.ndarray, str, object], list[tuple[list[float], float]]]
@@ -46,17 +46,37 @@ def changed_mask(edited: np.ndarray, reference: np.ndarray, threshold: int) -> n
     return np.asarray(m) > 127
 
 
+def inside_frac(box: Box, region: Box) -> float:
+    """Share of ``box``'s area that lies inside ``region``."""
+    a = box[2] * box[3]
+    return intersection(box, region) / a if a > 0 else 0.0
+
+
 def best_candidate(
     candidates: list[tuple[list[float], float]],
     plan_box: Box,
     min_iou: float,
     min_score: float,
+    min_inside: float | None = None,
+    originals: list[Box] | None = None,
+    original_iou: float = 0.5,
 ) -> tuple[Box, float, float] | None:
-    """Highest-scoring candidate (xywh, full-image coords) with IoU ≥ min_iou to the plan."""
+    """Highest-scoring candidate (xywh, full-image coords) that matches the planned box.
+
+    A candidate matches if IoU ≥ ``min_iou`` with the plan, or, when ``min_inside`` is set, if
+    at least that share of its area lies inside the plan (an object smaller than the box).
+    Candidates with IoU ≥ ``original_iou`` to one of ``originals`` (same-class objects already in
+    the photo) are the real object, not the insertion, and never match.
+    """
     best = None
     for box, score in candidates:
+        if score < min_score:
+            continue
+        if any(iou(box, o) >= original_iou for o in originals or []):
+            continue
         o = iou(box, plan_box)
-        if score >= min_score and o >= min_iou and (best is None or score > best[1]):
+        ok = o >= min_iou or (min_inside is not None and inside_frac(box, plan_box) >= min_inside)
+        if ok and (best is None or score > best[1]):
             best = (box, score, o)
     return best
 
