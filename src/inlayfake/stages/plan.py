@@ -113,7 +113,39 @@ def run(cfg: dict) -> dict:
             p["class_in_photo"] = False
         return p
 
-    plans, failed, no_class, outside = [], [], [], []
+    anywhere_ok = in_photo and pcfg.get("allow_anywhere", False)
+
+    def anywhere_plan(src: dict, anns: list[dict]):
+        """Very last resort (``placement.allow_anywhere``): a C5 box anywhere in the image, with
+        no overlap rule. Class: the photo's smallest insertable class, else an outside class.
+        Own generator, so every other plan is unchanged."""
+        from inlayfake.edit.placement import place_anywhere
+        from inlayfake.stages.replan import _size, alternate_classes, outside_classes
+
+        sid, W, H = src["source_id"], src["width"], src["height"]
+        own = [c for c in alternate_classes(cfg, index, sid, "", extra.get(sid, [])) if c != ""]
+        cands = [(c, True) for c in own]
+        cands += [(c, False) for c in outside_classes(cfg, index, sid, extra.get(sid, []))]
+        r5 = np.random.default_rng(derive_seed(cfg["seed"], sid, "anywhere"))
+        for cat, in_ph in cands:
+            try:
+                w, h = _size(cfg, index, anns, cat, W, H, r5)
+            except ValueError:
+                continue
+            box, occ_id = place_anywhere(W, H, w, h, index.image_anns(sid), r5)
+            return {
+                "source_id": sid,
+                "split": src["split"],
+                "category": cat,
+                "box_free": None,
+                "box_occ": box,
+                "occluded_ann_id": occ_id,
+                "class_in_photo": in_ph,
+                "placement_rule": "anywhere",
+            }
+        return None
+
+    plans, failed, no_class, outside, anywhere = [], [], [], [], []
     used: Counter = Counter()
     for i, src in enumerate(sources):
         sid = src["source_id"]
@@ -123,12 +155,17 @@ def run(cfg: dict) -> dict:
             classes = [c for c in own if c in stats]
             if not classes:
                 p = outside_plan(src, anns, None) if n_outside else None
+                if p is not None:
+                    outside.append(sid)
+                elif anywhere_ok:
+                    p = anywhere_plan(src, anns)
+                    if p is not None:
+                        anywhere.append(sid)
                 if p is None:
                     no_class.append(sid)
                     failed.append(sid)
                 else:
                     plans.append(p)
-                    outside.append(sid)
                 continue
             order = balanced_order(classes, used, rng)
         else:
@@ -153,6 +190,12 @@ def run(cfg: dict) -> dict:
                 outside.append(sid)
                 plans.append(p)
                 continue
+        if p is None and anywhere_ok:
+            p = anywhere_plan(src, anns)
+            if p is not None:
+                anywhere.append(sid)
+                plans.append(p)
+                continue
         if p is None:
             failed.append(sid)
         else:
@@ -169,6 +212,7 @@ def run(cfg: dict) -> dict:
         summary["n_no_insertable_class"] = len(no_class)
         summary["n_occlusion_only"] = sum(p["box_free"] is None for p in plans)
         summary["n_class_not_in_photo"] = len(outside)
+        summary["n_placed_anywhere"] = len(anywhere)
     if stuff is not None:
         summary["supports"] = dict(Counter(p["support"] for p in plans))
     write_run_info(wd / "runs", "plan", cfg, summary | {"failed_sources": failed})

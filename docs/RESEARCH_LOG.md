@@ -5,6 +5,30 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Decision: a box anywhere as the very last resort: 50 of 50 photos
+
+- **Decision (author):** relax the rule so every photo always has a valid box: the AI object
+  may be placed anywhere in the image.
+- **Implemented as the last fallback only** (`placement.allow_anywhere`, false by default, true
+  in `pilot_inphoto.yaml`): when no box satisfies the rules after every other fallback, a C5 box
+  is placed anywhere inside the image with no overlap rule (`placement.place_anywhere`). Class:
+  the photo's smallest insertable class, else an outside class. Used by the plan stage (own
+  generator; earlier plans byte-identical: week 1 544/544, pilot 1 46/46, same-class 49/49) and
+  by C5 re-plans whose box cannot be placed. C4 stays rule-abiding (no occlusion), because H2
+  relies on it. New ledger field `EditInfo.placement_rule` = "anywhere" so week-3 analyses can
+  include or exclude these. `verify` already recomputes the visible part of every covered real
+  object. 2 new tests; `pytest -q`: 71 passed.
+- **Result** (run_plan_2026-10-16T170747Z.json, run_verify_2026-10-16T171152Z.json,
+  paper/results/task2_pilot_inphoto_anywhere_verify.json): all 50 photos planned; 421455 (car
+  interior) got an anywhere C5 truck that passed on box 2 (OWLv2 0.34). C4 39/41, C5 39/43,
+  C2 39/41; final ledger 256, audit sample 12. **50 of 50 photos have a verified AI object.**
+- **Doubtful:** by eye the 421455 "truck" is a 21×13-px dark blob in the window reflection, sized
+  like the photo's own tiny truck; it passes the verifier but is not a convincing object and will
+  probably fail the human audit. The other last-resort edit (151857 clock) is clear but
+  implausible.
+
+---
+
 ## 2026-10-17: Decision: a class not in the photo as the very last resort: 49 of 50 photos
 
 - **Decision (author):** for photos whose own classes cannot be inserted, allow a class that is

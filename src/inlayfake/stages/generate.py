@@ -236,6 +236,7 @@ def _generative_one(
         attempts=attempt + 1,
         plan_version=version,
         class_in_photo=plan.get("class_in_photo_occ" if cond == "C5" else "class_in_photo", True),
+        placement_rule=plan.get("placement_rule_occ", "standard") if cond == "C5" else "standard",
     )
     _write_record(
         ImageRecord(

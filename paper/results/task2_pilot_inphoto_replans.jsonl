@@ -119,3 +119,5 @@
 {"source_id": 477441, "track": "free", "version": 8, "category": "chair", "class_in_photo": false, "box": [536.2672965533425, 38.60863678141992, 59.443427952638835, 109.15299457803305], "occluded_ann_id": null, "support": null}
 {"source_id": 518326, "track": "occ", "version": 8, "category": "clock", "class_in_photo": false, "box": [248.87462535553846, 19.534716816468645, 144.90430757207037, 144.564231456023], "occluded_ann_id": 319515, "support": null}
 {"source_id": 519764, "track": "occ", "version": 8, "category": "bottle", "class_in_photo": false, "box": [24.5, 12.601272827891535, 32.0, 104.89872717210847], "occluded_ann_id": 2134493, "support": "tabletop"}
+{"source_id": 421455, "track": "occ", "version": 1, "category": "truck", "class_in_photo": true, "box": [138.57503001769683, 138.5272445567174, 32.0, 32.0], "occluded_ann_id": 1338190, "support": null, "placement_rule": "anywhere"}
+{"source_id": 421455, "track": "occ", "version": 2, "category": "truck", "class_in_photo": true, "box": [258.6206157568529, 263.0406925501238, 34.41707893675795, 32.0], "occluded_ann_id": 1338190, "support": null, "placement_rule": "anywhere"}

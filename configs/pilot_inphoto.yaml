@@ -11,6 +11,7 @@ run_name: task2_pilot_inphoto
 placement:
   class_choice: in_photo
   audit_decisions: data/inlayfake/audit_decisions.csv
+  allow_anywhere: true    # author, 2026-10-17: if no box fits the rules, place C5 anywhere
 edit:
   window_scale: 1.2
   window_min_px: 64
