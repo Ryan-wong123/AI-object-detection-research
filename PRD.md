@@ -30,7 +30,7 @@ capability is **object-origin estimation**.
 ## 3. Scope
 
 ### In scope (must-have for the submission, P0)
-1. **InlayFake benchmark v1**: about 600 COCO val2017 source photos, 10 categories, 6 matched
+1. **InlayFake benchmark v1**: about 600 COCO val2017 source photos, same-class insertions (see §4), 6 matched
    conditions, 3 inpainting generators (2 seen, 1 held out). Includes a per-instance provenance ledger
    and an audited sample.
 2. **Stage 1: detector study**: 4 frozen detector families on all conditions; semantic AP per origin
@@ -74,8 +74,15 @@ capability is **object-origin estimation**.
 | C4 | AI insertion, no occlusion of original objects | Clean origin and collateral effects |
 | C5 | AI insertion with controlled occlusion (20–50% of one original object) | Visibility-mediated effects with updated labels |
 
-- **Categories (10):** chair, cup, bottle, potted plant, vase, clock, bench, umbrella, backpack, dog.
-  These are frequent in COCO, mostly rigid and non-human.
+- **Inserted class (changed 2026-10-16, author decision):** each photo gets an AI object of a
+  class that is **already in that photo's audited week-1 ground truth** (COCO labels plus audit
+  "add" rows), any COCO class except *person*. Every edited photo therefore holds a photographed
+  and an AI instance of the same class, which matches the origin comparison (H1, H3) within a
+  class. Among the classes present, the least-used so far is chosen. Photos whose only
+  non-person classes cannot fit a box get no insertion. The earlier design (10 fixed categories:
+  chair, cup, bottle, potted plant, vase, clock, bench, umbrella, backpack, dog, cycled for
+  balance) remains as `placement.class_choice: fixed` and produced the week-1 plan. Trade-off:
+  classes are no longer balanced and include large or non-rigid ones (bus, giraffe, surfboard).
 - **Generators:** G1 SDXL-Inpainting and G2 SD-2-Inpainting (seen: used to train the crop
   classifier and to calibrate); G3 FLUX.1-Fill-dev (held out, different architecture). Fallback for
   G3 if it does not fit in VRAM: Kandinsky 2.2 inpainting.

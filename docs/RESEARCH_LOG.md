@@ -5,6 +5,36 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-16: Decision: insert a class already in the photo (run `task2_pilot_inphoto`, plan only)
+
+- **Decision (author):** the AI object must be of a class that is already in the photo's audited
+  week-1 ground truth, any COCO class except person, instead of cycling through 10 fixed
+  categories. Prompted by source 23937 (5 cows, 1 sheep) being planned as "chair". Why it helps:
+  each edited photo then has a photographed and an AI instance of the same class, a matched
+  within-class comparison for H1/H3.
+- **Before the change (week-1 plan, 544 photos):** only 196 contained any of the 10 fixed
+  classes, and the planned class was already in the photo in 20 of 544.
+- **Implemented:** `placement.class_choice: in_photo` (`stages/plan.py`). Present classes =
+  non-crowd COCO labels + week-1 audit "add" rows (`data/inlayfake/audit_decisions.csv`), minus
+  `exclude_classes: [person]`; least-used class first, ties by the seeded RNG; audit add / ignore
+  boxes block free placement. `fixed` stays the default in `default.yaml`, and it reproduces the
+  week-1 (544) and first-pilot plans byte for byte (checked). New `configs/pilot_inphoto.yaml`
+  (free-space placement, window 2.5×). 4 new tests; `pytest -q`: 57 passed; ruff clean.
+- **Re-plan of the pilot** (same 50 sources; paper/results/task2_pilot_inphoto_plan.json):
+  41 planned, 9 failed, 34 with an occlusion box (pilot 1: 46 / 4 / 38); 31 classes, the most
+  frequent surfboard 4, car 3. Source 23937 → sheep. The 9 failures are photos whose only
+  non-person classes are large or crowded (train, giraffes, zebra, 10 motorcycles, a toilet).
+- **Seen on the plan sheet:** placement is still any free space, so some boxes sit in the sky
+  again (handbag at a hangar ceiling, elephant, car, surfboard); box size comes from COCO-wide
+  statistics, not from the same-class object already in the photo. Not changed.
+- **Implications:** classes are no longer balanced and include large or non-rigid ones (bus,
+  giraffe); the week-1 counts in PAPER §4 (544 planned, 363 with C5) come from the old plan and
+  must be recomputed before the full run (`insertion.yaml` still reuses the week-1 plans).
+- **Not run yet:** generation. Open: window size (1.2× / 1.5×), surface placement, size from the
+  photo's own instance.
+
+---
+
 ## 2026-10-16: Surface placement pilot (run `task2_pilot_surface`): placement is not the cause; window size is
 
 - **Decision (author):** try boxes that rest on a supporting surface. Implemented as

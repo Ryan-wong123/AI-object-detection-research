@@ -31,6 +31,10 @@ placement:
   margin_px: 8
   occlusion_frac: [0.2, 0.5]           # C5: fraction of the occluded original instance covered
   max_tries: 200
+  class_choice: fixed                  # fixed: cycle sampling.categories (week 1) | in_photo: a
+                                       # class already in the photo's audited GT (pilot_inphoto.yaml)
+  exclude_classes: [person]            # never inserted (ethics, AGENTS.md rule 10)
+  audit_decisions: null                # in_photo: week-1 audit CSV ("add" rows count as present)
   support:                             # boxes rest on a plausible surface (COCO-Stuff labels)
     enabled: false                     # off here so week-1 plans stay valid; on in pilot_surface.yaml
     stuff_annotations: data/coco/annotations/stuff_val2017.json
@@ -43,6 +47,7 @@ placement:
       tabletop: {mode: "on", classes: [table, desk-stuff, counter, shelf]}
       wall: {mode: "inside", classes: [wall-brick, wall-concrete, wall-other, wall-panel,
              wall-stone, wall-tile, wall-wood]}
+    default_surfaces: [ground, tabletop]  # classes not listed below (in_photo mode)
     categories:                        # allowed surfaces per class, tried in order
       chair: [ground]
       bench: [ground]

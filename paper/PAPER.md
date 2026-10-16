@@ -7,7 +7,7 @@
 > | Last updated | 2026-10-16 |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C5, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C5 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision |
+> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C5, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C5 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C5, 31 classes), not yet generated |
 > | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
@@ -153,10 +153,14 @@ objects as the kept photographs (4), but their object boxes cover a median 97% o
 and in 52 of the 56 a single object covers more than half the image <!-- run:task1_real_baseline (plan failed_sources, seed 20261008; COCO val2017 annotations), see docs/RESEARCH_LOG.md 2026-10-11 -->.
 The benchmark therefore under-represents close-up, frame-filling shots (§8). Of the 544, 363 also
 admitted a controlled-occlusion box for C5 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
- For each source we choose one of ten categories (chair, cup, bottle, potted plant,
-vase, clock, bench, umbrella, backpack, dog) and a box whose size follows that category's COCO size
-distribution. The box is placed either in free space or overlapping 20–50% of one original object.
-One plan is shared by every condition of a source.
+ For each source we insert a class that is **already present** in that photograph's audited
+ground truth (any COCO class except *person*), so every edited photograph contains a photographed
+and an AI-generated instance of the same class. Among the classes present, the one used least so
+far is chosen, which keeps classes as balanced as the photographs allow. The box size follows that
+class's COCO size distribution, and the box is placed either in free space or overlapping 20–50% of
+one original object. One plan is shared by every condition of a source. [[TBD: the 544 / 363
+counts above come from the week-1 plan, which cycled through ten fixed categories; recompute them
+with the same-class rule before the full run]]
 
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
 insertion without occlusion; C5 AI insertion with controlled occlusion.

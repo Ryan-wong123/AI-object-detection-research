@@ -99,7 +99,14 @@ contact sheet. Confirmed ones are added to the GT as `photographed`; unresolved 
 `ignore_regions`. (Lesson from *Object Detection Benchmarks are Incomplete*.)
 
 ### 3.3 `plan` ✅ (`edit/placement.py`)
-For each source, pick a target category (balanced across categories), then a box:
+For each source, pick a target category, then a box. `placement.class_choice: in_photo`
+(`configs/pilot_inphoto.yaml`; the decided design from 2026-10-16): a class already in the photo's
+audited GT (non-crowd COCO labels plus week-1 audit "add" rows from `placement.audit_decisions`),
+excluding `placement.exclude_classes` (person); the least-used class so far is tried first, ties
+in seeded random order. Audit add / ignore boxes also block free placement. `fixed` (week 1,
+`default.yaml`): cycle through `sampling.categories`, balanced; with it the code reproduces the
+week-1 and first-pilot plans byte for byte. Classes not in `support.categories` use
+`support.default_surfaces`. Box rules:
 - size: sampled from that category's COCO area distribution (relative to image area), clipped to
   [32², 0.25·HW] pixels; aspect ratio from the category's median.
 - **C4**: box with IoU = 0 against every GT box and an 8-px margin; inside the image.

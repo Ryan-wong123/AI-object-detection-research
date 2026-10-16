@@ -112,10 +112,11 @@ class Support:
 def category_supports(
     image_id: int, height: int, width: int, category: str, stuff: StuffIndex, scfg: dict
 ) -> list[Support]:
-    """Surfaces allowed for ``category`` in this image, in config order (empty masks dropped)."""
+    """Surfaces allowed for ``category`` in this image, in config order (empty masks dropped).
+    Classes not listed in ``categories`` use ``default_surfaces``."""
     out = []
     band = tuple(scfg["band"])
-    for name in scfg["categories"].get(category, []):
+    for name in scfg["categories"].get(category, scfg.get("default_surfaces", [])):
         group = scfg["groups"][name]
         m = stuff.mask(image_id, set(group["classes"]), height, width)
         if m.any():

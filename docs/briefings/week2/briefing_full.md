@@ -11,7 +11,8 @@ objects under matched controls, and check that each insertion really contains th
 
 ## How an insertion works
 
-For each source photo, week 1 already fixed one plan: a target category (10 classes, balanced), a
+(Since 16 Oct the inserted class is one already in the photo; see Done §6.) For each source
+photo, week 1 already fixed one plan: a target category (10 classes, balanced), a
 box size drawn from real COCO instances of that class, a free-space box and, for 363 photos, a box
 covering 20–50% of one real object.
 
@@ -94,6 +95,20 @@ cloud sandbox, so their first real run is the pilot.
 - The check also showed OWLv2 missing some objects that are clearly there (a chair, a wall clock),
   so the verifier under-counts in places.
 
+### 6. Decision: insert a class that is already in the photo (16 Oct)
+- **Change:** the AI object is now of a class already in the photo's audited week-1 labels (any
+  COCO class except person), not one of 10 fixed categories. Example: photo 23937 (cows, sheep)
+  was planned as "chair" and now gets a sheep. Each edited photo then has a real and an AI object
+  of the same class, a fairer comparison of origin within a class.
+- **Why it was needed:** in the week-1 plan, only 196 of 544 photos contained any of the 10 fixed
+  classes, and the planned class was in the photo in only 20.
+- **Pilot re-planned** (run `task2_pilot_inphoto`, plan only): 41 of 50 photos planned (was 46),
+  34 with an occlusion box, 31 different classes. The 9 failures contain only large or crowded
+  classes (train, giraffes, zebra).
+- **Trade-offs:** classes are no longer balanced, and some boxes are again in the sky because
+  placement is still any free space. The old design stays available and reproduces the week-1
+  plan exactly. 57 tests pass.
+
 ## Results
 
 | Item | Value |
@@ -102,6 +117,8 @@ cloud sandbox, so their first real run is the pilot.
 | Pilot: sham edits in which the verifier found the target class | 0/46 (one sham produced a non-target object, a bird) <!-- run:task2_pilot --> |
 | Surface pilot (35 photos, SDXL, attempt 1): insertion confirmed | C4 0/35, C5 4/19 (4/54 = 7%) <!-- run:task2_pilot_surface, file:paper/results/task2_pilot_surface_round1_verify.json --> |
 | Window-size diagnostic (12 failed edits): confirmed at 2.5× / 1.5× / 1.2× | 1 / 5 / 7 of 12 <!-- file:paper/results/task2_window_scale_diagnostic.txt (scratch diagnostic, not a run) --> |
+| Same-class plan (50 photos): planned / with occlusion / classes | 41 / 34 / 31 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_plan.json --> |
+| Week-1 plan: photos containing any of the 10 fixed classes | 196 of 544 <!-- run:task1_real_baseline plans + COCO val2017 annotations --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
@@ -110,11 +127,12 @@ cloud sandbox, so their first real run is the pilot.
 
 ## Next steps
 
-1. Decide the edit-window size (see "To discuss"), then a third 50-photo pilot.
-2. Only when the pilot reaches a usable success rate, start the full run.
-3. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.
-4. Human audit of 10% of edits, then record the success rates here, in the paper and in the log.
-5. Start the Open Images download for the week-4 held-out domain.
+1. Decide the edit-window size (see "To discuss"), then generate the same-class pilot.
+2. Re-plan the full 600 sources with the same-class rule (the week-1 plan used fixed classes).
+3. Only when the pilot reaches a usable success rate, start the full run.
+4. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.
+5. Human audit of 10% of edits, then record the success rates here, in the paper and in the log.
+6. Start the Open Images download for the week-4 held-out domain.
 
 ## To discuss
 
@@ -128,4 +146,6 @@ cloud sandbox, so their first real run is the pilot.
   which window size, whether to keep surface placement (it costs 11 of 46 plans and half of C5),
   then a third pilot before the full run.
 - Whether OWLv2's misses need a closer look (it rejected some clearly visible objects).
+- Same-class insertion: combine with surface placement, and size the box like the photo's own
+  instance of that class?
 - Whether the sham check should look for any new object, not only the target class.
