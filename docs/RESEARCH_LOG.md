@@ -5,6 +5,34 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Decision: a class not in the photo as the very last resort: 49 of 50 photos
+
+- **Decision (author):** for photos whose own classes cannot be inserted, allow a class that is
+  not in the photo.
+- **Implemented:** `edit.max_outside_classes` (0 by default, 3 in `pilot_inphoto.yaml`): after the
+  in-photo versions (new boxes, class switches), up to 3 classes from `placement.outside_classes`
+  (default: the 10 original categories) that are not in the photo, seeded order per source. The
+  plan stage uses the same fallback for photos with no insertable class (own generators: earlier
+  plans byte-identical, checked for week 1, pilot 1 and the same-class pilot). New ledger field
+  `EditInfo.class_in_photo` (False for these edits; C2/C3 follow C4), so the same-class analysis
+  can exclude them.
+- **Own mistake, found and fixed before recording:** the first version let *any* failed edit
+  switch to an outside class. That added out-of-photo objects to 6 photos that already had an
+  in-photo AI object (bottle in the elephant photo, chair in an airport window, clock on a bed,
+  bench on a ski slope, bottle in a dark room, vase above a bus), beyond the author's request.
+  Now an edit may use an outside class only if the photo has no in-photo pass in C4 or C5 and the
+  other edit is exhausted too; a pass at an outside version stops counting otherwise. Test added;
+  `pytest -q`: 69 passed.
+- **Result** (run_verify_2026-10-16T165640Z.json,
+  paper/results/task2_pilot_inphoto_outside_verify.json): C4 39/41, C5 38/42, C2 39/41; final
+  ledger 253 records, audit sample 12. **49 of 50 photos have a verified AI object.** Only one
+  edit uses a class not in the photo: 151857, a **clock** (OWLv2 0.64) painted over the train's
+  windscreen — clearly there and tonally matched, but implausible; flagged for the audit.
+- **Still without one (1):** 421455 (car interior): the "car" box covers 88% of the frame, so no
+  box satisfies the C5 rule (≤ 5% of any other object); the class is not the problem.
+
+---
+
 ## 2026-10-17: C5 boxes sized from the covered object: 48 of 50 photos have an AI object
 
 - **Question (author):** how to give the 4 remaining photos a box. Diagnosis per photo (COCO

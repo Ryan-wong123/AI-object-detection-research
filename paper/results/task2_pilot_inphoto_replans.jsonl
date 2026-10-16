@@ -108,3 +108,14 @@
 {"source_id": 151857, "track": "occ", "version": 6, "category": null, "box": null, "occluded_ann_id": null, "support": null}
 {"source_id": 457848, "track": "occ", "version": 1, "category": "motorcycle", "box": [307.52215992032205, 46.650062949257986, 63.56139782333083, 45.940633188382144], "occluded_ann_id": 252726, "support": null}
 {"source_id": 457848, "track": "occ", "version": 2, "category": "motorcycle", "box": [0.0, 136.17578301982326, 95.10892762626422, 68.74242081905209], "occluded_ann_id": 223888, "support": null}
+{"source_id": 107851, "track": "occ", "version": 7, "category": "bottle", "class_in_photo": false, "box": [302.46087586453007, 358.99, 61.18000000000001, 121.01000000000002], "occluded_ann_id": 580274, "support": null}
+{"source_id": 151857, "track": "occ", "version": 7, "category": "clock", "class_in_photo": false, "box": [0.0, 0.0, 264.6990349644222, 273.8204164958211], "occluded_ann_id": 170892, "support": null}
+{"source_id": 243867, "track": "free", "version": 7, "category": "vase", "class_in_photo": false, "box": [555.8268994942082, 28.92618396020671, 69.20187595492446, 138.39372846315788], "occluded_ann_id": null, "support": null}
+{"source_id": 273715, "track": "occ", "version": 7, "category": "dog", "class_in_photo": false, "box": [226.1261708770934, 237.5, 82.74765824581323, 32.0], "occluded_ann_id": 523581, "support": "ground"}
+{"source_id": 477441, "track": "free", "version": 7, "category": "bench", "class_in_photo": false, "box": [271.8111889443024, 392.4899349533941, 167.5348701324007, 48.735491298944886], "occluded_ann_id": null, "support": null}
+{"source_id": 518326, "track": "occ", "version": 7, "category": "bench", "class_in_photo": false, "box": [85.15271988729856, 67.23015461414855, 211.6039154421415, 132.25509776657344], "occluded_ann_id": 319515, "support": null}
+{"source_id": 519764, "track": "occ", "version": 7, "category": "bench", "class_in_photo": false, "box": [30.44718976519826, 0.0, 125.26911751781154, 88.28404718054776], "occluded_ann_id": 2134493, "support": null}
+{"source_id": 273715, "track": "occ", "version": 8, "category": "bench", "class_in_photo": false, "box": [349.3657998648289, 202.28070158505096, 118.26840027034227, 73.21929841494904], "occluded_ann_id": 533014, "support": "ground"}
+{"source_id": 477441, "track": "free", "version": 8, "category": "chair", "class_in_photo": false, "box": [536.2672965533425, 38.60863678141992, 59.443427952638835, 109.15299457803305], "occluded_ann_id": null, "support": null}
+{"source_id": 518326, "track": "occ", "version": 8, "category": "clock", "class_in_photo": false, "box": [248.87462535553846, 19.534716816468645, 144.90430757207037, 144.564231456023], "occluded_ann_id": 319515, "support": null}
+{"source_id": 519764, "track": "occ", "version": 8, "category": "bottle", "class_in_photo": false, "box": [24.5, 12.601272827891535, 32.0, 104.89872717210847], "occluded_ann_id": 2134493, "support": "tabletop"}

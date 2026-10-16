@@ -137,6 +137,7 @@ def _non_generative(cfg, index, plan, src, wd, enc) -> int:
                     intended_mask_path=mpath,
                     donor={"image_id": donor["image_id"], "ann_id": donor["id"]},
                     plan_version=version,
+                    class_in_photo=plan.get("class_in_photo", True),
                 )
                 _write_record(
                     ImageRecord(
@@ -234,6 +235,7 @@ def _generative_one(
         intended_mask_path=mpath,
         attempts=attempt + 1,
         plan_version=version,
+        class_in_photo=plan.get("class_in_photo_occ" if cond == "C5" else "class_in_photo", True),
     )
     _write_record(
         ImageRecord(

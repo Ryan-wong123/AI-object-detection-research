@@ -7,7 +7,8 @@ Which class to insert (``placement.class_choice``):
             week-1 audit "add" rows), never one in ``placement.exclude_classes`` (person). The
             least-used such class so far is tried first, so classes stay as balanced as the
             photos allow. Every edited photo then holds a photographed and an AI object of the
-            same class.
+            same class. Last resort (``edit.max_outside_classes`` > 0): a photo none of whose
+            own classes fits gets a class that is not in it, marked ``class_in_photo: false``.
 """
 
 from __future__ import annotations
@@ -86,7 +87,33 @@ def run(cfg: dict) -> dict:
         cats = list(cfg["sampling"]["categories"])
         stats = size_stats(index, cats, pcfg["max_area_frac"])
 
-    plans, failed, no_class = [], [], []
+    n_outside = cfg["edit"].get("max_outside_classes", 0) if in_photo else 0
+
+    def outside_plan(src: dict, anns: list[dict], supports_for):
+        """Last resort for a photo none of whose own classes fits: a class that is not in the
+        photo (``replan.outside_classes``), searched with its own generators so that every
+        other plan is unchanged."""
+        from inlayfake.stages.replan import outside_classes
+
+        sid = src["source_id"]
+        outs = outside_classes(cfg, index, sid, extra.get(sid, []), ("plan",))[:n_outside]
+        st = {}
+        for c in outs:
+            try:
+                st.update(size_stats(index, [c], pcfg["max_area_frac"]))
+            except ValueError:
+                pass
+        outs = [c for c in outs if c in st]
+        if not outs:
+            return None
+        r3 = np.random.default_rng(derive_seed(cfg["seed"], sid, "outside_plan"))
+        r4 = np.random.default_rng(derive_seed(cfg["seed"], sid, "outside_occ_only"))
+        p = plan_source(src, anns, outs, st, pcfg, r3, supports_for, occ_only_rng=r4)
+        if p is not None:
+            p["class_in_photo"] = False
+        return p
+
+    plans, failed, no_class, outside = [], [], [], []
     used: Counter = Counter()
     for i, src in enumerate(sources):
         sid = src["source_id"]
@@ -95,8 +122,13 @@ def run(cfg: dict) -> dict:
             own = present_classes(index, index.image_anns(sid), extra.get(sid, []), exclude)
             classes = [c for c in own if c in stats]
             if not classes:
-                no_class.append(sid)
-                failed.append(sid)
+                p = outside_plan(src, anns, None) if n_outside else None
+                if p is None:
+                    no_class.append(sid)
+                    failed.append(sid)
+                else:
+                    plans.append(p)
+                    outside.append(sid)
                 continue
             order = balanced_order(classes, used, rng)
         else:
@@ -115,6 +147,12 @@ def run(cfg: dict) -> dict:
             np.random.default_rng(derive_seed(cfg["seed"], sid, "occ_only")) if in_photo else None
         )
         p = plan_source(src, anns, order, stats, pcfg, rng, supports_for, occ_only_rng=occ_rng)
+        if p is None and n_outside:
+            p = outside_plan(src, anns, supports_for)
+            if p is not None:
+                outside.append(sid)
+                plans.append(p)
+                continue
         if p is None:
             failed.append(sid)
         else:
@@ -130,6 +168,7 @@ def run(cfg: dict) -> dict:
     if in_photo:
         summary["n_no_insertable_class"] = len(no_class)
         summary["n_occlusion_only"] = sum(p["box_free"] is None for p in plans)
+        summary["n_class_not_in_photo"] = len(outside)
     if stuff is not None:
         summary["supports"] = dict(Counter(p["support"] for p in plans))
     write_run_info(wd / "runs", "plan", cfg, summary | {"failed_sources": failed})

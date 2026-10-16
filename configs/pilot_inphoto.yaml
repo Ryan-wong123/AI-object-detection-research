@@ -17,5 +17,7 @@ edit:
   max_replans: 3          # after 3 failed seeds: a new box on a surface, sized like the photo's
                           # own instance of the class (up to 4 boxes x 3 seeds per job)
   max_class_switches: 3   # then up to 3 other classes already in the photo, smallest first
+  max_outside_classes: 3  # last resort (author, 2026-10-17): up to 3 classes NOT in the photo
+                          # (from the 10 original categories), marked class_in_photo: false
 paths:
   work: data/inlayfake_pilot_inphoto

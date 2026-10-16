@@ -83,6 +83,9 @@ capability is **object-origin estimation**.
   chair, cup, bottle, potted plant, vase, clock, bench, umbrella, backpack, dog, cycled for
   balance) remains as `placement.class_choice: fixed` and produced the week-1 plan. Trade-off:
   classes are no longer balanced and include large or non-rigid ones (bus, giraffe, surfboard).
+  **Exception (author, 2026-10-17):** a photo with no verified AI object of its own classes
+  (after new boxes and class switches) may get one of the 10 original categories that is not in
+  it; such edits carry `class_in_photo: false` and are excluded from same-class analyses.
 - **Generators:** G1 SDXL-Inpainting and G2 SD-2-Inpainting (seen: used to train the crop
   classifier and to calibrate); G3 FLUX.1-Fill-dev (held out, different architecture). Fallback for
   G3 if it does not fit in VRAM: Kandinsky 2.2 inpainting.
