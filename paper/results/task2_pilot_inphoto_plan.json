@@ -1,9 +1,9 @@
 {
   "stage": "plan",
-  "utc": "2026-10-16T16:29:44Z",
-  "git_commit": "62139f2d45aefa24b6d28e7fd702e983302aa9ba",
+  "utc": "2026-10-16T17:07:47Z",
+  "git_commit": "627b0e187b782e3df09caecab6661cf20a618e30",
   "git_dirty": true,
-  "config_hash": "6368032570ae",
+  "config_hash": "84c212e51fb6",
   "seed": 20261008,
   "python": "3.11.0",
   "platform": "Windows-10-10.0.26200-SP0",
@@ -17,9 +17,9 @@
     "ultralytics": "8.4.174",
     "pycocotools": "2.0.11"
   },
-  "n_plans": 49,
-  "n_failed": 1,
-  "n_with_occlusion": 42,
+  "n_plans": 50,
+  "n_failed": 0,
+  "n_with_occlusion": 43,
   "categories": {
     "sheep": 1,
     "traffic light": 2,
@@ -49,6 +49,7 @@
     "cup": 1,
     "cat": 1,
     "baseball glove": 1,
+    "truck": 1,
     "dining table": 1,
     "chair": 1,
     "airplane": 1,
@@ -58,8 +59,8 @@
     "zebra": 1
   },
   "n_no_insertable_class": 0,
-  "n_occlusion_only": 8,
-  "failed_sources": [
-    421455
-  ]
+  "n_occlusion_only": 9,
+  "n_class_not_in_photo": 0,
+  "n_placed_anywhere": 1,
+  "failed_sources": []
 }

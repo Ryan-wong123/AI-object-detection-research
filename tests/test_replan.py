@@ -262,6 +262,59 @@ def test_no_outside_class_when_photo_already_has_an_ai_object():
     assert track_version(cfg, state, 7, FREE, {}) == 1
 
 
+def test_place_anywhere_hand_example():
+    import numpy as np
+
+    from inlayfake.edit.placement import place_anywhere
+
+    gt = [
+        {"id": 1, "bbox": [0, 0, 400, 300], "iscrowd": 0},  # fills the frame
+        {"id": 2, "bbox": [0, 0, 10, 10], "iscrowd": 1},  # crowd: never the covered object
+    ]
+    for seed in range(20):
+        box, occ = place_anywhere(400, 300, 80, 60, gt, np.random.default_rng(seed))
+        assert 0 <= box[0] and box[0] + box[2] <= 400 and 0 <= box[1] and box[1] + box[3] <= 300
+        assert box[2:] == [80.0, 60.0] and occ == 1
+    big, _ = place_anywhere(400, 300, 900, 900, gt, np.random.default_rng(0))
+    assert big[2] <= 0.95 * 400 and big[3] <= 0.95 * 300  # shrunk to fit
+
+
+def test_every_photo_gets_a_box_when_anywhere_is_allowed(cfg, tmp_path):
+    """Rules no box can satisfy (huge margin, impossible occlusion): every photo still gets a
+    C5 plan placed anywhere, with one of its own classes, flagged in the plan and the ledger."""
+    from inlayfake.data.coco import CocoIndex
+
+    cfg = deep_merge(
+        cfg,
+        {
+            "generators_enabled": ["G1"],
+            "placement": {
+                "class_choice": "in_photo",
+                "allow_anywhere": True,
+                "margin_px": 10000,  # no free space anywhere
+                "occlusion_frac": [0.99, 1.0],  # no rule-abiding occlusion either
+            },
+        },
+    )
+    sample.run(cfg)
+    summary = plan.run(cfg)
+    n = len([1 for _ in (tmp_path / "work" / "sources.jsonl").open()])
+    assert summary["n_plans"] == n  # every photo has a box
+    assert summary["n_placed_anywhere"] >= 1
+    index = CocoIndex.load(cfg["paths"]["coco_annotations"], cfg["paths"]["coco_images"])
+    rows = [json.loads(line) for line in (tmp_path / "work" / "plans.jsonl").open()]
+    rows = [r for r in rows if r.get("placement_rule") == "anywhere"]
+    assert len(rows) == summary["n_placed_anywhere"]
+    for r in rows:
+        own = {index.cat_name[a["category_id"]] for a in index.image_anns(r["source_id"])}
+        assert r["placement_rule"] == "anywhere" and r["box_free"] is None
+        assert r["category"] in own and r["class_in_photo"]
+    insert.run(cfg)
+    anywhere_ids = {r["source_id"] for r in rows}
+    c5 = [r for r in read_ledger(tmp_path / "work" / "ledger.jsonl") if r.condition.value == "C5"]
+    assert {r.source_id for r in c5 if r.edit.placement_rule == "anywhere"} == anywhere_ids
+
+
 def test_replan_drops_after_all_boxes(cfg, tmp_path):
     sample.run(cfg)
     plan.run(cfg)

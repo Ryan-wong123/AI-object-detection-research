@@ -187,6 +187,9 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   default the 10 original categories), only if the photo has no in-photo pass in C4 or C5 and both
   edits are exhausted; also used by the plan stage for photos with no insertable class.
   `EditInfo.class_in_photo` is False for these edits.
+  Very last resort, `placement.allow_anywhere`: if no box satisfies the rules, a C5 box anywhere
+  in the image with no overlap rule (`placement.place_anywhere`; plan stage and C5 re-plans;
+  `EditInfo.placement_rule = "anywhere"`). C4 is never placed this way.
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological

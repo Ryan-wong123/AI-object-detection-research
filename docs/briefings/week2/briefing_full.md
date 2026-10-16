@@ -165,6 +165,14 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 12. Decision: a box anywhere as the very last resort (17 Oct)
+- **Rule:** if no box satisfies the placement rules, an occluding (C5) edit may be placed
+  anywhere in the image, flagged `placement_rule: anywhere`. C4 always keeps its no-occlusion
+  rule. Earlier plans unchanged; 71 tests pass.
+- **Result: 50 of 50 photos** have a verified AI object.
+- **Caveat:** the car-interior photo's new object is a tiny truck (21×13 px) that the verifier
+  accepts but that is hardly visible; it will probably fail the human audit.
+
 ## Results
 
 | Item | Value |
@@ -180,7 +188,8 @@ cloud sandbox, so their first real run is the pilot.
 | Same-class pilot with re-plan (≤ 4 boxes × 3 seeds): verified C4 / C5 / clean C2 | 38/41 (93%) / 25/34 (74%) / 39/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_replan_verify.json --> |
 | Plus class switch and C5-only plans: verified C4 / C5; photos with an AI object | 39/41 / 35/41; 46 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_classswitch_verify.json --> |
 | Plus C5 boxes sized from the covered object: C4 / C5; photos with an AI object | 39/41 / 37/42; 48 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_targetsize_verify.json --> |
-| Plus a class not in the photo as last resort: C4 / C5; photos with an AI object | 39/41 / 38/42; **49 of 50** (1 out-of-photo edit) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_outside_verify.json --> |
+| Plus a class not in the photo as last resort: C4 / C5; photos with an AI object | 39/41 / 38/42; 49 of 50 (1 out-of-photo edit) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_outside_verify.json --> |
+| Plus a C5 box anywhere as very last resort: C4 / C5; photos with an AI object | 39/41 / 39/43; **50 of 50** (1 doubtful) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_anywhere_verify.json --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
 | Full run: C4 success rate per generator (SDXL, SD2, FLUX) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |

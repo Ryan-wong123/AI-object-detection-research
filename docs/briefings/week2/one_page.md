@@ -13,7 +13,8 @@ With a tighter window (1.2×) and a looser verifier check, the same-class pilot 
 AI object in 66% of C4 and 50% of C5 edits (was 6%). Giving failed edits a new box on a
 surface raised this to **93% of C4 and 74% of C5**; switching to another class in the photo as
 a last resort, sizing occluding boxes from the object they cover, and finally allowing a class
-not in the photo (flagged) gives **49 of 50 photos** at least one verified AI object. Edits without a verified
+not in the photo (flagged) and an occluding box anywhere (flagged) gives **50 of 50 photos** at
+least one verified AI object (one of them a doubtful tiny object). Edits without a verified
 object are dropped, never labelled.
 
 ## Done this week
@@ -48,6 +49,7 @@ object are dropped, never labelled.
 | Plus class switch: C4 / C5; photos with an AI object | 39/41 / 35/41; 46 of 50 <!-- run:task2_pilot_inphoto --> |
 | Plus C5 boxes sized from the covered object | 39/41 / 37/42; 48 of 50 <!-- run:task2_pilot_inphoto --> |
 | Plus a class not in the photo (last resort, flagged) | 39/41 / 38/42; 49 of 50 <!-- run:task2_pilot_inphoto --> |
+| Plus a C5 box anywhere (very last resort, flagged) | 39/41 / 39/43; 50 of 50 <!-- run:task2_pilot_inphoto --> |
 | Final images per condition (C2 / C3 / C4 / C5) | [[TBD]] |
 | C4 success per generator | [[TBD]] |
 | Human audit: present / realistic / other change | [[TBD]] |

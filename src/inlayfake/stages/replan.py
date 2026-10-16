@@ -179,6 +179,7 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
         category_occ=plan["category"],
         class_in_photo=base_in,
         class_in_photo_occ=base_in,
+        placement_rule_occ=plan.get("placement_rule", "standard"),
     )
     sid = plan["source_id"]
     if v_free:
@@ -197,6 +198,7 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
             p["box_occ"], p["occluded_ann_id"] = row["box"], row["occluded_ann_id"]
             p["category_occ"] = row.get("category") or plan["category"]
             p["class_in_photo_occ"] = row.get("class_in_photo", base_in)
+            p["placement_rule_occ"] = row.get("placement_rule", "standard")
     return p
 
 
@@ -373,6 +375,12 @@ def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, st
                     support=sup.name if sup else None,
                 )
                 return row
+        if pcfg.get("allow_anywhere", False):  # very last resort: no overlap rule at all
+            from inlayfake.edit.placement import place_anywhere
+
+            w, h = _size(cfg, index, anns, cat, W, H, rng)
+            box, occ_id = place_anywhere(W, H, w, h, index.image_anns(sid), rng)
+            row.update(box=box, occluded_ann_id=occ_id, placement_rule="anywhere")
     return row
 
 

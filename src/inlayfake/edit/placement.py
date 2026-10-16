@@ -227,6 +227,19 @@ def plan_source(
     return None
 
 
+def place_anywhere(
+    W: int, H: int, w: float, h: float, gt: list[dict], rng: np.random.Generator
+) -> tuple[Box, object]:
+    """Last-resort box: anywhere inside the image, with no overlap rule (it may cover any real
+    objects; `verify` updates their visible masks). Returns the box and the id of the original
+    instance it covers most (None if it covers none)."""
+    w, h = min(w, 0.95 * W), min(h, 0.95 * H)
+    box = [float(rng.uniform(0, W - w)), float(rng.uniform(0, H - h)), float(w), float(h)]
+    covered = [(intersection(box, a["bbox"]), a["id"]) for a in gt if not a.get("iscrowd", 0)]
+    covered = [c for c in covered if c[0] > 0]
+    return box, (max(covered)[1] if covered else None)
+
+
 def occluding_sized_to_target(
     W: int,
     H: int,

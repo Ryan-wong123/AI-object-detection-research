@@ -35,6 +35,8 @@ placement:
                                        # class already in the photo's audited GT (pilot_inphoto.yaml)
   exclude_classes: [person]            # never inserted (ethics, AGENTS.md rule 10)
   audit_decisions: null                # in_photo: week-1 audit CSV ("add" rows count as present)
+  allow_anywhere: false                # very last resort: a C5 box anywhere, no overlap rule
+                                       # (ledger placement_rule "anywhere")
   support:                             # boxes rest on a plausible surface (COCO-Stuff labels)
     enabled: false                     # off here so week-1 plans stay valid; on in pilot_surface.yaml
     stuff_annotations: data/coco/annotations/stuff_val2017.json
