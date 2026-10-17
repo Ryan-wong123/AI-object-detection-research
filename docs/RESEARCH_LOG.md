@@ -5,6 +5,28 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Related-work scan (CVPR 2026 and 2022–2026) and positioning
+
+- **What:** three web searches (CVPR 2026; local AI-edit datasets and methods; detectors on
+  inserted objects, MLLM forensics, calibration, matched comparisons, provenance). Summary and gap
+  analysis in `docs/literature/related_work_2026-10-17.md`. OpenReview, CVF and arXiv pages could
+  not be opened from the cloud sandbox: venues and facts come from search snippets and are
+  `[verify]` until the PDFs are read.
+- **Closest prior work:** COinCO (CVPR 2026: COCO, one object *replaced* by SD inpainting, a
+  detector used only as a regeneration filter, in/out-of-context labels). Also TGIF (spliced vs
+  regenerated), INP-X (detectors rely on global VAE artefacts), COCO-Inpaint, FragFake, OpenSDI.
+- **Gaps not covered by anything found:** origin label for every object and a real-object
+  false-accusation rate; a real-object paste control (C3) and occlusion arm (C5); same-class
+  same-photo pairs; frozen COCO detectors on inserted vs photographed objects; calibrated
+  abstention at object level; hand-crafted + learned forensics under matched encoding;
+  origin-aware captions scored on false accusations.
+- **No longer an edge** after the SDXL-only scope change: held-out generator (done at image level
+  by OpenSDI and others).
+- **Paper:** §2 gains a paragraph on AI object edits in COCO (COinCO, TGIF, COCO-Inpaint, INP-X);
+  4 references added, all `[verify]`.
+
+---
+
 ## 2026-10-17: Decision: scope reduced to one generator (SDXL)
 
 - **Decision (author):** not enough time for the planned second seen generator (G2 SD-2-Inpainting)

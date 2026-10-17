@@ -230,6 +230,12 @@ cloud sandbox, so their first real run is the pilot.
 
 ## To discuss
 
+- **Positioning against related work (search of 17 Oct, `docs/literature/related_work_2026-10-17.md`;
+  venues from search snippets, to verify).** Closest: COinCO (CVPR 2026: COCO, one object
+  *replaced* by SD inpainting, a detector used only as a filter). Gaps no work found covers: origin
+  of every object with a real-object false-accusation rate; a real-paste control (C3) and occlusion
+  arm (C5); same-class pairs in one photo; frozen detectors on inserted vs real objects; object-level
+  abstention. With SDXL only, a held-out generator is no longer one of our edges.
 - **Held-out generator: decided 17 Oct, dropped** (SDXL only, Done Â§14). The laptop has 32 GB of
   RAM (`systeminfo`: 32,471 MB), at the FLUX threshold; this no longer matters for this paper.
 - **Is one generator enough for CVPR?** Reviewers may ask whether results hold for other
