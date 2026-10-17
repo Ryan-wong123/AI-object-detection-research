@@ -111,14 +111,21 @@ def track_version(
 ) -> int:
     """Current box version of one track of one source (versions without a box are skipped).
 
-    Versions with a class that is not in the photo (``max_outside_classes``) are used only if
+    Versions with a class that is not in the photo (``max_outside_classes``) are *tried* only if
     the photo has no verified AI object of its own classes: this track is exhausted within its
     in-photo versions, and the other track has no in-photo pass and is not still trying.
+    Once an edit has passed, at any version, it is kept (author decision 2026-10-18): the rule
+    decides what to try next, it never withdraws a verified edit. Before that change, 13 C4
+    edits with an outside class stopped counting when the C5 fill later gave their photos an
+    in-photo C5.
     """
     rows = _leader_rows(cfg, state, sid, track)
     if rows is None:
         return 0
     e = cfg["edit"]
+    passed = [r for r in rows if r["passed"] and r.get("version", 0) <= max_version(cfg)]
+    if passed:  # a verified edit stays in the benchmark
+        return passed[0].get("version", 0)
     top_in = e.get("max_replans", 0) + e.get("max_class_switches", 0)
     v_in = _core_version(cfg, rows, sid, track, versions, top_in)
     if not e.get("max_outside_classes", 0) or not _exhausted(

@@ -27,6 +27,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Round-7 check; verified edits are now always kept (restart 4)
+
+- **Round-7 check** (run_verify_2026-10-17T190409Z.json; 495 images made across restarts 1–3):
+  new C4 (fill) passed 35 of 57 on the first try, new C5 (fill) 34 of 128; older C4 on a new
+  box 13 passed / 48 failed; older C5 on a new box 15 / 116. Totals C4 446, C5 325, C2 515 clean;
+  281 edits into round 8 (210 C5, 70 C4, 1 C2).
+- **Found:** 13 C4 edits that had passed with a class not in the photo stopped counting. The
+  rule "outside classes only if the photo has no in-photo AI object" was re-evaluated at every
+  step, and the C5 fill had given all 13 photos an in-photo C5 (3 passed, 10 retrying).
+- **Decision (author):** keep them. `replan.track_version` now returns the version of the first
+  passing attempt before applying the outside-class restriction, so the rule decides what to
+  try, never withdraws a verified edit. Test updated; re-plan and verify tests pass (20).
+- **Read-only check:** under the new rule C4 459 (+13), C2 528 (+13), C5 unchanged, no edit
+  removed; their C3 pastes follow the same box. The images were never deleted, so nothing is
+  regenerated.
+- **Restart:** stopped Sun 03:16 (round 8 at 39/281, kept), restarted 03:17 (process 25208);
+  logs `insert_progress_part4.log` / `insert_part4.log`.
+
+---
+
 ## 2026-10-18: Re-plans also try typical COCO sizes; 7 dropped C4 edits back (restart 3)
 
 - **Finding:** 7 C4 edits (photos 137294 oven, 140929 clock, 458054 toilet, 491130 snowboard,

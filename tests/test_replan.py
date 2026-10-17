@@ -256,10 +256,14 @@ def test_no_outside_class_when_photo_already_has_an_ai_object():
     # C5 exhausted too: now C4 may use a class that is not in the photo
     state["7|C5|G1"] = [{"passed": False, "version": 0}, {"passed": False, "version": 1}]
     assert track_version(cfg, state, 7, FREE, {}) == 2
-    # a pass at an outside version no longer counts once C5 has an in-photo pass
+    # a verified outside-class edit is kept even if C5 later passes with an in-photo class
     state["7|C4|G1"] = [*c4_fail, {"passed": True, "version": 2}]
     state["7|C5|G1"] = [{"passed": True, "version": 0}]
-    assert track_version(cfg, state, 7, FREE, {}) == 1
+    assert track_version(cfg, state, 7, FREE, {}) == 2
+    assert next_job(cfg, state, 7, "C4", "G1", {}) is None  # done: nothing more to try
+    # ...and while C5 is still trying
+    state["7|C5|G1"] = [{"passed": False, "version": 0}]
+    assert track_version(cfg, state, 7, FREE, {}) == 2
 
 
 def test_place_anywhere_hand_example():
