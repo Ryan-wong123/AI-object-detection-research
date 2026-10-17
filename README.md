@@ -127,9 +127,8 @@ start data\inlayfake_v2\preview.html
 
 The page shows **only images that are in the benchmark** (`ledger.jsonl`): per photo the C0
 original, the C1 resave, and the C2 / C3 / C4 / C5 edits that passed the check. Yellow box =
-planned box, red box = inserted or pasted object (its verified box). Under each edit:
-`attempt n · box n` says which try passed; edits using a last resort say `class not in photo`
-or `placed anywhere`. A grey note in a photo's heading names the edits it does not have (yet),
+planned box, red box = inserted or pasted object (its verified box). Only edits that used a
+last resort carry a note (`class not in photo` or `placed anywhere`). A grey note in a photo's heading names the edits it does not have (yet),
 e.g. `not in benchmark (yet): C4, C5`.
 
 To see every attempt, including the rejected ones (greyed, with the reason), add
