@@ -138,18 +138,14 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         f"<p><b>{len(rows)} photos</b>: {len(rows) - n_missing} have every planned image in the "
         f"benchmark, <b>{n_missing}</b> are still missing a planned edit, and {n_unplanned} have "
         "a condition that was never planned (no room for its box).</p>"
-        '<p><label><input type="radio" name="f" value="all" checked> all photos</label> '
-        '<label><input type="radio" name="f" value="missing"> only photos missing a planned '
-        "edit</label> "
-        '<label><input type="radio" name="f" value="incomplete"> only photos without all of '
-        "C0–C5 (missing or not planned)</label> "
+        '<p><label><input type="checkbox" id="f"> show only photos missing any of C0–C5 '
+        "(not passed yet, or not planned)</label> "
         '<span id="n"></span></p>'
-        "<script>document.querySelectorAll('input[name=f]').forEach(r=>r.onchange=()=>{"
-        "let k=0;document.querySelectorAll('section').forEach(s=>{"
-        "const show=r.value==='all'||(r.value==='missing'&&s.dataset.missing==='1')||"
-        "(r.value==='incomplete'&&(s.dataset.missing==='1'||s.dataset.unplanned==='1'));"
+        "<script>document.getElementById('f').onchange=e=>{const on=e.target.checked;let k=0;"
+        "document.querySelectorAll('section').forEach(s=>{"
+        "const show=!on||s.dataset.missing==='1'||s.dataset.unplanned==='1';"
         "s.style.display=show?'':'none';k+=show});"
-        "document.getElementById('n').textContent='('+k+' shown)'})</script>"
+        "document.getElementById('n').textContent=on?'('+k+' shown)':''}</script>"
     )
     page = (
         STYLE
