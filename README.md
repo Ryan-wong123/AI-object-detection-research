@@ -115,17 +115,33 @@ If `Get-Process python` still lists a Python process using the GPU, stop that on
 (`Stop-Process -Id <id>`). To continue after a stop, a reboot or a crash, start it again with
 way A or B: finished images and checks are kept, and it continues where it stopped.
 
-### When it's done
+### See the results so far: the preview page
 
-Build the preview page:
+The preview can be built at any time, also while the run is going (it only reads saved results;
+a few seconds on the CPU). Without `--limit` it shows only the first 50 photos, so pass 544:
 
 ```powershell
-python -m inlayfake preview --config configs/insertion_inphoto.yaml
+python -m inlayfake preview --config configs/insertion_inphoto.yaml --limit 544
+start data\inlayfake_v2\preview.html
 ```
 
-Then open `data\inlayfake_v2\preview.html` (every attempt, labelled "in benchmark" or "rejected")
-and fill the human-audit sheet `data\inlayfake_v2\audit_edits.csv` (y/n for object_ok, realistic,
-other_change; before/after crops in `audit_edits.html`).
+Each photo is one row: C0 original, C1 resave, then every C2 / C3 / C4 / C5 attempt. Yellow box =
+planned box, red box = inserted or pasted object (the verified outline box for passed edits).
+Under each edit:
+
+- **in benchmark** (green): passed the check; this image is in `ledger.jsonl`.
+- **rejected: … · not in benchmark** (greyed): failed the check; retried with a new seed, box or
+  class, or dropped. `attempt n · box n` says which try it was.
+- **not verified yet**: made in the current round, not checked yet.
+- **not needed / superseded**: a later attempt already passed, or the box moved.
+
+During the run the page shows the state after the last finished check. Images of the round in
+progress appear only after that round ends; re-run the command to refresh.
+
+### When it's done
+
+Build the preview as above, then fill the human-audit sheet `data\inlayfake_v2\audit_edits.csv`
+(y/n for object_ok, realistic, other_change; before/after crops in `audit_edits.html`).
 
 Notes:
 
