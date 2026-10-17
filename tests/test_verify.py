@@ -131,6 +131,11 @@ def test_failed_edit_is_regenerated_with_new_seed(cfg, tmp_path):
     assert out["edits_in_benchmark"] == sum(
         r.condition.value in ("C2", "C4", "C5") for r in read_ledger(wd / "ledger.jsonl")
     )
+    # the filter: every photo carries its state, and the counts in the summary match
+    assert page.count("<section ") == out["sources"]
+    assert page.count('data-missing="1"') == out["sources_missing_a_planned_edit"]
+    assert page.count('data-unplanned="1"') == out["sources_with_an_unplanned_condition"]
+    assert 'value="missing"' in page and 'value="incomplete"' in page
 
     # --all-attempts: every attempt, the rejected one greyed and labelled
     preview.run(cfg, all_attempts=True)

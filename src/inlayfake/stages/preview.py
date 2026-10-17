@@ -94,7 +94,7 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         by_src[r["source_id"]].append(r)
     plans = wd / "plans.jsonl"
     planned = {p["source_id"]: p for p in read_jsonl(plans)} if plans.exists() else {}
-    rows, n_edits = [], 0
+    rows, n_edits, n_missing = [], 0, 0
     for sid in sorted(set(by_src) | set(planned))[:limit]:
         have = sorted(
             by_src.get(sid, []), key=lambda r: (ORDER.index(r["condition"]), r["generator"] or "")
@@ -123,10 +123,34 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
                     flags.append("placed anywhere")
                 note = " · ".join(flags)
             panels.append(_panel(r, wd, thumb, "flag" if note else "", note))
+        not_planned = [c for c in ("C2", "C3", "C4", "C5") if c not in expected]
         miss = f" <small>· not in benchmark (yet): {', '.join(missing)}</small>" if missing else ""
+        if not_planned:
+            miss += f" <small>· not planned (no room): {', '.join(not_planned)}</small>"
+        n_missing += bool(missing)
         rows.append(
-            f"<section><h3>source {sid} · {html.escape(cat)}{miss}</h3>{''.join(panels)}</section>"
+            f'<section data-missing="{int(bool(missing))}" '
+            f'data-unplanned="{int(bool(not_planned))}">'
+            f"<h3>source {sid} · {html.escape(cat)}{miss}</h3>{''.join(panels)}</section>"
         )
+    n_unplanned = sum('data-unplanned="1"' in r for r in rows)
+    controls = (
+        f"<p><b>{len(rows)} photos</b>: {len(rows) - n_missing} have every planned image in the "
+        f"benchmark, <b>{n_missing}</b> are still missing a planned edit, and {n_unplanned} have "
+        "a condition that was never planned (no room for its box).</p>"
+        '<p><label><input type="radio" name="f" value="all" checked> all photos</label> '
+        '<label><input type="radio" name="f" value="missing"> only photos missing a planned '
+        "edit</label> "
+        '<label><input type="radio" name="f" value="incomplete"> only photos without all of '
+        "C0–C5 (missing or not planned)</label> "
+        '<span id="n"></span></p>'
+        "<script>document.querySelectorAll('input[name=f]').forEach(r=>r.onchange=()=>{"
+        "let k=0;document.querySelectorAll('section').forEach(s=>{"
+        "const show=r.value==='all'||(r.value==='missing'&&s.dataset.missing==='1')||"
+        "(r.value==='incomplete'&&(s.dataset.missing==='1'||s.dataset.unplanned==='1'));"
+        "s.style.display=show?'':'none';k+=show});"
+        "document.getElementById('n').textContent='('+k+' shown)'})</script>"
+    )
     page = (
         STYLE
         + "<p>Only images in the benchmark (<code>ledger.jsonl</code>): the original (C0), the "
@@ -134,11 +158,18 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         "or pasted object (verified box). Rejected attempts are not shown; build with "
         "<code>--all-attempts</code> to see them.</p>"
         + ("" if lpath.exists() else "<p><b>No edits checked yet.</b></p>")
+        + controls
         + "".join(rows)
     )
     out = wd / "preview.html"
     out.write_text(page, encoding="utf-8")
-    return {"preview": out.as_posix(), "sources": len(rows), "edits_in_benchmark": n_edits}
+    return {
+        "preview": out.as_posix(),
+        "sources": len(rows),
+        "edits_in_benchmark": n_edits,
+        "sources_missing_a_planned_edit": n_missing,
+        "sources_with_an_unplanned_condition": n_unplanned,
+    }
 
 
 def run(cfg: dict, limit: int | None = 50, thumb: int = 240, all_attempts: bool = False) -> dict:

@@ -128,8 +128,13 @@ start data\inlayfake_v2\preview.html
 The page shows **only images that are in the benchmark** (`ledger.jsonl`): per photo the C0
 original, the C1 resave, and the C2 / C3 / C4 / C5 edits that passed the check. Yellow box =
 planned box, red box = inserted or pasted object (its verified box). Only edits that used a
-last resort carry a note (`class not in photo` or `placed anywhere`). A grey note in a photo's heading names the edits it does not have (yet),
-e.g. `not in benchmark (yet): C4, C5`.
+last resort carry a note (`class not in photo` or `placed anywhere`). A grey note in a photo's
+heading names what it lacks: `not in benchmark (yet): C4, C5` (planned, not passed yet) or
+`not planned (no room): C2, C3, C4` (the photo never had room for that box, e.g. C5-only photos).
+
+At the top, a summary counts complete and incomplete photos, and three buttons filter the page
+instantly (no rebuild): **all photos**, **only photos missing a planned edit**, and **only photos
+without all of C0–C5** (missing or not planned).
 
 To see every attempt, including the rejected ones (greyed, with the reason), add
 `--all-attempts`:
