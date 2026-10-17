@@ -166,6 +166,11 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 18. Seven dropped C4 edits brought back (18 Oct)
+- 7 C4 edits had been dropped because new boxes were sized like the photo's own (large) objects
+  and found no free space. New boxes now also try a typical object size; all 7 get a new box,
+  with the C4 rules unchanged. The run was restarted once more (Sun 02:22); nothing was lost.
+
 ### 17. More photos get a C4 edit (18 Oct)
 - 70 photos had no C4 box. As with C5, a check showed the cause was the box search (one size
   tried), not the rules: the 8 px margin barely matters.

@@ -27,6 +27,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Re-plans also try typical COCO sizes; 7 dropped C4 edits back (restart 3)
+
+- **Finding:** 7 C4 edits (photos 137294 oven, 140929 clock, 458054 toilet, 491130 snowboard,
+  569700 vase, 230008 motorcycle, 529105 horse) were dropped: their original box failed 3 seeds,
+  and no new box fit at steps 1–6. Re-plans sized boxes only like the photo's own instance
+  (×0.8–1.2); in these crowded photos those instances are large. Outside classes were not allowed
+  (5 photos already have a C5; 2 have C5 still retrying).
+- **Read-only test:** with a typical COCO size (the size the original planner used), 6 of 7 get
+  a new box under unchanged C4 rules; the own-instance size gives none.
+- **Fix (author approved):** re-plans now alternate the own-instance size and a typical COCO size
+  (6 sizes instead of 5 own-instance sizes); C4/C5 rules unchanged. Re-plan and plan tests pass.
+- **Scratch check:** with the 7 edits' empty free-track rows removed (42 rows), recomputing adds
+  9 rows, all for these 7: every one now gets a new box (toilet on step 3, on the ground).
+- **Restart:** stopped Sun 02:21 (that round at 174/271, saved, not checked yet), removed the 42
+  rows from `replans.jsonl` (backup `replans_before_size_fix.jsonl`), restarted 02:22 (process
+  31232); logs of the previous part kept as `insert_progress_part3.log` / `insert_part3.log`.
+  All images made since the last check are checked together when this round ends.
+
+---
+
 ## 2026-10-18: C4 fill: 57 more photos get a C4 box (run `task2_insertion` restarted again)
 
 - **Question (author):** 70 photos had no C4 box; relax the margin to 0 px and drop the surface
