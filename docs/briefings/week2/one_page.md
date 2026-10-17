@@ -23,7 +23,7 @@ object are dropped, never labelled.
 | Area | What was delivered |
 | --- | --- |
 | Insertion | Local inpainting: square window of 2.5× the box, generator at native size, composite only inside the mask; pixels outside are identical to C1. Same JPEG settings as C1. |
-| Conditions | C2 sham (SDXL), C3 real paste, C4 AI insert (SDXL, SD2; FLUX held out on test only), C5 AI insert + occlusion (SDXL). |
+| Conditions | C2 sham (SDXL), C3 real paste, C4 AI insert (SDXL; SD2 and FLUX dropped 17 Oct), C5 AI insert + occlusion (SDXL). |
 | Verification | OWLv2 (not an evaluated detector) must find the object (IoU ≥ 0.3, score ≥ 0.2); sham edits must contain no object; failed edits are regenerated with a new seed, up to 3 attempts. |
 | Annotation | SAM outline of each inserted object; actual changed region; visible fraction of occluded real objects; real objects altered by the editor marked `mixed_modified`. |
 | Audit | Random 10% of edits on a before/after page with a y/n sheet. |
@@ -52,7 +52,8 @@ object are dropped, never labelled.
 | Plus a class not in the photo (last resort, flagged) | 39/41 / 38/42; 49 of 50 <!-- run:task2_pilot_inphoto --> |
 | Plus a C5 box anywhere (very last resort, flagged) | 39/41 / 39/43; 50 of 50 <!-- run:task2_pilot_inphoto --> |
 | Final images per condition (C2 / C3 / C4 / C5) | [[TBD]] |
-| C4 success per generator | [[TBD]] |
+| Full run round 1: passed C2 / C4 / C5 | 472/474 / 269/474 / 123/407; 491 to round 2 <!-- run:task2_insertion (interim) --> |
+| Full run: final C4 / C5 success (SDXL) | [[TBD]] |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss
@@ -68,5 +69,6 @@ run, the 10% human audit and the Open Images download.
 - Same-class insertion leaves classes unbalanced and some boxes in the sky: add surface placement
   and size boxes like the photo's own instance?
 - Whether the sham check should look for any new object, not only the target class.
-- FLUX.1-Fill needs about 32 GB of system RAM on an 8 GB GPU; otherwise Kandinsky 2.2 is the held-out
-  generator. The laptop has 32 GB (at the threshold): a short FLUX smoke test decides.
+- Scope decided 17 Oct: SDXL is the only generator (SD2 and the held-out FLUX dropped for time).
+  The held-out-generator test of H4 is lost; post-processing and Open Images remain. Is one
+  generator acceptable for the paper?

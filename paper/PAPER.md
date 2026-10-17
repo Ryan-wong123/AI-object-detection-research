@@ -5,6 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-17 |
+> | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
 > | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C5, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C5 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C5, 31 classes). Same-class pilot generated at window 1.2× with the looser verifier (IoU ≥ 0.3 or ≥ 80% inside the box): C4 27/41, C5 17/34 verified after ≤ 3 attempts, C2 41/41 (paper/results/task2_pilot_inphoto_final_verify.json); §4 verification text updated. With re-plan on failure (up to 3 new boxes): C4 38/41, C5 25/34 verified, C2 39/41 (paper/results/task2_pilot_inphoto_replan_verify.json). With class switch and C5-only plans (2026-10-17): C4 39/41, C5 35/41; 46 of 50 photos have a verified AI object (paper/results/task2_pilot_inphoto_classswitch_verify.json). With C5 boxes sized from the covered object: C5 37/42, 48 of 50 photos (paper/results/task2_pilot_inphoto_targetsize_verify.json). With a class not in the photo as last resort: 49 of 50 photos, one such edit (paper/results/task2_pilot_inphoto_outside_verify.json). With a C5 box anywhere as very last resort: 50 of 50 photos (one doubtful tiny object; paper/results/task2_pilot_inphoto_anywhere_verify.json). Full run task2_insertion planned on the 544 week-1 photos (544 of 544, configs/insertion_inphoto.yaml), generation pending; success rate stays TBD until it finishes |
@@ -25,13 +26,13 @@ object came from. Meanwhile, image forensics operates at the level of whole imag
 semantic instances. We introduce **InlayFake**, a benchmark for *mixed-origin object understanding*:
 localising and recognising every object in an edited photograph and estimating, with calibrated
 uncertainty, whether each one was photographed or AI-inserted. InlayFake builds
-[[TBD: N]] edited images from [[TBD: 600]] COCO photographs under six matched conditions (resave,
-sham edit, real-object paste, AI insertion with and without occlusion) using three inpainting
-generators, one held out, plus a source-domain-held-out test set from Open Images. Every instance carries a provenance record. We evaluate four detector
+[[TBD: N]] edited images from 544 COCO photographs under six matched conditions (resave,
+sham edit, real-object paste, AI insertion with and without occlusion) using the SDXL inpainting
+model, plus a source-domain-held-out test set from Open Images. Every instance carries a provenance record. We evaluate four detector
 families and [[TBD: 9]] hand-crafted and learned forensic methods at the instance level. We find that
 [[TBD: H1 finding: detector confidence does / does not separate origin]],
 that insertions [[TBD: H2 finding: do / do not alter predictions on untouched real objects beyond matched controls]],
-that instance-conditioned forensic scoring [[TBD: H3/H4 finding incl. held-out generator]],
+that instance-conditioned forensic scoring [[TBD: H3/H4 finding incl. post-processing and held-out domain]],
 and that grounding origin evidence in VLM captions [[TBD: H5 finding: does / does not reduce false origin claims]].
 We release the benchmark protocol, provenance ledger and baselines.
 
@@ -72,8 +73,8 @@ records intended and actual edit masks, so ground truth is auditable.
 **Contributions.**
 1. We formalise *mixed-origin object understanding*, a per-instance origin task with calibrated
    abstention, and separate it from semantic detection (§3).
-2. We build **InlayFake**, a benchmark with six matched conditions, three inpainting generators (one
-   held out), audited labels and a provenance ledger (§4).
+2. We build **InlayFake**, a benchmark with six matched conditions, verified AI insertions from an
+   open inpainting model (SDXL), audited labels and a provenance ledger (§4).
 3. We run an instance-level study of four detector families and of hand-crafted and learned forensic
    methods, scored image-level, region-pooled and instance-conditioned, alone and composed with
    detectors (§5–§7).
@@ -167,16 +168,17 @@ is the week-1 plan with ten fixed categories.
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
 insertion without occlusion; C5 AI insertion with controlled occlusion.
 
-**Generators.** SDXL-Inpainting [Podell et al. 2024] and SD-2-Inpainting [Rombach et al. 2022] are
-*seen* generators. FLUX.1-Fill [BFL 2024], a flow-matching transformer, is *held out* and appears only
-in test. Inpainting operates on a square window of 2.5× the planned box at the generator's native
-resolution. Only pixels inside the dilated rectangular mask are composited back, with a feather that
+**Generator.** All insertions use SDXL-Inpainting [Podell et al. 2024]. A second seen generator and
+a held-out generator were planned but are left to future work (§8). Inpainting operates on a square
+window of 1.2× the planned box at the generator's native resolution (a wider 2.5× window mostly
+made the generator fill the box with background in our pilot); verification looks at a 2.5×
+region. Only pixels inside the dilated rectangular mask are composited back, with a feather that
 vanishes at the mask border, so every pixel outside the intended mask is identical to the matched
-resave C1. FLUX.1-Fill is applied only to test-split sources.
+resave C1.
 
 **Held-out source domain.** To test whether conclusions transfer beyond COCO, we build a small
 test-only set of [[TBD: ~100]] Open Images V7 [Kuznetsova et al. 2020] photographs with conditions C1–C4,
-using one seen (SDXL) and one held-out (FLUX.1-Fill) generator. No model, calibrator or threshold is fit
+using the same generator (SDXL). No model, calibrator or threshold is fit
 on this set. Because Open Images boxes are exhaustive only for classes verified at image level, we
 score only verified classes and ignore the rest. We use Open Images rather than Objects365 because
 the latter is part of Grounding DINO's pretraining data [Liu et al. 2024].
@@ -197,7 +199,7 @@ object of its own classes may, as a last resort, receive one of the ten original
 it does not contain (flagged and excluded from same-class analyses), and if no box satisfies
 the placement rules at all, an occluding (C5) box may be placed anywhere (flagged); otherwise
 the edit is discarded
-([[TBD: success rate per condition and generator]]). SAM [Kirillov et al. 2023], prompted with the
+([[TBD: success rate per condition]]). SAM [Kirillov et al. 2023], prompted with the
 verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
 objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
 become ignore regions. We record the actual changed region separately from the intended mask, and
@@ -237,8 +239,8 @@ F4 high-frequency spectral energy [Durall et al. 2020]; F5 JPEG blocking-artifac
 2009].
 
 **Learned forensics.** L1 TruFor [Guillaro et al. 2023]; L2 a UnivFD-style CLIP probe [Ojha et al.
-2023]; L3 a CLIP-feature logistic probe trained on object crops from the seen generators of our train
-split (an in-domain upper reference); L4 B-Free [Guillaro et al. 2025] [[TBD: if runnable]].
+2023]; L3 a CLIP-feature logistic probe trained on SDXL object crops of our train split (an in-domain
+upper reference); L4 B-Free [Guillaro et al. 2025] [[TBD: if runnable]].
 
 **Instance scoring.** Each map-producing method is converted to a per-instance score in three ways:
 *image-level* (one score per image), *region-pooled* (mean / 95th percentile inside the instance mask)
@@ -326,12 +328,12 @@ unaudited COCO labels slightly understate detector accuracy. <!-- run:task1_real
 
 ### 7.4 Can forensics tell origin per object? (H3)
 **Table 3.** Origin AUROC / AUPRC / false-accusation rate per method × scoring mode, oracle
-localisation, seen generators. [[TBD]]
+localisation. [[TBD]]
 **Table 4.** End-to-end joint origin-aware AP and calibration of composed systems. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.5 Generalisation and robustness (H4)
-**Table 5.** Held-out generator (FLUX.1-Fill) and held-out source domain (Open Images), in a 2×2 grid: seen/held-out generator × COCO/Open Images. [[TBD]]
+**Table 5.** Held-out source domain: COCO test split vs Open Images (SDXL insertions in both). [[TBD]]
 **Figure 3.** AUROC under JPEG 95/75/50, 0.5× resize, blur, screenshot. [[TBD]]
 **Finding.** [[TBD]]
 
@@ -348,8 +350,11 @@ prompt settings, including unedited images. [[TBD]]
 ## 8. Limitations, ethics and broader impact
 
 InlayFake under-represents close-up, frame-filling photographs (9.3% of sampled sources had no free
-space for an insertion, mostly because one object fills the frame), and covers ten non-human object categories, one main source domain (COCO) with a small held-out
-Open Images test set, and three open inpainting models. Commercial editors and other domains may behave differently. Pixel evidence cannot recover an
+space for an insertion, mostly because one object fills the frame), one main source domain (COCO)
+with a small held-out Open Images test set, and **a single inpainting model (SDXL)**. Our findings
+may therefore be specific to SDXL; whether they transfer to other inpainting models (e.g.
+SD-2-Inpainting, FLUX.1-Fill) or commercial editors is not tested here and is left to future work.
+Other domains may also behave differently. Pixel evidence cannot recover an
 edit history with certainty, so models should be able to abstain, and our labels describe *how the
 image was made*, not whether anyone intended to deceive. Benign creative edits are in scope, and
 calling a real object fake is treated as a harm, not merely an error. We do not generate people or

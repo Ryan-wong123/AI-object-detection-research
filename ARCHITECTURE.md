@@ -28,7 +28,7 @@ val2017 photos are unseen by them.
 
 **Held-out source domain (week 4).** About 100 Open Images V7 validation/test photos run through the
 same stages (`data/openimages.py` adapter → same ledger format with `source_dataset="openimages"`,
-test split only). Conditions C1–C4 with G1 and G3. All classifiers, calibrators and thresholds are fit
+test split only). Conditions C1–C4 with G1 (SDXL; G3 dropped 2026-10-17). All classifiers, calibrators and thresholds are fit
 on COCO only and applied unchanged.
 
 ## 2. Data contract: the provenance ledger ✅ (`ledger.py`)
@@ -135,7 +135,9 @@ week-1 and first-pilot plans byte for byte. Classes not in `support.categories` 
   blocks that touch the mask (this is tested). Ablation `edit.composite: window` keeps the generator
   output for the whole window, i.e. VAE re-encoding outside the mask.
 - `generators.py`: wrappers with one interface, `inpaint(image, mask, prompt, seed) -> image`:
-  - G1 `diffusers/stable-diffusion-xl-1.0-inpainting-0.1`
+  - G1 `diffusers/stable-diffusion-xl-1.0-inpainting-0.1` — **the only generator in the benchmark
+    since 2026-10-17** (scope change, `PRD.md` §4). G2 and G3 below stay in the code and config for
+    future work and are not run (`generation.insert_generators: [G1]`).
   - G2 `stabilityai/stable-diffusion-2-inpainting` (verify availability on HF; fallback
     `kandinsky-community/kandinsky-2-2-decoder-inpaint`)
   - G3 (held out) `black-forest-labs/FLUX.1-Fill-dev` (gated). It runs on **test-split sources
@@ -232,7 +234,7 @@ Learned (`forensics/learned/`):
 |---|---|---|
 | L1 | TruFor (official code + weights) | pixel map + image score |
 | L2 | UnivFD-style: CLIP ViT-L/14 features + linear probe | crop score |
-| L3 | **Ours-baseline**: CLIP ViT-L/14 (frozen) + logistic regression on object crops vs real-object crops from train split (G1, G2) | crop score |
+| L3 | **Ours-baseline**: CLIP ViT-L/14 (frozen) + logistic regression on object crops vs real-object crops from train split (G1 SDXL only since 2026-10-17) | crop score |
 | L4 | (optional) B-Free, if public weights run on the laptop | crop score |
 
 **Per-instance origin score** (`forensics/instance_scores.py`). For an instance mask `m`:
@@ -305,9 +307,8 @@ wall time.
 
 | Item | Count | Est. time on an 8 GB laptop GPU |
 |---|---|---|
-| G1 SDXL (C2, C4, C5) | 600 × 3 + retries | ~15 s each → ~9 h |
-| G2 SD2 (C4) | 600 + retries | ~5 s each → ~1 h |
-| G3 FLUX Fill (C4, test split only) | ~120 | 60–180 s each (sequential offload) → 2–6 h |
+| G1 SDXL (C2, C4, C5) | 544 sources: 1,355 in round 1 + retries (~5,100 est.) | measured ~18–19 s each; round 1 took 6 h 53 min (run task2_insertion) |
+| G2 SD2, G3 FLUX Fill | — | dropped 2026-10-17 (SDXL only) |
 | Detectors | ~5k images × 4 | ~1–2 h |
 | Forensics hand-crafted | ~5k (CPU) | ~1 h |
 | TruFor / CLIP | ~5k | ~1–2 h |

@@ -5,6 +5,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Decision: scope reduced to one generator (SDXL)
+
+- **Decision (author):** not enough time for the planned second seen generator (G2 SD-2-Inpainting)
+  and held-out generator (G3 FLUX.1-Fill, fallback Kandinsky 2.2); the benchmark uses SDXL only.
+- **Consequences, stated in PRD §2/§3/§4/§7 and the paper:** H4 keeps its post-processing and
+  held-out-source-domain (Open Images) axes but loses the held-out-generator axis (old Table 5
+  grid removed); the crop classifier L3 is trained on SDXL crops only; Open Images (week 4) uses
+  SDXL; the paper claims "one inpainting model (SDXL)" and names other generators as future work
+  in §8. PRD success criterion "a finding for H4" is kept with the narrowed H4.
+- **Config:** `generation.insert_generators: [G1]`, `ood.generators: [G1]`; the G2/G3 entries and
+  code stay for future work. The running `task2_insertion` process was started with
+  `generators_enabled: [G1]` and is unaffected (its config was resolved at start). 73 tests pass.
+- **Also fixed in the paper:** §4 said the generator sees a 2.5× window; since the pilots it is
+  1.2× (verification still uses 2.5×).
+- **Round-1 result of the full run** (run_verify_2026-10-17T012532Z.json, interim): C2 472/474
+  clean, C4 269/474, C5 123/407 passed on attempt 1; 491 edits went into round 2. Round 1: 1,355
+  images in 6 h 53 min.
+
+---
+
 ## 2026-10-17: Decision: the full run uses only the 544 week-1 baseline photos
 
 - **Decision (author):** week 1 sampled 600 photos but its baseline (detectors, forensics,

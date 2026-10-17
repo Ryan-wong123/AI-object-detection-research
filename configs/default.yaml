@@ -88,7 +88,8 @@ edit:
   guidance: 7.5
 
 generation:                            # which generator produces which condition
-  insert_generators: [G1, G2, G3]      # C4
+  insert_generators: [G1]              # C4. SDXL only since 2026-10-17 (scope change, PRD §4);
+                                       # G2/G3 below are kept for future work, not run
   sham_generators: [G1]                # C2
   occlusion_generators: [G1]           # C5
 
@@ -151,7 +152,7 @@ ood:                                   # held-out source domain (week 4), test o
   root: data/openimages
   n_sources: 100
   conditions: [C1, C2, C3, C4]
-  generators: [G1, G3]
+  generators: [G1]                     # SDXL only (G3 dropped 2026-10-17)
   class_map:                           # Open Images label -> COCO category
     Chair: chair
     Mug: cup

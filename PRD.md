@@ -4,7 +4,7 @@
 |---|---|
 | Owner | Ryan Wong |
 | Target | CVPR 2027 main track: paper submission **16 Nov 2026 23:59 AoE** (per the official call for papers as found by search; paper registration is typically about 1 week earlier; **confirm both on cvpr.thecvf.com**) |
-| Status | Week 1 complete (run `task1_real_baseline`). Week 2 in progress: insertion + verification code done and CPU-tested on branch `week-2-ai-insertion`; SDXL pilot next on the laptop |
+| Status | Week 1 complete (run `task1_real_baseline`). Week 2 in progress: SDXL pilots done; full SDXL insertion run `task2_insertion` on the 544 week-1 photos running since 17 Oct; scope reduced to SDXL only (17 Oct) |
 
 ## 1. Problem
 
@@ -24,14 +24,15 @@ capability is **object-origin estimation**.
 | H1 | High semantic detection confidence does **not** imply origin discrimination: detector confidence and features separate AI-inserted from photographed objects poorly. | Origin AUROC of detector confidence; recall parity between origin groups |
 | H2 | Local insertions change detector predictions on **untouched original objects** beyond what matched processing (resave, sham edit, real paste) and occlusion explain. | Matched-instance change rates C4 vs C1/C2/C3 |
 | H3 | Per-object forensic evidence (instance-conditioned scoring) beats image-level and naive region-pooled scoring for object origin, with fewer false accusations of real objects. | Origin AUROC/AUPRC, FPR on real objects at fixed TPR, joint origin-aware AP |
-| H4 | Any origin-detection gain survives a **held-out generator** and post-processing (JPEG, resize, blur). | Same metrics on held-out splits; degradation curves |
+| H4 | Any origin-detection gain survives post-processing (JPEG, resize, blur) and a **held-out source domain** (Open Images). *Held-out generator axis removed 2026-10-17 (SDXL only, see §3).* | Same metrics on held-out splits; degradation curves |
 | H5 | Grounding origin evidence into VLM captions reduces false origin claims compared with direct prompting. | Caption origin error rates (Stage 2) |
 
 ## 3. Scope
 
 ### In scope (must-have for the submission, P0)
 1. **InlayFake benchmark v1**: about 600 COCO val2017 source photos, same-class insertions (see §4), 6 matched
-   conditions, 3 inpainting generators (2 seen, 1 held out). Includes a per-instance provenance ledger
+   conditions, one inpainting generator (SDXL; scope reduced 2026-10-17 from 3 generators, see
+   "Scope change" below). Includes a per-instance provenance ledger
    and an audited sample.
 2. **Stage 1: detector study**: 4 frozen detector families on all conditions; semantic AP per origin
    subset; matched-instance analysis (H1, H2).
@@ -44,9 +45,10 @@ capability is **object-origin estimation**.
      instance-conditioned (object vs. context contrast).
 4. **Detector + forensics composition**: the joint system (find the object, then score its origin),
    evaluated with joint origin-aware AP, calibration (ECE, Brier) and risk–coverage with abstention.
-5. **Robustness**: held-out generator; JPEG q ∈ {95, 75, 50}, 0.5× resize, Gaussian blur σ=1.
+5. **Robustness**: JPEG q ∈ {95, 75, 50}, 0.5× resize, Gaussian blur σ=1 (held-out generator
+   removed 2026-10-17).
 6. **Held-out source domain (week 4)**: about 100 photos from **Open Images V7** (validation or test
-   split), used **only for testing**. Conditions C1, C2, C3, C4 with G1 (seen) and G3 (held out). No
+   split), used **only for testing**. Conditions C1, C2, C3, C4 with G1 (SDXL). No
    training, calibration or threshold tuning happens on it: every model and threshold is fit on COCO
    and then transferred. This answers "do the findings hold outside COCO?" (H4, source-domain axis).
    Open Images is chosen over Objects365 because Grounding DINO was pretrained on Objects365.
@@ -89,10 +91,14 @@ capability is **object-origin estimation**.
   **Second exception (author, 2026-10-17):** if no box satisfies the placement rules at all, a
   C5 box may be placed anywhere in the image with no overlap rule (`placement_rule: anywhere`),
   so every photo gets a box. C4 always keeps its no-occlusion rule.
-- **Generators:** G1 SDXL-Inpainting and G2 SD-2-Inpainting (seen: used to train the crop
-  classifier and to calibrate); G3 FLUX.1-Fill-dev (held out, different architecture). Fallback for
-  G3 if it does not fit in VRAM: Kandinsky 2.2 inpainting.
-- **Splits (by source image):** train 60% / val 20% / test 20%; G3 images appear **only** in test.
+- **Generator:** G1 SDXL-Inpainting only (used for training, calibration and test).
+  **Scope change (author, 2026-10-17):** the originally planned G2 SD-2-Inpainting (second seen
+  generator) and G3 FLUX.1-Fill-dev (held-out generator, fallback Kandinsky 2.2) are dropped for
+  lack of time. Consequences: H4 keeps post-processing and the Open Images domain but loses the
+  held-out-generator axis; the crop classifier (L3) is trained on SDXL edits only, so its results
+  describe SDXL-generated objects; the paper states "one editor (SDXL)" and lists other generators
+  as future work. The G2/G3 code and config entries remain for that future work.
+- **Splits (by source image):** train 60% / val 20% / test 20%.
 - **Held-out source domain:** about 100 Open Images V7 photos with instance masks for the mapped
   categories (Chair, Mug/Coffee cup, Bottle, Houseplant, Vase, Clock, Bench, Umbrella, Backpack, Dog).
   `source_dataset = "openimages"`, test split only. C5 is skipped (time), and C3 donors come from other
@@ -121,7 +127,8 @@ capability is **object-origin estimation**.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Laptop VRAM (assume 8 GB) | FLUX is slow or does not fit | CPU offload / quantization; fallback to Kandinsky; G3 runs on the test split only (~120 sources) |
+| Laptop VRAM (assume 8 GB) | FLUX is slow or does not fit | Resolved 2026-10-17 by scope: SDXL only (no G2/G3) |
+| Single generator | Findings may be SDXL-specific; no held-out-generator test | Stated as a limitation; post-processing and Open Images axes of H4 kept; other generators as future work |
 | Inpainting often fails to insert the object (it fills background instead) | Noisy labels | Verification with OWLv2 (not one of the evaluated detectors) + SAM mask + retry up to 3 seeds; human audit |
 | Format shortcut (PNG vs JPEG, resolution) | Spurious "detection" | Identical encoding policy for C1–C5 |
 | COCO labels are incomplete (Incomplete Benchmarks, arXiv:2609.21822) | Real unlabeled objects count as false positives | Label audit on C0 with a detector ensemble; flagged regions become "ignore" |
@@ -141,8 +148,8 @@ That false-alarm rate is the baseline every later result is compared against.
 | Week | Deliverables |
 |---|---|
 | 1 | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and **each forensic method's score distribution on real photos** (the false-alarm rate itself needs a threshold fixed on validation data with AI objects, so it is computed in Task 3) |
-| 2  | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (600 sources × G1, G2; test split ≈ 120 × G3) overnight; ledger finalised; human audit of 10% |
+| 2  | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (SDXL on the 544 week-1 sources; G2/G3 dropped 2026-10-17); ledger finalised; human audit of 10% |
 | 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2); **Stage 2:** `vlm` stage and caption metrics written, plain and grounded prompts run |
-| 4  | Crop classifier training; joint AP, calibration, abstention; robustness + held-out generator (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1/G3 (~4 h GPU), run detectors + forensics, evaluate**; **Stage 2:** origin-aware prompts (need the week-4 origin scores) and caption evaluation (H5); figures |
+| 4  | Crop classifier training; joint AP, calibration, abstention; robustness (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1 (SDXL), run detectors + forensics, evaluate**; **Stage 2:** origin-aware prompts (need the week-4 origin scores) and caption evaluation (H5); figures |
 | 5  | Writing, LaTeX conversion, supplementary material, related-work verification |
 
