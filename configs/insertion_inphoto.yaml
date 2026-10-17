@@ -30,6 +30,10 @@ placement:
     enabled: true          # rules allow it, trying several sizes and covered objects >= 32 px
   free_fill:               # author, 2026-10-18: 70 photos had no C4 box; add one with several
     enabled: true          # sizes, C4 rules (8 px margin) unchanged
+  merged:                  # author, 2026-10-18: C4 and C5 merge into one AI condition: a
+    enabled: true          # class already in the photo, placed anywhere. Verified C4s are kept
+                           # (preferred), else the verified C5 is used, else a box anywhere;
+                           # C2/C3 sit at the chosen box
 edit:
   window_scale: 1.2
   window_min_px: 64

@@ -44,12 +44,18 @@ from inlayfake.edit.verify import (
     occlusion_update,
 )
 from inlayfake.forensics.instance_scores import bbox_mask
-from inlayfake.ledger import ImageRecord, Origin, read_ledger, write_ledger
+from inlayfake.ledger import Condition, ImageRecord, Origin, read_ledger, write_ledger
 from inlayfake.runlog import write_run_info
 from inlayfake.stages.common import load_coco, read_jsonl, work_dir
 from inlayfake.stages.replan import (
+    ADOPT,
     FREE,
+    adopted_c5,
     load_versions,
+    merged,
+    merged_pending,
+    merged_source,
+    merged_version,
     next_job,
     rows_at,
     track_of,
@@ -224,16 +230,32 @@ def build_final_ledger(
             final.append(replace(r, instances=insts))
     # one passed record per job: its first passing attempt on the job's current box
     passed = set()
+    is_merged = cfg is not None and merged(cfg)
     for key, rows in state.items():
         sid, cond, _ = key.split("|")
+        if is_merged and cond == "C5":
+            continue  # merged condition: a C5 enters only when adopted (below)
         v = track_version(cfg, state, int(sid), track_of(cond), versions) if cfg else 0
         ok = [row for row in rows_at(rows, v) if row["passed"]]
         if ok:
             passed.add(ok[0]["image_id"])
+    adopted = {}
+    if is_merged:  # photos whose AI edit is their verified C5: relabelled as the AI condition
+        for sid in {int(k.split("|")[0]) for k in state}:
+            if merged_version(cfg, state, sid, versions) == ADOPT:
+                adopted[adopted_c5(cfg, state, sid)["image_id"]] = sid
+        passed |= set(adopted)
     for image_id in sorted(passed):
         p = wd / "verified" / f"{image_id}.json"
         if p.exists():
-            final.append(ImageRecord(**json.loads(p.read_text(encoding="utf-8"))))
+            rec = ImageRecord(**json.loads(p.read_text(encoding="utf-8")))
+            if is_merged and rec.condition.value in ("C4", "C5"):
+                v = rec.edit.plan_version
+                src = "C5" if image_id in adopted else ("anywhere" if v > ADOPT else "C4")
+                rec = replace(
+                    rec, condition=Condition.C4, edit=replace(rec.edit, merged_source=src)
+                )
+            final.append(rec)
     return final
 
 
@@ -377,5 +399,12 @@ def run(cfg: dict) -> dict:
         "needs_retry": sum(v["needs_retry"] for v in by_cond.values()),
         "audit_sample": n_audit,
     }
+    if merged(cfg):  # one AI condition per photo; C2 may wait for its AI edit (no rows yet)
+        plans = read_jsonl(wd / "plans.jsonl")
+        src = Counter(
+            merged_source(cfg, state, p["source_id"], versions) or "none yet" for p in plans
+        )
+        summary["merged_ai_source"] = dict(sorted(src.items()))
+        summary["needs_retry"] = merged_pending(cfg, state, plans, versions)
     write_run_info(wd / "runs", "verify", cfg, summary)
     return summary

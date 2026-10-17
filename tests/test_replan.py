@@ -333,3 +333,102 @@ def test_replan_drops_after_all_boxes(cfg, tmp_path):
     final = [r for r in read_ledger(wd / "ledger.jsonl") if r.source_id == sid]
     assert not any(r.condition.value == "C4" for r in final)
     assert sum(r.condition.value == "C3" for r in final) == 1  # only the last box's paste
+
+
+def test_merged_version_hand_example():
+    """Merged AI condition: keep a verified C4, else adopt a verified C5, else boxes anywhere."""
+    from inlayfake.stages.replan import ADOPT, merged_version
+
+    cfg = {
+        "edit": {"max_attempts": 2, "max_replans": 1},
+        "conditions": ["C2", "C3", "C4", "C5"],
+        "placement": {"merged": {"enabled": True, "versions": 2}},
+        "generation": {
+            "insert_generators": ["G1"],
+            "occlusion_generators": ["G1"],
+            "sham_generators": ["G1"],
+        },
+        "generators_enabled": ["G1"],
+    }
+    ok = lambda v: {"passed": True, "version": v, "image_id": f"x{v}"}  # noqa: E731
+    no = lambda v: {"passed": False, "version": v}  # noqa: E731
+    # verified C4 kept (even with a verified C5); C5 never generated again
+    state = {"7|C4|G1": [no(0), ok(0)], "7|C5|G1": [ok(0)]}
+    assert merged_version(cfg, state, 7) == 0
+    assert next_job(cfg, state, 7, "C5", "G1") is None
+    # no C4, verified C5: adopted; no new C4, C2 is made at the C5 box
+    state = {"7|C4|G1": [no(0)] * 2 + [no(1)], "7|C5|G1": [no(0), ok(0)]}
+    assert merged_version(cfg, state, 7) == ADOPT
+    assert next_job(cfg, state, 7, "C4", "G1") is None
+    assert next_job(cfg, state, 7, "C2", "G1") == (ADOPT, 0)
+    # neither: boxes anywhere; C2 waits until the AI edit there is verified
+    state = {"7|C4|G1": [no(0)], "7|C5|G1": [no(0)] * 2}
+    assert next_job(cfg, state, 7, "C4", "G1") == (ADOPT + 1, 0)
+    assert next_job(cfg, state, 7, "C2", "G1") is None
+    state["7|C4|G1"] += [no(ADOPT + 1)] * 2
+    assert next_job(cfg, state, 7, "C4", "G1") == (ADOPT + 2, 0)
+    state["7|C4|G1"] += [ok(ADOPT + 2)]
+    assert next_job(cfg, state, 7, "C2", "G1") == (ADOPT + 2, 0)
+    state = {"7|C4|G1": [no(ADOPT + 1)] * 2 + [no(ADOPT + 2)] * 2}
+    assert next_job(cfg, state, 7, "C4", "G1") is None  # every anywhere box failed: dropped
+
+
+def test_merged_condition_end_to_end(cfg, tmp_path):
+    """Run with C4/C5 first, then switch to the merged condition: photo A (only C5 verified)
+    adopts its C5 and gets C2/C3 at that box; photo B (neither) gets a box anywhere; photo C
+    keeps its C4. The ledger has one AI edit (labelled C4) per photo and no C5."""
+    from inlayfake.data.coco import CocoIndex
+    from inlayfake.stages.replan import ADOPT
+
+    cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
+    sample.run(cfg)
+    plan.run(cfg)
+    wd = tmp_path / "work"
+    plans = [json.loads(line) for line in (wd / "plans.jsonl").open()]
+    both = [p for p in plans if p["box_free"] is not None and p.get("box_occ") is not None]
+    a, b, c = (p["source_id"] for p in both[:3])
+    fail = {f"{a}|C4": 99, f"{b}|C4": ADOPT + 2, f"{b}|C5": 99}
+    insert.run(_cfg(cfg, fake_fail_until=fail))
+    mcfg = deep_merge(_cfg(cfg, fake_fail_until=fail), {"placement": {"merged": {"enabled": True}}})
+    out = insert.run(mcfg)
+    assert out["final"]["needs_retry"] == 0
+    final = list(read_ledger(wd / "ledger.jsonl"))
+    assert not any(r.condition.value == "C5" for r in final)
+    by = {s: [r for r in final if r.source_id == s] for s in (a, b, c)}
+    for s, recs in by.items():
+        ai = [r for r in recs if r.condition.value == "C4"]
+        c2 = [r for r in recs if r.condition.value == "C2"]
+        c3 = [r for r in recs if r.condition.value == "C3"]
+        assert len(ai) == len(c2) == len(c3) == 1, s
+        assert ai[0].edit.plan_box == c2[0].edit.plan_box == c3[0].edit.plan_box
+        assert c2[0].edit.plan_version == c3[0].edit.plan_version
+    ai = {s: next(r for r in recs if r.condition.value == "C4") for s, recs in by.items()}
+    assert ai[a].edit.merged_source == "C5" and "|C5|" not in ai[a].image_id
+    assert "C5" in ai[a].image_id and ai[a].edit.plan_box == both[0]["box_occ"]
+    assert ai[b].edit.merged_source == "anywhere" and ai[b].edit.plan_version == ADOPT + 2
+    assert ai[b].edit.placement_rule == "anywhere"
+    index = CocoIndex.load(cfg["paths"]["coco_annotations"], cfg["paths"]["coco_images"])
+    own = {index.cat_name[x["category_id"]] for x in index.image_anns(b)}
+    assert ai[b].edit.target_category in own
+    assert ai[c].edit.merged_source == "C4" and ai[c].edit.plan_version == 0
+    assert out["final"]["merged_ai_source"].get("C5", 0) >= 1
+
+
+def test_merged_preview(cfg, tmp_path):
+    """The merged preview shows one AI edit (C4) per photo with its source, and no C5."""
+    from inlayfake.stages import preview
+
+    cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
+    sample.run(cfg)
+    plan.run(cfg)
+    mcfg = deep_merge(
+        cfg, {"generators_enabled": ["G1"], "placement": {"merged": {"enabled": True}}}
+    )
+    insert.run(mcfg)
+    out = preview.run(mcfg, limit=None)
+    page = (tmp_path / "work" / "preview.html").read_text(encoding="utf-8")
+    assert out["sources_complete"] == out["sources"]
+    assert out["ai_source"]["C4"] + out["ai_source"]["anywhere"] == out["sources"]
+    # a fresh run has no verified C4/C5, so every AI edit is placed anywhere
+    assert "C5 G1" not in page and "new: placed anywhere" in page
+    assert 'value="ai-C5"' in page

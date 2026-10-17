@@ -21,7 +21,8 @@ def test_full_run_uses_the_pilot_settings():
     for key in ("edit", "verify", "generators_enabled", "encoding", "generation"):
         assert full[key] == pilot[key], key
     # placement: identical except the C5 fill added to the full run on 2026-10-18
-    fills = ("occlusion_fill", "free_fill")  # added to the full run on 2026-10-18
+    # fills and the merged AI condition: added to the full run on 2026-10-18
+    fills = ("occlusion_fill", "free_fill", "merged")
     strip = lambda p: {k: v for k, v in p.items() if k not in fills}  # noqa: E731
     assert strip(full["placement"]) == strip(pilot["placement"])
     for f in fills:

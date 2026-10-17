@@ -16,6 +16,9 @@ def run(cfg: dict, limit: int | None = None) -> dict:
     from inlayfake.stages.replan import max_version
 
     n_rounds = cfg["edit"]["max_attempts"] * (1 + max_version(cfg))
+    mcfg = cfg["placement"].get("merged", {})
+    if mcfg.get("enabled"):  # merged condition: anywhere boxes, then one round for C2/C3
+        n_rounds = cfg["edit"]["max_attempts"] * (1 + mcfg.get("versions", 6)) + 2
     for i in range(n_rounds):
         g = generate.run(cfg, limit=limit)
         v = verify.run(cfg)

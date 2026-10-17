@@ -5,6 +5,41 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Scope change: C4 and C5 merged into one AI condition (restart 5)
+
+- **Why:** after the round-7 check, 44 of 544 photos still had no verified AI object under the
+  separate C4 (free space) and C5 (covers 20–50% of one object) rules; 284 had both, 175 only C4,
+  41 only C5 (`paper/results/task2_insertion_merge_decision.json`, read-only recomputation from
+  the verify state before the merge).
+- **Decision (author):** one AI condition, kept under the code C4: "an AI object of a class
+  already in the photo, placed anywhere"; that class rule is the only placement rule. Verified C4
+  and C5 edits are kept. Photos with both use the C4 (author's choice over a random pick: their
+  C2/C3 already exist, no extra GPU time). C2 and C3 sit at the chosen AI box.
+- **Code:** `placement.merged` (on in `configs/insertion_inphoto.yaml`). `replan.merged_version`:
+  verified C4 → kept; else verified C5 adopted as free version 100 (box/class copied,
+  `placement_rule: adopted_c5`); else versions 101–106 place a box anywhere (photo's classes,
+  free-track class first; size alternates own instance and typical COCO size), 3 seeds each,
+  OWLv2 still has to confirm the object. C5 is no longer generated; C2/C3 at a merged box wait
+  for its verified AI edit. The final ledger has one AI record per photo, relabelled C4, with
+  `EditInfo.merged_source` (C4 / C5 / anywhere). Preview has a merged view (dropdown: AI source,
+  retrying/dropped, C2/C3 missing, with counts). 3 new tests (hand example, end-to-end switch
+  from separate to merged, preview); 79 tests pass. Dry run on a scratch copy: 459 C4 kept,
+  41 C5 adopted, 44 anywhere boxes, 86 jobs.
+- **Restart 5:** run stopped in round 8 (75 of 242 images made). Those attempts were verified
+  first with the merged config (run_verify_2026-10-17T194502Z, 114 rows): AI edit from C4 464,
+  from C5 38, none yet 42 (`merge_decision.json`). Merged `insert` started 03:46, PID 31272,
+  round 1: 81 jobs (42 AI anywhere, 38 C2 at adopted C5 boxes, 1 C2 retry). Backups:
+  `replans_before_merge.jsonl`, `verify_before_merge.jsonl`, `ledger_before_merge.jsonl`,
+  `insert_progress_part5.log`, `insert_part5.log`.
+- **Consequences (paper §4, PRD):** H2 loses its controlled occlusion condition; H2 is evaluated
+  on originals the AI object does not cover, covered objects separately by visible fraction
+  (observational). 298 verified C5 edits (336 photos have one, 38 adopted) leave the benchmark because their photos use the C4. C2 at an
+  adopted C5 box repaints part of the covered real object, which verify marks mixed/modified.
+- **Next:** let the merged run finish (anywhere boxes up to 6 × 3 seeds, then C2/C3), check
+  success, fill §4 counts and Table 1.
+
+---
+
 ## 2026-10-17: Related-work scan (CVPR 2026 and 2022–2026) and positioning
 
 - **What:** three web searches (CVPR 2026; local AI-edit datasets and methods; detectors on

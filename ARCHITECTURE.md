@@ -40,7 +40,7 @@ ImageRecord
   image_id        "<coco_id>__<condition>__<generator|none>__s<seed>"
   source_id       COCO image id (bootstrap / split grouping key)
   split           train | val | test
-  condition       C0 | C1 | C2 | C3 | C4 | C5
+  condition       C0 | C1 | C2 | C3 | C4 | C5   (C5 merged into C4 in the full run, 2026-10-18)
   generator       G1 | G2 | G3 | null
   path, sha256    final image (what models see)
   width, height
@@ -202,6 +202,20 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   Very last resort, `placement.allow_anywhere`: if no box satisfies the rules, a C5 box anywhere
   in the image with no overlap rule (`placement.place_anywhere`; plan stage and C5 re-plans;
   `EditInfo.placement_rule = "anywhere"`). C4 is never placed this way.
+- **Merged AI condition** (`placement.merged.enabled`, full run since 2026-10-18; author scope
+  change): C4 and C5 become one AI condition, labelled C4 in the final ledger. The free track
+  carries it (`replan.merged_version`): a verified C4 at any version ≤ `max_version` is kept;
+  else the first verified C5 is adopted as free version 100 (`replan.ADOPT`, box and class copied
+  from the C5 version, `placement_rule: adopted_c5`), and no new C4 is generated; else versions
+  101 … 100 + `placement.merged.versions` (6) place a box anywhere (`place_anywhere`, size
+  alternating the photo's own instance ×0.8–1.2 and a typical COCO size, classes cycling through
+  the photo's own classes, free-track class first), 3 seeds each, verified as usual. C5 is no
+  longer generated. C2 and C3 at a merged version wait until its AI edit is verified
+  (`replan.leader_passed`), then follow its box. `verify` writes one AI record per photo,
+  relabelled C4, with `EditInfo.merged_source` = C4 / C5 / anywhere; other C5 records stay out
+  of the ledger. `verify` reports `merged_ai_source`, and `needs_retry` counts pending AI and C2
+  jobs (`replan.merged_pending`). `preview` shows the merged view (Show dropdown by AI source and
+  missing condition).
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological

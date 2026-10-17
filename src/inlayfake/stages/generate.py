@@ -30,11 +30,14 @@ from inlayfake.ledger import EditInfo, ImageRecord, Instance, Origin
 from inlayfake.runlog import write_run_info
 from inlayfake.stages.common import load_coco, read_jsonl, work_dir
 from inlayfake.stages.replan import (
+    ADOPT,
     FREE,
     OCC,
     effective_plan,
     ensure_versions,
     job_seed,
+    leader_passed,
+    merged,
     next_job,
     track_version,
 )
@@ -113,7 +116,12 @@ def _non_generative(cfg, index, plan, src, wd, enc) -> int:
         )
         n += 1
 
-    if "C3" in cfg["conditions"] and plan["box_free"] is not None:
+    # merged condition: C3 waits until the AI edit at its box is verified (followers_ready)
+    if (
+        "C3" in cfg["conditions"]
+        and plan["box_free"] is not None
+        and plan.get("followers_ready", True)
+    ):
         version = plan.get("free_version", 0)  # C3 follows the C4 box (re-plan on failure)
         seed = job_seed(cfg, sid, "C3", None, 0, version)
         rid = ImageRecord.make_id(sid, "C3", None, seed)
@@ -236,7 +244,8 @@ def _generative_one(
         attempts=attempt + 1,
         plan_version=version,
         class_in_photo=plan.get("class_in_photo_occ" if cond == "C5" else "class_in_photo", True),
-        placement_rule=plan.get("placement_rule_occ", "standard") if cond == "C5" else "standard",
+        placement_rule=plan.get("placement_rule_occ" if cond == "C5" else "placement_rule_free")
+        or "standard",
     )
     _write_record(
         ImageRecord(
@@ -296,6 +305,10 @@ def run(cfg: dict, limit: int | None = None) -> dict:
         )
         for p in raw
     ]
+    if merged(cfg):
+        for p in plans:
+            v = p["free_version"]
+            p["followers_ready"] = v < ADOPT or leader_passed(cfg, state, p["source_id"], v)
     counts: dict[str, int] = {"non_generative": 0}
 
     for plan in tqdm(plans, desc="C0/C1/C3"):

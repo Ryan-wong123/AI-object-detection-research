@@ -127,6 +127,159 @@ def _edit_status(cfg, cond, sid, p, conds, state, versions) -> str:
     return "dropped"
 
 
+# merged AI condition (placement.merged): one AI edit per photo, shown as C4
+SOURCE_LABEL = {
+    "C4": "from C4: free space",
+    "C5": "from C5: covers a real object",
+    "anywhere": "new: placed anywhere",
+}
+MERGED_REASON = REASON | {"waiting": "waits for the AI edit to be verified"}
+MERGED_FILTERS = [
+    ("all", "all photos"),
+    ("complete", "all conditions C0–C4 in the benchmark"),
+    ("missing", "any missing C (AI edit, C2 or C3)"),
+    ("ai-C4", "AI edit from the verified C4 (free space)"),
+    ("ai-C5", "AI edit from the verified C5 (covers a real object)"),
+    ("ai-anywhere", "AI edit newly placed anywhere"),
+    ("ai-retrying", "AI edit still retrying (placed anywhere, no attempt passed yet)"),
+    ("ai-dropped", "AI edit dropped: every allowed attempt failed"),
+    ("c2-missing", "C2 sham missing (retrying, waiting or dropped)"),
+    ("c3-missing", "C3 paste missing"),
+]
+
+
+def _merged_status(cfg, sid, conds, state, versions) -> tuple[str | None, dict[str, str]]:
+    """(AI source, {C4/C2/C3: passed / retrying / waiting / dropped}) of one photo."""
+    from inlayfake.stages.replan import gen_of, merged_source, next_job
+
+    src = merged_source(cfg, state, sid, versions)
+    st = {}
+    if src is not None:
+        st["C4"] = "passed"
+    elif next_job(cfg, state, sid, "C4", gen_of(cfg, "C4"), versions) is not None:
+        st["C4"] = "retrying"
+    else:
+        st["C4"] = "dropped"
+    if "C2" in conds:
+        st["C2"] = "passed"
+    elif next_job(cfg, state, sid, "C2", gen_of(cfg, "C2"), versions) is not None:
+        st["C2"] = "retrying"
+    else:
+        st["C2"] = "waiting" if st["C4"] == "retrying" else "dropped"
+    if "C3" in conds:
+        st["C3"] = "passed"
+    elif st["C4"] == "retrying":
+        st["C3"] = "waiting"
+    else:  # made together with C2 at the chosen box; missing for good if no donor fits
+        st["C3"] = "retrying" if st["C2"] == "retrying" else "dropped"
+    return src, st
+
+
+def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
+    """Benchmark view of the merged AI condition: C0, C1, C2, C3 and one AI edit (C4)."""
+    from inlayfake.stages.replan import load_versions
+    from inlayfake.stages.verify import verify_state
+
+    lpath = wd / "ledger.jsonl"
+    recs = read_jsonl(lpath) if lpath.exists() else []
+    by_src: dict[int, list[dict]] = defaultdict(list)
+    for r in recs:
+        by_src[r["source_id"]].append(r)
+    plans = wd / "plans.jsonl"
+    planned = {p["source_id"]: p for p in read_jsonl(plans)} if plans.exists() else {}
+    state, versions = verify_state(wd), load_versions(wd)
+    rows, n_edits = [], 0
+    tally: dict[str, int] = defaultdict(int)
+    for sid in sorted(set(by_src) | set(planned))[:limit]:
+        have = sorted(
+            by_src.get(sid, []), key=lambda r: (ORDER.index(r["condition"]), r["generator"] or "")
+        )
+        conds = {r["condition"] for r in have}
+        src, status = _merged_status(cfg, sid, conds, state, versions)
+        ai = next((r for r in have if r["condition"] == "C4"), None)
+        cat = ai["edit"]["target_category"] if ai else planned.get(sid, {}).get("category", "")
+        panels = []
+        for r in have:
+            note, css = "", ""
+            if r["condition"] in EDITED:
+                n_edits += 1
+            if r["condition"] == "C4":
+                note = "AI · " + SOURCE_LABEL.get(r["edit"].get("merged_source") or "", "")
+                if not r["edit"].get("class_in_photo", True):
+                    note += " · class not in photo"
+                    css = "flag"
+            panels.append(_panel(r, wd, thumb, css, note))
+        groups: dict[str, list[str]] = defaultdict(list)
+        for c in ("C4", "C2", "C3"):
+            if status[c] != "passed":
+                groups[status[c]].append("AI edit (C4)" if c == "C4" else c)
+        miss = "".join(
+            f" <small>· {', '.join(groups[s])}: {MERGED_REASON[s]}</small>"
+            for s in ("retrying", "waiting", "dropped")
+            if groups[s]
+        )
+        complete = all(v == "passed" for v in status.values())
+        tags = {
+            "complete": complete,
+            "missing": not complete,
+            f"ai-{src}": src is not None,
+            f"ai-{status['C4']}": status["C4"] != "passed",
+            "c2-missing": status["C2"] != "passed",
+            "c3-missing": status["C3"] != "passed",
+        }
+        for t, on in tags.items():
+            tally[t] += on
+        rows.append(
+            f'<section data-tags="{" ".join(t for t, on in tags.items() if on)}">'
+            f"<h3>source {sid} · {html.escape(cat)}{miss}</h3>{''.join(panels)}</section>"
+        )
+    tally["all"] = len(rows)
+    options = "".join(
+        f'<option value="{v}"{" selected" if v == "all" else ""}>'
+        f"{html.escape(label)} ({tally[v]})</option>"
+        for v, label in MERGED_FILTERS
+    )
+    controls = (
+        f"<p>{len(rows)} photos: <b>{tally['complete']}</b> have C0–C4 in the benchmark, "
+        f"<b>{tally['missing']}</b> still miss the AI edit, C2 or C3. AI edit from C4: "
+        f"{tally['ai-C4']}, from C5: {tally['ai-C5']}, newly placed anywhere: "
+        f"{tally['ai-anywhere']}.</p>"
+        f'<p><label>Show: <select id="f">{options}</select></label> '
+        f'<b id="n">{len(rows)} photos shown</b></p>'
+        "<script>const sel=document.getElementById('f');sel.onchange=()=>{const v=sel.value;"
+        "let k=0;document.querySelectorAll('section').forEach(s=>{"
+        "const show=v==='all'||s.dataset.tags.split(' ').includes(v);"
+        "s.style.display=show?'':'none';k+=show});"
+        "document.getElementById('n').textContent=k+' photos shown'}</script>"
+    )
+    page = (
+        STYLE
+        + "<p>Only images in the benchmark (<code>ledger.jsonl</code>), merged AI condition: the "
+        "original (C0), the re-save (C1), the sham (C2), the real paste (C3) and <b>one AI edit "
+        "(C4)</b> of a class already in the photo. A photo keeps its verified C4 (free space), "
+        "else its verified C5 (covers a real object), else gets an AI object placed anywhere; "
+        "C2 and C3 sit at the AI edit's box. Yellow: planned box. Red: inserted or pasted object "
+        "(verified box).</p>"
+        + ("" if lpath.exists() else "<p><b>No edits checked yet.</b></p>")
+        + controls
+        + "".join(rows)
+    )
+    out = wd / "preview.html"
+    out.write_text(page, encoding="utf-8")
+    return {
+        "preview": out.as_posix(),
+        "sources": len(rows),
+        "edits_in_benchmark": n_edits,
+        "sources_complete": tally["complete"],
+        "sources_missing": tally["missing"],
+        "ai_source": {k: tally[f"ai-{k}"] for k in ("C4", "C5", "anywhere")},
+        "ai_retrying": tally["ai-retrying"],
+        "ai_dropped": tally["ai-dropped"],
+        "c2_missing": tally["c2-missing"],
+        "c3_missing": tally["c3-missing"],
+    }
+
+
 def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
     """Only the images in the final ledger: what week 3 evaluates."""
     from inlayfake.stages.replan import load_versions
@@ -247,6 +400,10 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
 def run(cfg: dict, limit: int | None = 50, thumb: int = 240, all_attempts: bool = False) -> dict:
     wd = work_dir(cfg)
     if not all_attempts:
+        from inlayfake.stages.replan import merged
+
+        if merged(cfg):
+            return _merged_only(cfg, wd, limit, thumb)
         return _benchmark_only(cfg, wd, limit, thumb)
     vpath = wd / "verify.jsonl"
     verified = {r["image_id"]: r for r in read_jsonl(vpath)} if vpath.exists() else {}
