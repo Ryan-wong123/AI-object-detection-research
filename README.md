@@ -133,9 +133,22 @@ heading names what it lacks: `not in benchmark (yet): C4, C5` (planned, not pass
 `not planned (no room): C2, C3, C4` (the photo never had room for that box, e.g. C5-only photos).
 
 At the top, a summary counts complete and incomplete photos, and a **Show** dropdown filters the
-page instantly (no rebuild): **all photos**; **any missing C**, every photo that lacks a condition,
-whether not passed yet or never planned; **photos missing a planned edit**, only photos with a
-planned edit that has not passed yet.
+page instantly (no rebuild); the number of photos shown appears next to it:
+
+| Option | Shows photos where |
+|---|---|
+| all photos | everything |
+| all conditions C0–C5 in the benchmark | every condition passed |
+| any missing C | any condition is missing (not passed yet, dropped, or not planned) |
+| photos missing a planned edit | a planned edit is not in the benchmark yet |
+| C4 not planned | there is no free space for a box that touches no real object |
+| C4 still retrying | C4 is planned, no attempt has passed yet |
+| C4 dropped | C4 is planned, every allowed attempt failed or no further box fits |
+| C5 not planned | no real object can be covered 20–50% under the rules |
+| C5 still retrying / C5 dropped | as for C4 |
+
+Each photo's heading names what it lacks and why, e.g. `C2, C3, C4: still retrying ·
+C5: not planned (no room for its box)`. "Still retrying" exists only while the run is going.
 
 To see every attempt, including the rejected ones (greyed, with the reason), add
 `--all-attempts`:
