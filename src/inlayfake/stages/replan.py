@@ -315,9 +315,17 @@ def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, st
     supports = []
     if stuff is not None:
         supports = category_supports(sid, H, W, cat, stuff, pcfg["support"])
-    for _ in range(5):  # a few sizes; each tried on every surface, then in free space
+    # a few sizes, alternating the photo's own instance size and a typical COCO size (the size
+    # the original planner uses): in crowded photos the own instances can be too big for any free
+    # spot, which left 7 C4 edits without a new box in the full run (2026-10-18); each size is
+    # tried on every surface, then in free space
+    for i in range(6):
         try:
-            w, h = _size(cfg, index, anns, cat, W, H, rng)
+            if i % 2 == 0:
+                w, h = _size(cfg, index, anns, cat, W, H, rng)
+            else:
+                st = size_stats(index, [cat], pcfg["max_area_frac"])[cat]
+                w, h = sample_size(st, W, H, rng, pcfg["min_side_px"], pcfg["max_area_frac"])
         except ValueError:  # no usable size statistics for this class
             return row
         for sup in [*supports, None]:
