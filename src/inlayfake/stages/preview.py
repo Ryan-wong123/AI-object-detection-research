@@ -63,7 +63,8 @@ def _panel(rec: dict, wd: Path, thumb: int, css: str, note: str) -> str:
     label = f"{rec['condition']} {rec.get('generator') or ''}"
     extra = f'<br><span class="s">{html.escape(note)}</span>' if note else ""
     return (
-        f'<figure class="{css}"><div class="w"><img src="{html.escape(rel)}" width="{thumb}">'
+        f'<figure class="{css}"><div class="w"><img src="{html.escape(rel)}" width="{thumb}" '
+        f'loading="lazy">'
         f"{divs}</div><figcaption>{html.escape(label)}{extra}</figcaption></figure>"
     )
 
