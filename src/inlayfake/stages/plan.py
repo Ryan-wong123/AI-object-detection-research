@@ -44,6 +44,84 @@ def audit_anns(path: str | None) -> dict[int, list[dict]]:
     return out
 
 
+def fill_occlusion(cfg: dict, index, plans: list[dict], sources: dict, extra: dict) -> int | None:
+    """``placement.occlusion_fill``: give a C5 box to plans that have none, in place.
+
+    The main search tries one box size and only covers objects of at least 64 px; in the full
+    run that left 137 of 544 photos without C5, and a check showed that most of them can take a
+    rule-abiding C5 box when more sizes are tried (author decision 2026-10-18: also allow covered
+    objects down to ``min_target_px``). The C5 rules are otherwise unchanged (cover 20–50% of one
+    object, at most ``max_other_frac`` of any other). Each photo uses its own seeded generator, so
+    the plans that already have a C5 box, and every C2/C3/C4 box, stay byte-identical.
+    Returns the number of plans that gained a C5 box (None if the fill is off).
+    """
+    pcfg = cfg["placement"]
+    fcfg = pcfg.get("occlusion_fill") or {}
+    if not fcfg.get("enabled"):
+        return None
+    from inlayfake.edit.placement import (
+        occluding_sized_to_target,
+        occlusion_min_side,
+        occlusion_targets,
+        place_occluding,
+        sample_size,
+    )
+    from inlayfake.stages.replan import _size
+
+    side = occlusion_min_side(cfg["placement"])
+    n = 0
+    for p in plans:
+        if p["box_occ"] is not None:
+            continue
+        sid, cat = p["source_id"], p["category"]
+        W, H = sources[sid]["width"], sources[sid]["height"]
+        anns = index.image_anns(sid) + extra.get(sid, [])
+        targets = occlusion_targets(anns, side)
+        if not targets:
+            continue
+        try:
+            stats = size_stats(index, [cat], pcfg["max_area_frac"])[cat]
+        except ValueError:
+            continue
+        rng = np.random.default_rng(derive_seed(cfg["seed"], sid, "occ_fill"))
+        frac = tuple(pcfg["occlusion_frac"])
+        box, occ_id = None, None
+        for i in range(int(fcfg.get("sizes", 6))):
+            if i % 2 == 0:  # a typical COCO size of the class
+                w, h = sample_size(stats, W, H, rng, pcfg["min_side_px"], pcfg["max_area_frac"])
+            else:  # sized like the photo's own instance of the class
+                w, h = _size(cfg, index, anns, cat, W, H, rng)
+            for t in rng.permutation(len(targets)):
+                tgt = targets[t]
+                others = [a["bbox"] for a in anns if a["id"] != tgt["id"]]
+                box = place_occluding(
+                    W,
+                    H,
+                    w,
+                    h,
+                    tgt["bbox"],
+                    others,
+                    frac,
+                    rng,
+                    pcfg["max_tries"],
+                    max_other_frac=fcfg.get("max_other_frac", 0.05),
+                )
+                if box is not None:
+                    occ_id = tgt["id"]
+                    break
+            if box is not None:
+                break
+        if box is None:  # last try: size the box from the object it must cover
+            aspect = float(np.median(stats[:, 1]))
+            box, occ_id = occluding_sized_to_target(W, H, aspect, targets, anns, pcfg, rng)
+        if box is not None:
+            p["box_occ"] = [float(v) for v in box]
+            p["occluded_ann_id"] = occ_id
+            p["occ_filled"] = True
+            n += 1
+    return n
+
+
 def present_classes(index, anns: list[dict], extra: list[dict], exclude: set[str]) -> list[str]:
     """Sorted non-excluded classes with a non-crowd GT instance or an audit "add" in the photo."""
     names = {index.cat_name[a["category_id"]] for a in anns if not a.get("iscrowd", 0)}
@@ -205,6 +283,7 @@ def run(cfg: dict) -> dict:
         else:
             plans.append(p)
             used[p["category"]] += 1
+    n_filled = fill_occlusion(cfg, index, plans, {s["source_id"]: s for s in sources}, extra)
     write_jsonl(plans, wd / "plans.jsonl")
     summary = {
         "n_plans": len(plans),
@@ -217,6 +296,8 @@ def run(cfg: dict) -> dict:
         summary["n_occlusion_only"] = sum(p["box_free"] is None for p in plans)
         summary["n_class_not_in_photo"] = len(outside)
         summary["n_placed_anywhere"] = len(anywhere)
+    if n_filled is not None:
+        summary["n_occlusion_filled"] = n_filled
     if stuff is not None:
         summary["supports"] = dict(Counter(p["support"] for p in plans))
     write_run_info(wd / "runs", "plan", cfg, summary | {"failed_sources": failed})

@@ -182,7 +182,9 @@ def plan_source(
     gt = [a for a in anns if not a.get("iscrowd", 0)]
     gt_boxes = [a["bbox"] for a in anns]  # crowd regions also block free placement
     # occlusion targets: reasonably large, non-crowd originals
-    targets = [a for a in gt if box_area(a["bbox"]) >= (2 * cfg["min_side_px"]) ** 2]
+    # the original rule (64 px targets) on purpose: the main search must reproduce earlier plans;
+    # the lower limit of placement.occlusion_fill is applied by plan.fill_occlusion afterwards
+    targets = occlusion_targets(gt, 2 * cfg["min_side_px"])
     for cat in category_order:
         w, h = sample_size(stats[cat], W, H, rng, cfg["min_side_px"], cfg["max_area_frac"])
         supports = [None] if supports_for is None else supports_for(cat)
@@ -225,6 +227,20 @@ def plan_source(
                     "occluded_ann_id": occ_ann,
                 }
     return None
+
+
+def occlusion_min_side(cfg: dict) -> float:
+    """Smallest real object (box side, px) a C5 box may cover. The original rule is
+    2 × ``min_side_px`` (64 px); ``placement.occlusion_fill`` (enabled) lowers it, e.g. to 32."""
+    fill = cfg.get("occlusion_fill") or {}
+    if fill.get("enabled"):
+        return float(fill.get("min_target_px", 2 * cfg["min_side_px"]))
+    return float(2 * cfg["min_side_px"])
+
+
+def occlusion_targets(anns: list[dict], side: float) -> list[dict]:
+    """Real objects a C5 box may cover: non-crowd, box area at least ``side²``."""
+    return [a for a in anns if not a.get("iscrowd", 0) and box_area(a["bbox"]) >= side**2]
 
 
 def place_anywhere(

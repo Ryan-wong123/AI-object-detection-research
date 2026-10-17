@@ -27,6 +27,33 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: C5 fill: 128 more photos get a C5 box (run `task2_insertion` restarted)
+
+- **Question (author):** why do 137 of the 544 photos have no C5 box? A read-only test re-ran
+  the C5 box search on them with one rule relaxed at a time: with the same rules but three box
+  sizes, 84 fit; box sized from the covered object 103; other objects covered up to 20% (not 5%)
+  95; no limit 96; cover 10–50% of the target 102; covered objects down to 32 px (not 64) 114.
+  So the main cause was the search (the plan tries one C5 box size when the photo also has a C4
+  box), not the 5% rule, which I had wrongly named as the cause before checking.
+- **Decision (author):** allow covered objects down to 32 px. Implemented as
+  `placement.occlusion_fill` (off by default; on in `configs/insertion_inphoto.yaml`): after the
+  main search, plans without a C5 box get one, trying 6 sizes (typical COCO size, then the photo's
+  own instance size) and finally a box sized from the covered object; covered object ≥ 32 px; the
+  other C5 rules unchanged (20–50% of one object, ≤ 5% of any other). Own seeded generator per
+  photo. C5 re-plans now use the same 32 px minimum. The main search keeps the original 64 px
+  rule so that re-running `plan` reproduces earlier plans. New test; plan/config/re-plan tests
+  pass.
+- **Check before applying:** re-planned in a scratch copy and compared with the live plan: 416
+  plans byte-identical, 128 gained a C5 box, 0 other changes, every C2/C3/C4 box and class
+  identical; 9 photos still without C5.
+- **Restart:** the run (process 14000, round 7 at 65/239) was stopped on Sun 00:39 and restarted
+  at 00:40 (process 13792) with the new plan (535 of 544 with a C5 box). Kept:
+  `plans_before_occlusion_fill.jsonl`, `insert_progress_part1.log`, `insert_part1.log`. All
+  finished images and checks are kept; the new C5 jobs start at their first seed.
+- **Expected cost (estimate):** 128 new C5 jobs at C5's retry rates so far, roughly 2–4 h more.
+
+---
+
 ## 2026-10-17: Decision: keep C2; condition rationale written into the paper
 
 - **Question (author):** is C2 useful, since its box holds no object and is AI-repainted like

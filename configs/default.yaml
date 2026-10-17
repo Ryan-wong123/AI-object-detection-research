@@ -36,6 +36,11 @@ placement:
                                        # class already in the photo's audited GT (pilot_inphoto.yaml)
   exclude_classes: [person]            # never inserted (ethics, AGENTS.md rule 10)
   audit_decisions: null                # in_photo: week-1 audit CSV ("add" rows count as present)
+  occlusion_fill:                      # give a C5 box to plans that have none (plan stage)
+    enabled: false                     # off: plans stay as before (week 1, pilots)
+    min_target_px: 32                  # smallest covered object, box side (original rule: 64)
+    sizes: 6                           # box sizes tried (the main search tries one)
+    max_other_frac: 0.05               # unchanged: other objects covered at most 5%
   allow_anywhere: false                # very last resort: a C5 box anywhere, no overlap rule
                                        # (ledger placement_rule "anywhere")
   support:                             # boxes rest on a plausible surface (COCO-Stuff labels)

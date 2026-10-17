@@ -196,7 +196,12 @@ one original object. One plan is shared by every condition of a source. The inse
 the same 544 photographs as the real-only baseline; with the same-class rule all 544 receive a
 plan, 474 with a free-space box and 407 with an occluding box (70 occlusion-only)
 <!-- run:task2_insertion (plan), file:paper/results/task2_insertion_plan.json -->; the 363 above
-is the week-1 plan with ten fixed categories.
+is the week-1 plan with ten fixed categories. Because the main search tries a single occluding
+box size, a second pass gives an occluding box to plans without one: it tries several sizes,
+then a box sized from the covered object, and accepts covered objects of at least 32 px (instead
+of 64 px), with the other occlusion rules unchanged. This adds an occluding box to 128 of the
+137 photographs that lacked one, for 535 of 544 in total, without changing any other plan
+<!-- run:task2_insertion (plan with occlusion_fill, 2026-10-18), file:paper/results/task2_insertion_plan_occlusion_fill.json -->.
 
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
 insertion without occlusion; C5 AI insertion with controlled occlusion.
