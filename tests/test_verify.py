@@ -135,7 +135,9 @@ def test_failed_edit_is_regenerated_with_new_seed(cfg, tmp_path):
     assert page.count("<section ") == out["sources"]
     assert page.count('data-missing="1"') == out["sources_missing_a_planned_edit"]
     assert page.count('data-unplanned="1"') == out["sources_with_an_unplanned_condition"]
-    assert 'type="checkbox" id="f"' in page and "missing any of C0–C5" in page
+    assert '<select id="f">' in page
+    for value in ("all", "any", "planned"):
+        assert f'<option value="{value}"' in page
 
     # --all-attempts: every attempt, the rejected one greyed and labelled
     preview.run(cfg, all_attempts=True)

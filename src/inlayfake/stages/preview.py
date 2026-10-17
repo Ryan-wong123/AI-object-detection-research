@@ -138,14 +138,17 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         f"<p><b>{len(rows)} photos</b>: {len(rows) - n_missing} have every planned image in the "
         f"benchmark, <b>{n_missing}</b> are still missing a planned edit, and {n_unplanned} have "
         "a condition that was never planned (no room for its box).</p>"
-        '<p><label><input type="checkbox" id="f"> show only photos missing any of C0–C5 '
-        "(not passed yet, or not planned)</label> "
-        '<span id="n"></span></p>'
-        "<script>document.getElementById('f').onchange=e=>{const on=e.target.checked;let k=0;"
+        '<p><label>Show: <select id="f">'
+        '<option value="all" selected>all photos</option>'
+        '<option value="any">any missing C (not passed yet, or not planned)</option>'
+        '<option value="planned">photos missing a planned edit (planned, not passed yet)</option>'
+        '</select></label> <span id="n"></span></p>'
+        "<script>document.getElementById('f').onchange=e=>{const v=e.target.value;let k=0;"
         "document.querySelectorAll('section').forEach(s=>{"
-        "const show=!on||s.dataset.missing==='1'||s.dataset.unplanned==='1';"
+        "const m=s.dataset.missing==='1',u=s.dataset.unplanned==='1';"
+        "const show=v==='all'||(v==='any'&&(m||u))||(v==='planned'&&m);"
         "s.style.display=show?'':'none';k+=show});"
-        "document.getElementById('n').textContent=on?'('+k+' shown)':''}</script>"
+        "document.getElementById('n').textContent=v==='all'?'':'('+k+' shown)'}</script>"
     )
     page = (
         STYLE
