@@ -85,8 +85,53 @@ STYLE = (
 )
 
 
+REASON = {
+    "unplanned": "not planned (no room for its box)",
+    "retrying": "still retrying",
+    "dropped": "dropped (every allowed attempt failed)",
+}
+
+# (value, label) of the "Show" dropdown; the label explains the reason
+FILTERS = [
+    ("all", "all photos"),
+    ("complete", "all conditions C0–C5 in the benchmark"),
+    ("any", "any missing C (not passed yet, dropped, or not planned)"),
+    ("planned", "photos missing a planned edit (planned, not in the benchmark yet)"),
+    ("c4-unplanned", "C4 not planned: no free space for a box that touches no real object"),
+    ("c4-retrying", "C4 still retrying: planned, no attempt passed yet"),
+    ("c4-dropped", "C4 dropped: planned, every allowed attempt failed or no box fits"),
+    ("c5-unplanned", "C5 not planned: no real object it can cover 20–50% of"),
+    ("c5-retrying", "C5 still retrying: planned, no attempt passed yet"),
+    ("c5-dropped", "C5 dropped: planned, every allowed attempt failed or no box fits"),
+]
+
+
+def _edit_status(cfg, cond, sid, p, conds, state, versions) -> str:
+    """passed / retrying / dropped / unplanned for one condition of one photo."""
+    from inlayfake.stages.replan import next_job
+
+    box = p.get("box_occ") if cond == "C5" else p.get("box_free")
+    if box is None:
+        return "unplanned"
+    if cond in conds:
+        return "passed"
+    if cond == "C3":  # no generator: it follows the C4 box; missing only while C4 moves
+        c4 = _edit_status(cfg, "C4", sid, p, conds, state, versions)
+        return "retrying" if c4 == "retrying" else "dropped"
+    roles = cfg["generation"]
+    key = {"C2": "sham_generators", "C4": "insert_generators", "C5": "occlusion_generators"}
+    enabled = cfg.get("generators_enabled")
+    gens = [g for g in roles[key[cond]] if enabled is None or g in enabled]
+    if gens and next_job(cfg, state, sid, cond, gens[0], versions) is not None:
+        return "retrying"
+    return "dropped"
+
+
 def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
     """Only the images in the final ledger: what week 3 evaluates."""
+    from inlayfake.stages.replan import load_versions
+    from inlayfake.stages.verify import verify_state
+
     lpath = wd / "ledger.jsonl"
     recs = read_jsonl(lpath) if lpath.exists() else []
     by_src: dict[int, list[dict]] = defaultdict(list)
@@ -94,7 +139,9 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         by_src[r["source_id"]].append(r)
     plans = wd / "plans.jsonl"
     planned = {p["source_id"]: p for p in read_jsonl(plans)} if plans.exists() else {}
+    state, versions = verify_state(wd), load_versions(wd)
     rows, n_edits, n_missing = [], 0, 0
+    tally: dict[str, int] = defaultdict(int)
     for sid in sorted(set(by_src) | set(planned))[:limit]:
         have = sorted(
             by_src.get(sid, []), key=lambda r: (ORDER.index(r["condition"]), r["generator"] or "")
@@ -123,32 +170,55 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
                     flags.append("placed anywhere")
                 note = " · ".join(flags)
             panels.append(_panel(r, wd, thumb, "flag" if note else "", note))
-        not_planned = [c for c in ("C2", "C3", "C4", "C5") if c not in expected]
-        miss = f" <small>· not in benchmark (yet): {', '.join(missing)}</small>" if missing else ""
-        if not_planned:
-            miss += f" <small>· not planned (no room): {', '.join(not_planned)}</small>"
+        status = {
+            c: _edit_status(cfg, c, sid, p, conds, state, versions)
+            for c in ("C2", "C3", "C4", "C5")
+        }
+        not_planned = [c for c, s in status.items() if s == "unplanned"]
+        # heading note: every condition the photo lacks, grouped by reason
+        groups: dict[str, list[str]] = defaultdict(list)
+        for c, s in status.items():
+            if s != "passed":
+                groups[s].append(c)
+        miss = "".join(
+            f" <small>· {', '.join(groups[s])}: {REASON[s]}</small>"
+            for s in ("retrying", "dropped", "unplanned")
+            if groups[s]
+        )
         n_missing += bool(missing)
+        complete = all(s == "passed" for s in status.values())
+        tags = {
+            "missing": bool(missing),
+            "unplanned": bool(not_planned),
+            "complete": complete,
+            f"c4-{status['C4']}": True,
+            f"c5-{status['C5']}": True,
+        }
+        for t, on in tags.items():
+            tally[t] += on
         rows.append(
             f'<section data-missing="{int(bool(missing))}" '
-            f'data-unplanned="{int(bool(not_planned))}">'
+            f'data-unplanned="{int(bool(not_planned))}" '
+            f'data-tags="{" ".join(t for t, on in tags.items() if on)}">'
             f"<h3>source {sid} · {html.escape(cat)}{miss}</h3>{''.join(panels)}</section>"
         )
-    n_unplanned = sum('data-unplanned="1"' in r for r in rows)
+    n_unplanned = tally["unplanned"]
+    options = "".join(
+        f'<option value="{v}"{" selected" if v == "all" else ""}>{html.escape(label)}</option>'
+        for v, label in FILTERS
+    )
     controls = (
-        f"<p><b>{len(rows)} photos</b>: {len(rows) - n_missing} have every planned image in the "
-        f"benchmark, <b>{n_missing}</b> are still missing a planned edit, and {n_unplanned} have "
-        "a condition that was never planned (no room for its box).</p>"
-        '<p><label>Show: <select id="f">'
-        '<option value="all" selected>all photos</option>'
-        '<option value="any">any missing C (not passed yet, or not planned)</option>'
-        '<option value="planned">photos missing a planned edit (planned, not passed yet)</option>'
-        '</select></label> <span id="n"></span></p>'
-        "<script>document.getElementById('f').onchange=e=>{const v=e.target.value;let k=0;"
-        "document.querySelectorAll('section').forEach(s=>{"
-        "const m=s.dataset.missing==='1',u=s.dataset.unplanned==='1';"
-        "const show=v==='all'||(v==='any'&&(m||u))||(v==='planned'&&m);"
+        f"<p>{len(rows)} photos: <b>{tally['complete']}</b> have all of C0–C5 in the benchmark, "
+        f"<b>{n_missing}</b> are still missing a planned edit, and {n_unplanned} have a "
+        "condition that was never planned (no room for its box).</p>"
+        f'<p><label>Show: <select id="f">{options}</select></label> '
+        f'<b id="n">{len(rows)} photos shown</b></p>'
+        "<script>const sel=document.getElementById('f');sel.onchange=()=>{const v=sel.value;"
+        "let k=0;document.querySelectorAll('section').forEach(s=>{"
+        "const t=s.dataset.tags.split(' '),m=t.includes('missing'),u=t.includes('unplanned');"
+        "const show=v==='all'||(v==='any'&&(m||u))||(v==='planned'&&m)||t.includes(v);"
         "s.style.display=show?'':'none';k+=show});"
-        "document.getElementById('n').textContent=v==='all'?'':'('+k+' shown)'}</script>"
+        "document.getElementById('n').textContent=k+' photos shown'}</script>"
     )
     page = (
         STYLE
@@ -168,6 +238,9 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         "edits_in_benchmark": n_edits,
         "sources_missing_a_planned_edit": n_missing,
         "sources_with_an_unplanned_condition": n_unplanned,
+        "sources_complete": tally["complete"],
+        "c4": {s: tally[f"c4-{s}"] for s in ("passed", "retrying", "dropped", "unplanned")},
+        "c5": {s: tally[f"c5-{s}"] for s in ("passed", "retrying", "dropped", "unplanned")},
     }
 
 

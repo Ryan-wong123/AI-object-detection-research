@@ -136,8 +136,19 @@ def test_failed_edit_is_regenerated_with_new_seed(cfg, tmp_path):
     assert page.count('data-missing="1"') == out["sources_missing_a_planned_edit"]
     assert page.count('data-unplanned="1"') == out["sources_with_an_unplanned_condition"]
     assert '<select id="f">' in page
-    for value in ("all", "any", "planned"):
+    for value in ("all", "complete", "any", "planned", "c4-retrying", "c5-unplanned"):
         assert f'<option value="{value}"' in page
+    # every photo is in exactly one C4 state and one C5 state, and the counts match the page
+    import re
+
+    tags = [t.split() for t in re.findall(r'data-tags="([^"]*)"', page)]
+    assert len(tags) == out["sources"]
+    for cond in ("c4", "c5"):
+        assert sum(out[cond].values()) == out["sources"]
+        assert all(sum(t.startswith(f"{cond}-") for t in ts) == 1 for ts in tags)
+        for s, n in out[cond].items():
+            assert sum(f"{cond}-{s}" in ts for ts in tags) == n
+    assert sum("complete" in ts for ts in tags) == out["sources_complete"]
 
     # --all-attempts: every attempt, the rejected one greyed and labelled
     preview.run(cfg, all_attempts=True)
