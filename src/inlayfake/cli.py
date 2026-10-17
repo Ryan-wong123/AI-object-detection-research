@@ -50,6 +50,12 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--config", default="configs/default.yaml")
         if name in ("generate", "preview", "insert"):
             p.add_argument("--limit", type=int, default=None, help="only the first N sources")
+        if name == "preview":
+            p.add_argument(
+                "--all-attempts",
+                action="store_true",
+                help="also show rejected and unchecked attempts (default: benchmark images only)",
+            )
         if name == "viewer":
             p.add_argument(
                 "--share",
@@ -67,6 +73,8 @@ def main(argv: list[str] | None = None) -> int:
     kwargs = {"limit": args.limit} if getattr(args, "limit", None) is not None else {}
     if getattr(args, "share", False):
         kwargs["share"] = True
+    if getattr(args, "all_attempts", False):
+        kwargs["all_attempts"] = True
     result = module.run(cfg, **kwargs)
     print(json.dumps(result, indent=2))
     return 0

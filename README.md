@@ -125,18 +125,22 @@ python -m inlayfake preview --config configs/insertion_inphoto.yaml --limit 544
 start data\inlayfake_v2\preview.html
 ```
 
-Each photo is one row: C0 original, C1 resave, then every C2 / C3 / C4 / C5 attempt. Yellow box =
-planned box, red box = inserted or pasted object (the verified outline box for passed edits).
-Under each edit:
+The page shows **only images that are in the benchmark** (`ledger.jsonl`): per photo the C0
+original, the C1 resave, and the C2 / C3 / C4 / C5 edits that passed the check. Yellow box =
+planned box, red box = inserted or pasted object (its verified box). Under each edit:
+`attempt n · box n` says which try passed; edits using a last resort say `class not in photo`
+or `placed anywhere`. A grey note in a photo's heading names the edits it does not have (yet),
+e.g. `not in benchmark (yet): C4, C5`.
 
-- **in benchmark** (green): passed the check; this image is in `ledger.jsonl`.
-- **rejected: … · not in benchmark** (greyed): failed the check; retried with a new seed, box or
-  class, or dropped. `attempt n · box n` says which try it was.
-- **not verified yet**: made in the current round, not checked yet.
-- **not needed / superseded**: a later attempt already passed, or the box moved.
+To see every attempt, including the rejected ones (greyed, with the reason), add
+`--all-attempts`:
 
-During the run the page shows the state after the last finished check. Images of the round in
-progress appear only after that round ends; re-run the command to refresh.
+```powershell
+python -m inlayfake preview --config configs/insertion_inphoto.yaml --limit 544 --all-attempts
+```
+
+During the run the page shows the state after the last finished check; re-run the command to
+refresh.
 
 ### When it's done
 
