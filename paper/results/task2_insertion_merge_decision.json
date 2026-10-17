@@ -1,0 +1,23 @@
+{
+ "run": "task2_insertion",
+ "what": "C4/C5 merged into one AI condition (author, 2026-10-18); counts per photo",
+ "before_merge_after_round7_check": {
+  "photos": 544,
+  "both_C4_and_C5": 284,
+  "only_C4": 175,
+  "only_C5": 41,
+  "neither": 44,
+  "source": "read-only recomputation from verify state before the merge (3,647 verify rows), separate C4/C5 rules"
+ },
+ "after_verifying_the_partial_round8_attempts": {
+  "merged_ai_source": {
+   "C4": 464,
+   "C5": 38,
+   "none yet": 42
+  },
+  "verified_now": 114,
+  "final_ledger_records": 2517,
+  "source": "run_verify_2026-10-17T194502Z.json (UTC; 2026-10-18 03:45 local), first verify with placement.merged"
+ },
+ "rule": "keep verified C4; else adopt verified C5 (C2/C3 regenerated at its box); else up to 6 boxes anywhere x 3 seeds, class from the photo"
+}

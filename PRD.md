@@ -22,7 +22,7 @@ capability is **object-origin estimation**.
 | ID | Hypothesis (each can fail; report it either way) | Primary measurement |
 |---|---|---|
 | H1 | High semantic detection confidence does **not** imply origin discrimination: detector confidence and features separate AI-inserted from photographed objects poorly. | Origin AUROC of detector confidence; recall parity between origin groups |
-| H2 | Local insertions change detector predictions on **untouched original objects** beyond what matched processing (resave, sham edit, real paste) and occlusion explain. | Matched-instance change rates C4 vs C1/C2/C3 |
+| H2 | Local insertions change detector predictions on **untouched original objects** beyond what matched processing (resave, sham edit, real paste) and occlusion explain. | Matched-instance change rates C4 vs C1/C2/C3, on originals the AI object does not cover (merged C4, 2026-10-18: covered objects analysed separately, by visible fraction) |
 | H3 | Per-object forensic evidence (instance-conditioned scoring) beats image-level and naive region-pooled scoring for object origin, with fewer false accusations of real objects. | Origin AUROC/AUPRC, FPR on real objects at fixed TPR, joint origin-aware AP |
 | H4 | Any origin-detection gain survives post-processing (JPEG, resize, blur) and a **held-out source domain** (Open Images). *Held-out generator axis removed 2026-10-17 (SDXL only, see §3).* | Same metrics on held-out splits; degradation curves |
 | H5 | Grounding origin evidence into VLM captions reduces false origin claims compared with direct prompting. | Caption origin error rates (Stage 2) |
@@ -73,8 +73,21 @@ capability is **object-origin estimation**.
 | C1 | Matched resave (same decode → encode as all edited images) | Encoding control; the reference for every contrast |
 | C2 | Sham edit: same mask, same generator, "empty background" prompt | Editor side effects without a new object |
 | C3 | Real-object paste: same-class COCO instance from another photo, same box | Compositing artifacts without AI origin |
-| C4 | AI insertion, no occlusion of original objects | Clean origin and collateral effects |
-| C5 | AI insertion with controlled occlusion (20–50% of one original object) | Visibility-mediated effects with updated labels |
+| C4 | **AI insertion** (merged 2026-10-18): one AI object of a class already in the photo, placed anywhere | Origin and collateral effects |
+| ~~C5~~ | ~~AI insertion with controlled occlusion (20–50% of one original object)~~, merged into C4 | (see below) |
+
+- **Merged AI condition (scope change, author, 2026-10-18):** C4 and C5 become **one AI
+  condition** (kept under the code C4). Its only placement rule is that the class is already in
+  the photo; the box may go anywhere. Per photo: a verified C4 (free space) is kept; otherwise
+  the photo's verified C5 (covers 20–50% of one object) is used; otherwise a new box of one of
+  the photo's classes is placed anywhere (no overlap rule; up to 6 boxes × 3 seeds, OWLv2 must
+  still confirm the object). Photos with both a C4 and a C5 use the C4 (author's choice: their
+  C2/C3 already exist), so those C5s leave the benchmark (kept on disk). C2 and C3 always sit at
+  the chosen AI box. The ledger records where each AI edit came from (`merged_source`: C4, C5,
+  anywhere). Reason: after 8 rounds, 44 photos still had no AI object under the separate C4/C5
+  rules. Consequence: H2 no longer has a dedicated occlusion condition; occlusion effects are
+  analysed by splitting the merged AI edits into those that cover a real object and those that
+  do not (from the verified masks), which is observational, not a controlled contrast.
 
 - **Inserted class (changed 2026-10-16, author decision):** each photo gets an AI object of a
   class that is **already in that photo's audited week-1 ground truth** (COCO labels plus audit
@@ -156,7 +169,7 @@ That false-alarm rate is the baseline every later result is compared against.
 |---|---|
 | 1 | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and **each forensic method's score distribution on real photos** (the false-alarm rate itself needs a threshold fixed on validation data with AI objects, so it is computed in Task 3) |
 | 2  | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (SDXL on the 544 week-1 sources; G2/G3 dropped 2026-10-17); ledger finalised; human audit of 10% |
-| 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C5; learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2); **Stage 2:** `vlm` stage and caption metrics written, plain and grounded prompts run |
+| 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C4 (C5 merged into C4); learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2); **Stage 2:** `vlm` stage and caption metrics written, plain and grounded prompts run |
 | 4  | Crop classifier training; joint AP, calibration, abstention; robustness (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1 (SDXL), run detectors + forensics, evaluate**; **Stage 2:** origin-aware prompts (need the week-4 origin scores) and caption evaluation (H5); figures |
 | 5  | Writing, LaTeX conversion, supplementary material, related-work verification |
 

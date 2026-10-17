@@ -72,7 +72,10 @@ class EditInfo:
     verifier_score: float | None = None
     plan_version: int = 0  # 0 = the original plan box; n = n-th re-plan after failed attempts
     class_in_photo: bool = True  # False: last-resort class that is not in the source photo
-    placement_rule: str = "standard"  # "anywhere": last-resort C5 box with no overlap rule
+    placement_rule: str = "standard"  # "anywhere": box placed with no overlap rule
+    # merged AI condition (placement.merged): where the photo's AI edit came from: "C4" (free
+    # space), "C5" (covers 20-50% of one real object) or "anywhere" (merged-mode box)
+    merged_source: str | None = None
 
 
 @dataclass

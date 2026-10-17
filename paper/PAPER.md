@@ -4,7 +4,8 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-17 |
+> | Last updated | 2026-10-18 |
+> | Scope change 2 | 2026-10-18 (author): C4 and C5 merged into one AI condition (C4: a class already in the photo, placed anywhere; verified C4 kept, else verified C5, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
 > | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
@@ -27,8 +28,8 @@ object came from. Meanwhile, image forensics operates at the level of whole imag
 semantic instances. We introduce **InlayFake**, a benchmark for *mixed-origin object understanding*:
 localising and recognising every object in an edited photograph and estimating, with calibrated
 uncertainty, whether each one was photographed or AI-inserted. InlayFake builds
-[[TBD: N]] edited images from 544 COCO photographs under six matched conditions (resave,
-sham edit, real-object paste, AI insertion with and without occlusion) using the SDXL inpainting
+[[TBD: N]] edited images from 544 COCO photographs under five matched conditions (original,
+resave, sham edit, real-object paste, AI insertion of a class already in the photograph) using the SDXL inpainting
 model, plus a source-domain-held-out test set from Open Images. Every instance carries a provenance record. We evaluate four detector
 families and [[TBD: 9]] hand-crafted and learned forensic methods at the instance level. We find that
 [[TBD: H1 finding: detector confidence does / does not separate origin]],
@@ -66,8 +67,8 @@ insertion-induced false positive.
 
 InlayFake addresses these issues with **matched controls**. For every source photograph, we generate
 an identical-encoding resave, a *sham* edit (same mask and generator, no object), a *real-object paste*
-(a photographed object composited into the same box) and AI insertions with and without occlusion of
-original objects. All of these share one geometric plan. Contrasting the conditions separates the
+(a photographed object composited into the same box) and an AI insertion of a class already in the
+photograph, which may or may not cover original objects. All of these share one box. Contrasting the conditions separates the
 effect of AI origin from encoding, editing and compositing. A per-instance **provenance ledger**
 records intended and actual edit masks, so ground truth is auditable.
 
@@ -208,7 +209,12 @@ gives 57 of them one, for 531 of 544 with C2–C4 and 13 occlusion-only photogra
 <!-- run:task2_insertion (plan with occlusion_fill and free_fill, 2026-10-18), file:paper/results/task2_insertion_plan_fills.json -->.
 
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
-insertion without occlusion; C5 AI insertion with controlled occlusion.
+insertion of a class already in the photograph. The design originally had two AI conditions, C4
+(free space, touching no real object) and C5 (covering 20–50% of one real object). Under those
+separate placement rules, 44 of 544 photographs still had no verified AI object after seven
+checked generation rounds <!-- run:task2_insertion (state after the round-7 check, 2026-10-18), file:paper/results/task2_insertion_merge_decision.json -->,
+so the two were merged into one AI condition <!-- file:paper/results/task2_insertion_merge_decision.json --> whose only placement rule is the class (see
+"Merged AI condition" below).
 
 *Why each condition.* The conditions form a ladder in which neighbouring rungs differ in roughly
 one factor, so that any change in detector or forensic output can be attributed to one cause.
@@ -237,15 +243,28 @@ C2, C3 and C4 share **one box** per photograph, so they differ only in what fill
 (C2), a real object (C3) or an AI object (C4). When the AI insertion fails and is re-planned to a
 new box, C2 and C3 are regenerated at the new box to keep the triple matched.
 
-C5 answers a different question and therefore has **its own box**. The C4 box must overlap no
-original object (so effects on real objects cannot be due to occlusion), whereas the C5 box must
-cover 20–50% of exactly one original object; no box can satisfy both. C5 represents the common
-real-world case of an inserted object in front of a real one. It is the most demanding case for
-origin estimation, because AI and photographed pixels meet along the occluding edge, and the
-partly covered real object is where a false "AI" accusation is most likely. Against C4, it
-isolates the effect of occlusion: H2 asks whether insertions disturb untouched real objects
-beyond resaving, sham editing, real pasting *and* occlusion, and the covered object's visible
-mask and visible fraction are recomputed so that occlusion is accounted for in the labels.
+*Merged AI condition.* Each photograph has exactly one AI edit, chosen in this order: its
+verified free-space insertion (former C4); otherwise its verified insertion covering 20–50% of
+one real object (former C5); otherwise a new insertion of one of the photograph's own classes
+placed anywhere in the image, with no overlap rule (up to six boxes with three seeds each, and
+the verifier must still confirm the object). When a photograph had both a free-space and an
+occluding insertion, the free-space one is used because its matched C2 and C3 already exist; the
+occluding one leaves the benchmark. C2 and C3 are always generated at the box of the chosen AI
+edit, so the triple stays matched. The ledger records the origin of every AI edit (free space,
+occluding, or anywhere) [[TBD: counts per origin after the merged run]].
+
+This merge has a cost that we state openly. The original C5 isolated occlusion as a controlled
+factor: H2 asked whether insertions disturb untouched real objects beyond resaving, sham
+editing, real pasting *and* occlusion. With one AI condition, AI edits that cover a real object
+and those that do not are no longer assigned by design. We therefore evaluate H2 on original
+objects that the AI object does not cover, and analyse covered objects separately, stratified by
+their recomputed visible fraction. That analysis is observational: which photographs received an
+occluding edit depends on where the rules could place a box and on which edits the verifier
+accepted. Occluding AI edits remain the hardest case for origin estimation, because AI and
+photographed pixels meet along the occluding edge and the partly covered real object is where a
+false "AI" accusation is most likely, so origin metrics are also reported per AI-edit origin.
+When the AI object covers part of a real object, so does the C2 sham at the same box: the sham
+repaints part of that object, which is then marked *mixed/modified*.
 
 **Table 1b.** What each condition tests.
 
@@ -255,8 +274,7 @@ mask and visible fraction are recomputed so that occlusion is accounted for in t
 | C1 | re-encoding with the benchmark pipeline | C1 vs C0 | effect of re-encoding alone | reference for all edits |
 | C2 | AI repainting of the box, no object | C2 vs C1 | effect of AI editing without a new object; false "AI" flags on edited background | H2, H3 (control) |
 | C3 | a real object composited into the box | C3 vs C2, C4 | compositing a photographed object; real-object negatives in the same box as C4 | H1, H3 (control) |
-| C4 | an AI object in the box | C4 vs C1, C2, C3 | origin of an AI object without occlusion | H1, H2, H3, H4 |
-| C5 | an AI object covering 20–50% of a real object (own box) | C5 vs C4, C1 | occlusion; origin estimation where AI and real pixels meet | H1, H2, H3 |
+| C4 | an AI object of a class in the photo, anywhere (merged; former C4 and C5) | C4 vs C1, C2, C3; covered vs not covered | origin of an AI object; occlusion effects (observational) | H1, H2, H3, H4 |
 
 **Generator.** All insertions use SDXL-Inpainting [Podell et al. 2024]. A second seen generator and
 a held-out generator were planned but are left to future work (§8). Inpainting operates on a square
@@ -273,7 +291,7 @@ on this set. Because Open Images boxes are exhaustive only for classes verified 
 score only verified classes and ignore the rest. We use Open Images rather than Objects365 because
 the latter is part of Grounding DINO's pretraining data [Liu et al. 2024].
 
-**Encoding policy.** All images in C1–C5 pass through the same decode → edit → JPEG (q=95, 4:4:4)
+**Encoding policy.** All images in C1–C4 pass through the same decode → edit → JPEG (q=95, 4:4:4)
 pipeline, so file format cannot reveal origin.
 
 **Verification and annotation.** An open-vocabulary verifier (OWLv2 [Minderer et al. 2023]), which is
@@ -287,9 +305,10 @@ instance of the class (the sham and paste controls move with it), up to three ne
 switched to another class already present in the photograph; a photograph with no verified
 object of its own classes may, as a last resort, receive one of the ten original categories that
 it does not contain (flagged and excluded from same-class analyses), and if no box satisfies
-the placement rules at all, an occluding (C5) box may be placed anywhere (flagged); otherwise
-the edit is discarded
-([[TBD: success rate per condition]]). SAM [Kirillov et al. 2023], prompted with the
+the placement rules at all, an occluding box may be placed anywhere (flagged). After the merge
+into one AI condition, a photograph still without a verified AI object receives boxes of its own
+classes placed anywhere (six boxes, three seeds each); otherwise the edit is discarded
+([[TBD: success rate of the merged AI condition, C2 and C3]]). SAM [Kirillov et al. 2023], prompted with the
 verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
 objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
 become ignore regions. We record the actual changed region separately from the intended mask, and
@@ -304,10 +323,9 @@ we mark original objects overlapped by more than 10% as *mixed/modified*. A huma
 | C1 | matched resave | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
 | C2 | sham edit | [[TBD]] | [[TBD]] | – | – |
 | C3 | real paste | [[TBD]] | [[TBD]] | – | [[TBD]] |
-| C4 | AI insert | [[TBD]] | [[TBD]] | [[TBD]] | – |
-| C5 | AI insert + occlusion | [[TBD]] | [[TBD]] | [[TBD]] | – |
+| C4 | AI insert (merged; former C4 and C5) | [[TBD]] | [[TBD]] | [[TBD]] | – |
 
-**Figure 1.** [[TBD: example source with C1–C5 panels and instance origin overlays]]
+**Figure 1.** [[TBD: example source with C1–C4 panels and instance origin overlays]]
 
 ---
 
@@ -350,7 +368,7 @@ It is reported separately for original and inserted subsets.
 drift and score change from C1 to each condition, stratified by distance to the edit and by
 visibility. *Origin*: AUROC, AUPRC, TPR at 5% FPR and the **real-object false-accusation rate** at 80%
 TPR, computed both with oracle localisation and end to end. Origin metrics are computed **over
-objects only**: positives are AI-inserted objects (C4, C5); negatives are photographed objects,
+objects only**: positives are AI-inserted objects (C4); negatives are photographed objects,
 including the real pasted objects of C3. A C2 box contains no object and is never a positive or a
 negative object; instead we report an *edited-background flag rate*, the share of C2 boxes a
 method scores above its operating threshold. A method that flags C4 and C2 boxes alike detects
@@ -419,7 +437,8 @@ unaudited COCO labels slightly understate detector accuracy. <!-- run:task1_real
 **Finding.** [[TBD]]
 
 ### 7.3 Do insertions disturb real objects? (H2)
-**Figure 2.** Matched-instance change rates (C2, C3, C4, C5 vs C1) by distance to the edit. [[TBD]]
+**Figure 2.** Matched-instance change rates (C2, C3, C4 vs C1) by distance to the edit, on original
+objects the AI object does not cover; covered objects shown separately by visible fraction. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.4 Can forensics tell origin per object? (H3)

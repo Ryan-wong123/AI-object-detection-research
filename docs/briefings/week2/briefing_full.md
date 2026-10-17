@@ -1,6 +1,6 @@
 # InlayFake: Week 2 progress (15â€“21 Oct 2026)
 
-Last updated 17 Oct 2026 Â· Ryan Wong
+Last updated 18 Oct 2026 Â· Ryan Wong
 
 Briefing for the project professor. Branch `week-2-ai-insertion`. Generation runs on the RTX 4070
 laptop. The SDXL pilot (run `task2_pilot`, `data/inlayfake_pilot`) ran on 16 Oct; full-run
@@ -31,8 +31,8 @@ covering 20â€“50% of one real object.
 | C0 / C1 | original / matched resave (week 1) | none |
 | C2 sham | same window and mask, prompt "empty background, nothing": the editor runs but adds nothing | SDXL |
 | C3 real paste | a real COCO object of the same class, cut from another photo and pasted in the same box | none |
-| C4 AI insert | AI object in free space | SDXL (SD2 and FLUX dropped 17 Oct, see Done Â§14) |
-| C5 AI insert + occlusion | AI object covering 20â€“50% of one real object | SDXL |
+| C4 AI insert | **one AI object of a class already in the photo, placed anywhere** (C4 and C5 merged 18 Oct, see Done §20) | SDXL (SD2 and FLUX dropped 17 Oct, see Done §14) |
+| ~~C5~~ | ~~AI object covering 20–50% of one real object~~: merged into C4 | – |
 
 ## Done
 
@@ -166,6 +166,21 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 20. Decision: C4 and C5 merged into one AI condition (18 Oct)
+- **Why:** after seven rounds, 44 of 544 photos still had no AI object under the separate rules
+  (C4: touch no real object; C5: cover 20–50% of one). 284 photos had both, 175 only C4, 41
+  only C5 <!-- file:paper/results/task2_insertion_merge_decision.json -->.
+- **New rule (author):** one AI condition (C4): an AI object of a class already in the photo,
+  **placed anywhere**. Verified edits are kept: the C4 if the photo has one (its C2 and C3
+  already exist), else the C5, else a new box anywhere (up to 6 boxes × 3 seeds; OWLv2 must
+  still confirm the object). C2 and C3 always sit at the chosen AI box, so 38 photos that use
+  their C5 get a new C2 and C3 there.
+- **Status:** run restarted with the merged rule (Sun 03:46): AI edit from C4 464, from C5 38,
+  42 still to place anywhere <!-- run:task2_insertion, run_verify_2026-10-17T194502Z -->.
+- **Cost:** H2 loses its controlled occlusion condition: occlusion effects are now measured on
+  the AI edits that happen to cover a real object (observational). 298 verified C5 edits leave
+  the benchmark because their photos use the C4. The paper (§4) states this.
+
 ### 19. Round-7 results; verified edits are always kept (18 Oct)
 - The fills' first attempts: 35 of 57 new C4 and 34 of 128 new C5 edits passed. Totals now C4
   459, C5 325 verified.
@@ -248,14 +263,17 @@ cloud sandbox, so their first real run is the pilot.
 | Plus a C5 box anywhere as very last resort: C4 / C5; photos with an AI object | 39/41 / 39/43; **50 of 50** (1 doubtful) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_anywhere_verify.json --> |
 | Full run plan (week-1 photo set): photos planned / first-round images / expected GPU time | 544 of 544 / 1,355 / ~28 h (estimate) <!-- run:task2_insertion (plan only), file:paper/results/task2_insertion_plan.json --> |
 | Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
+| Merge decision (18 Oct): photos with C4 and C5 / only C4 / only C5 / neither (after round 7) | 284 / 175 / 41 / 44 <!-- file:paper/results/task2_insertion_merge_decision.json --> |
+| Merged AI condition at restart 5: AI edit from C4 / from C5 / still to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z, file:paper/results/task2_insertion_merge_decision.json --> |
 | Full run, round 1 (attempt 1): passed C2 / C4 / C5 | 472/474 / 269/474 / 123/407; 491 to round 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_round1_verify.json (interim) --> |
-| Full run: final C4 / C5 success rate (SDXL) | [[TBD]] |
+| Full run: photos with a verified AI edit (merged C4) / with C2 / with C3 | [[TBD: after the merged run]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
 | Human audit (10%): object present / realistic / other change | [[TBD]] |
 | GPU time per image on the RTX 4070 laptop | SDXL 21.6 s (pilot, 122 images in 43:57) <!-- run:task2_pilot, file:paper/results/task2_pilot_round1_generate.json -->; full run round 1: 1,355 images in 6 h 53 min (18.3 s each) <!-- run:task2_insertion, insert_progress.log --> |
 
 ## Next steps
 
+0. Let the merged run finish (42 photos placed anywhere, then C2/C3 at 80 boxes); check it in the preview (dropdown: AI source, missing C2/C3).
 1. Author's visual check of the same-class pilot and its 12-row audit sheet.
 2. Re-plan the full 600 sources with the same-class rule (the week-1 plan used fixed classes).
 3. Only when the pilot reaches a usable success rate, start the full run.
@@ -265,6 +283,7 @@ cloud sandbox, so their first real run is the pilot.
 
 ## To discuss
 
+- **Merged AI condition (18 Oct).** Is losing the controlled occlusion condition acceptable for H2? The plan is to evaluate H2 on real objects the AI object does not cover and to report covered objects separately by visible fraction.
 - **Positioning against related work (search of 17 Oct, `docs/literature/related_work_2026-10-17.md`;
   venues from search snippets, to verify).** Closest: COinCO (CVPR 2026: COCO, one object
   *replaced* by SD inpainting, a detector used only as a filter). Gaps no work found covers: origin

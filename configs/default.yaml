@@ -47,6 +47,11 @@ placement:
                                        # the C4 rules (incl. margin_px) are unchanged
   allow_anywhere: false                # very last resort: a C5 box anywhere, no overlap rule
                                        # (ledger placement_rule "anywhere")
+  merged:                              # one AI condition instead of C4 + C5 (insert stage):
+    enabled: false                     # keep a verified C4, else adopt a verified C5, else
+    versions: 6                        # place a box of a photo class anywhere (this many
+                                       # boxes x edit.max_attempts seeds); C2/C3 follow the
+                                       # chosen box; C5 is no longer generated
   support:                             # boxes rest on a plausible surface (COCO-Stuff labels)
     enabled: false                     # off here so week-1 plans stay valid; on in pilot_surface.yaml
     stuff_annotations: data/coco/annotations/stuff_val2017.json

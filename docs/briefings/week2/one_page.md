@@ -1,6 +1,6 @@
 # InlayFake: Week 2 progress (15–21 Oct 2026)
 
-17 Oct 2026 · Ryan Wong
+18 Oct 2026 · Ryan Wong
 
 Week 2 turns the 544 planned real photos into the benchmark by inserting AI objects under matched
 controls (sham edit, real-object paste, insertion with and without occlusion), and verifies every
@@ -23,7 +23,7 @@ object are dropped, never labelled.
 | Area | What was delivered |
 | --- | --- |
 | Insertion | Local inpainting: square window of 2.5× the box, generator at native size, composite only inside the mask; pixels outside are identical to C1. Same JPEG settings as C1. |
-| Conditions | C2 sham (SDXL), C3 real paste, C4 AI insert (SDXL; SD2 and FLUX dropped 17 Oct), C5 AI insert + occlusion (SDXL). |
+| Conditions | C2 sham (SDXL), C3 real paste, C4 AI insert (SDXL; SD2 and FLUX dropped 17 Oct). Since 18 Oct C4 and C5 are **one AI condition**: a class already in the photo, placed anywhere; C2/C3 at the same box. |
 | Verification | OWLv2 (not an evaluated detector) must find the object (IoU ≥ 0.3, score ≥ 0.2); sham edits must contain no object; failed edits are regenerated with a new seed, up to 3 attempts. |
 | Annotation | SAM outline of each inserted object; actual changed region; visible fraction of occluded real objects; real objects altered by the editor marked `mixed_modified`. |
 | Audit | Random 10% of edits on a before/after page with a y/n sheet. |
@@ -53,7 +53,9 @@ object are dropped, never labelled.
 | Plus a C5 box anywhere (very last resort, flagged) | 39/41 / 39/43; 50 of 50 <!-- run:task2_pilot_inphoto --> |
 | Final images per condition (C2 / C3 / C4 / C5) | [[TBD]] |
 | Full run round 1: passed C2 / C4 / C5 | 472/474 / 269/474 / 123/407; 491 to round 2 <!-- run:task2_insertion (interim) --> |
-| Full run: final C4 / C5 success (SDXL) | [[TBD]] |
+| Merge (18 Oct): photos with C4+C5 / only C4 / only C5 / neither | 284 / 175 / 41 / 44 <!-- file:paper/results/task2_insertion_merge_decision.json --> |
+| Merged AI condition at restart: from C4 / from C5 / to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z --> |
+| Full run: photos with a verified AI edit / C2 / C3 | [[TBD: after the merged run]] |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss
@@ -72,6 +74,7 @@ run, the 10% human audit and the Open Images download.
 - Same-class insertion leaves classes unbalanced and some boxes in the sky: add surface placement
   and size boxes like the photo's own instance?
 - Whether the sham check should look for any new object, not only the target class.
+- **Decided 18 Oct: C4 and C5 merged** into one AI condition (a class in the photo, anywhere) because 44 photos still had no AI object. Verified edits kept (C4 preferred, else C5, else a new box anywhere); C2/C3 at the chosen box. Cost: H2 loses its controlled occlusion condition (covered objects analysed observationally). Acceptable?
 - Decided 18 Oct: smaller covered objects (32 px) and more box sizes for C5, so 535 of 544
   photos now have a C5 box (was 407); more box sizes for C4 (rules unchanged), so 531 of 544
   have a C4 box (was 474).

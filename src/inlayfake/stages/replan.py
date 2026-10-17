@@ -41,6 +41,59 @@ from inlayfake.stages.common import derive_seed, read_jsonl
 
 FREE, OCC = "free", "occ"
 
+# Merged AI condition (``placement.merged.enabled``, author decision 2026-10-18): C4 and C5 become
+# one condition, "an AI object of a class already in the photo, placed anywhere". Per photo the
+# free track (C4 leader, C2/C3 followers) carries it:
+#   a verified C4 (any version <= max_version) is kept;
+#   else a verified C5 is adopted: free version ADOPT copies the C5 box and class, and C2/C3 are
+#   made there (no new C4 is generated);
+#   else versions ADOPT+1 .. ADOPT+placement.merged.versions place a box anywhere (no overlap
+#   rule), cycling through the photo's classes.
+# C5 is no longer generated. Followers (C2, C3) wait until the AI edit at their box is verified.
+ADOPT = 100
+
+
+def merged(cfg: dict) -> bool:
+    return bool(cfg.get("placement", {}).get("merged", {}).get("enabled", False))
+
+
+def _passed_upto(rows: list[dict] | None, top: int) -> list[dict]:
+    return [r for r in rows or [] if r["passed"] and r.get("version", 0) <= top]
+
+
+def adopted_c5(cfg: dict, state: dict, sid: int) -> dict | None:
+    """The verify row of the first verified C5 of a photo (None if it has none)."""
+    ok = _passed_upto(_leader_rows(cfg, state, sid, OCC), max_version(cfg))
+    return ok[0] if ok else None
+
+
+def merged_version(cfg: dict, state: dict, sid: int, versions: dict | None = None) -> int:
+    """Free-track version of the merged AI condition (see ADOPT above)."""
+    rows = _leader_rows(cfg, state, sid, FREE) or []
+    old = _passed_upto(rows, max_version(cfg))
+    if old:
+        return old[0].get("version", 0)
+    if adopted_c5(cfg, state, sid) is not None:
+        return ADOPT
+    new = [r for r in rows if r.get("version", 0) > ADOPT]
+    ok = [r for r in new if r["passed"]]
+    if ok:
+        return ok[0]["version"]
+    top = ADOPT + cfg["placement"]["merged"].get("versions", 6)
+    v = max((r["version"] for r in new), default=ADOPT + 1)
+    while v < top and (
+        len(rows_at(new, v)) >= cfg["edit"]["max_attempts"] or _no_box(versions, sid, FREE, v)
+    ):
+        v += 1
+    return v
+
+
+def leader_passed(cfg: dict, state: dict, sid: int, v: int) -> bool:
+    """Merged mode: is the AI edit at free version ``v`` verified (C2/C3 may follow)?"""
+    if v == ADOPT:
+        return True
+    return any(r["passed"] for r in rows_at(_leader_rows(cfg, state, sid, FREE) or [], v))
+
 
 def leader(cfg: dict, track: str) -> tuple[str, str] | None:
     """(condition, generator) whose failures move the track to a new box."""
@@ -119,6 +172,11 @@ def track_version(
     edits with an outside class stopped counting when the C5 fill later gave their photos an
     in-photo C5.
     """
+    if merged(cfg):
+        if track == FREE:
+            return merged_version(cfg, state, sid, versions)
+        ok = adopted_c5(cfg, state, sid)  # C5 is frozen: its verified version, if any
+        return ok.get("version", 0) if ok else 0
     rows = _leader_rows(cfg, state, sid, track)
     if rows is None:
         return 0
@@ -147,9 +205,16 @@ def next_job(
     """(version, attempt) of the next image this job needs, or None (passed, out of tries, or
     no box could be placed for the last version)."""
     track = track_of(cond)
+    if merged(cfg) and cond == "C5":
+        return None  # merged condition: C5 is no longer generated
     v = track_version(cfg, state, sid, track, versions)
     if _no_box(versions, sid, track, v):
         return None
+    if merged(cfg) and v >= ADOPT:
+        if cond == "C4" and v == ADOPT:
+            return None  # the verified C5 is the photo's AI edit
+        if cond != "C4" and not leader_passed(cfg, state, sid, v):
+            return None  # C2 waits for a verified AI edit at this box
     rows = rows_at(state.get(f"{sid}|{cond}|{gen}", []), v)
     if any(r["passed"] for r in rows) or len(rows) >= cfg["edit"]["max_attempts"]:
         return None
@@ -199,6 +264,7 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
         class_in_photo=free_in,
         class_in_photo_occ=base_in,
         placement_rule_occ=plan.get("placement_rule", "standard"),
+        placement_rule_free="standard",
     )
     sid = plan["source_id"]
     if v_free:
@@ -209,6 +275,7 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
             p["box_free"] = row["box"]
             p["category"] = row.get("category") or free_plan["category"]
             p["class_in_photo"] = row.get("class_in_photo", free_in)
+            p["placement_rule_free"] = row.get("placement_rule", "standard")
     if v_occ:
         row = versions.get((sid, OCC, v_occ))
         if row is None or row["box"] is None:
@@ -402,9 +469,94 @@ def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, st
     return row
 
 
+def merged_classes(cfg, index, plan: dict, extra: list[dict]) -> tuple[list[str], bool]:
+    """Merged condition: (classes, in_photo). The photo's own classes (audited GT, never person),
+    the free track's class first; the plan's class alone (in_photo False) if the photo has none
+    it may use."""
+    from inlayfake.stages.plan import present_classes
+
+    first = track_plan(plan, FREE)["category"]
+    exclude = set(cfg["placement"].get("exclude_classes", ["person"]))
+    own = present_classes(index, index.image_anns(plan["source_id"]), extra, exclude)
+    if not own:
+        return [first], False
+    return ([first] if first in own else []) + [c for c in own if c != first], True
+
+
+def make_merged_version(cfg, index, src: dict, plan: dict, version: int, state, versions, extra):
+    """Free-track box of the merged condition: ADOPT copies the verified C5's box and class;
+    later versions place a box of one of the photo's classes anywhere (no overlap rule)."""
+    from inlayfake.edit.placement import place_anywhere
+
+    sid, W, H = plan["source_id"], src["width"], src["height"]
+    row = {"source_id": sid, "track": FREE, "version": version, "support": None}
+    if version == ADOPT:
+        c5 = adopted_c5(cfg, state, sid)
+        p = effective_plan(plan, versions, 0, c5.get("version", 0))
+        return row | {
+            "category": p["category_occ"],
+            "class_in_photo": p["class_in_photo_occ"],
+            "box": p["box_occ"],
+            "occluded_ann_id": p["occluded_ann_id"],
+            "placement_rule": "adopted_c5",
+            "adopted_image_id": c5["image_id"],
+        }
+    k = version - ADOPT - 1
+    classes, in_photo = merged_classes(cfg, index, plan, extra)
+    cat = classes[k % len(classes)]
+    rng = np.random.default_rng(derive_seed(cfg["seed"], sid, "merged", version))
+    pcfg = cfg["placement"]
+    anns = index.image_anns(sid) + extra
+    row |= {"category": cat, "class_in_photo": in_photo, "box": None, "occluded_ann_id": None}
+    try:  # alternate the photo's own instance size and a typical COCO size
+        if k % 2 == 0:
+            w, h = _size(cfg, index, anns, cat, W, H, rng)
+        else:
+            st = size_stats(index, [cat], pcfg["max_area_frac"])[cat]
+            w, h = sample_size(st, W, H, rng, pcfg["min_side_px"], pcfg["max_area_frac"])
+    except ValueError:  # no usable size statistics for this class: version skipped
+        return row
+    box, occ_id = place_anywhere(W, H, w, h, index.image_anns(sid), rng)
+    return row | {
+        "box": [float(v) for v in box],
+        "occluded_ann_id": occ_id,
+        "placement_rule": "anywhere",
+    }
+
+
+def _ensure_merged(cfg, index, sources, plans, state, wd: Path, versions: dict) -> dict:
+    from inlayfake.stages.plan import audit_anns
+
+    extra = audit_anns(cfg["placement"].get("audit_decisions"))
+    new = []
+    for plan in plans:
+        sid = plan["source_id"]
+        while True:  # a version without a box moves the track on: create until stable
+            v = merged_version(cfg, state, sid, versions)
+            if v < ADOPT:
+                break
+            want = [ADOPT] if v == ADOPT else range(ADOPT + 1, v + 1)
+            missing = [ver for ver in want if (sid, FREE, ver) not in versions]
+            if not missing:
+                break
+            for ver in missing:
+                row = make_merged_version(
+                    cfg, index, sources[sid], plan, ver, state, versions, extra.get(sid, [])
+                )
+                versions[(sid, FREE, ver)] = row
+                new.append(row)
+    if new:
+        with (wd / "replans.jsonl").open("a", encoding="utf-8") as f:
+            for r in new:
+                f.write(json.dumps(r) + "\n")
+    return versions
+
+
 def ensure_versions(cfg, index, sources, plans, state, wd: Path) -> dict:
     """Create the box versions the current state needs; returns all versions."""
     versions = load_versions(wd)
+    if merged(cfg):
+        return _ensure_merged(cfg, index, sources, plans, state, wd, versions)
     if not max_version(cfg):
         return versions
     from inlayfake.stages.plan import audit_anns
@@ -451,3 +603,33 @@ def ensure_versions(cfg, index, sources, plans, state, wd: Path) -> dict:
             for r in new:
                 f.write(json.dumps(r) + "\n")
     return versions
+
+
+def merged_source(cfg: dict, state: dict, sid: int, versions: dict | None = None) -> str | None:
+    """Merged condition: "C4", "C5" or "anywhere" for a photo with a verified AI edit, else None."""
+    v = merged_version(cfg, state, sid, versions)
+    if v == ADOPT:
+        return "C5"
+    if not leader_passed(cfg, state, sid, v):
+        return None
+    return "anywhere" if v > ADOPT else "C4"
+
+
+def gen_of(cfg: dict, cond: str) -> str | None:
+    """First enabled generator of a condition's role."""
+    key = {"C2": "sham_generators", "C4": "insert_generators", "C5": "occlusion_generators"}[cond]
+    enabled = cfg.get("generators_enabled")
+    gens = [g for g in cfg["generation"][key] if enabled is None or g in enabled]
+    return gens[0] if gens else None
+
+
+def merged_pending(cfg: dict, state: dict, plans: list[dict], versions: dict) -> int:
+    """Merged mode: AI edits and C2 shams `generate` would still make (C2 waits for its AI
+    edit, so it may have no verify rows yet)."""
+    n = 0
+    for p in plans:
+        for cond in ("C2", "C4"):
+            g = gen_of(cfg, cond)
+            if g and cond in cfg["conditions"]:
+                n += next_job(cfg, state, p["source_id"], cond, g, versions) is not None
+    return n
