@@ -8,8 +8,8 @@
 #   verifier:   OWLv2 score >= 0.2 and IoU >= 0.3 or >= 80% inside the box
 #   on failure: 3 seeds per box, then up to 3 new boxes, 3 other in-photo classes, 3 outside
 #               classes; very last resort: a C5 box anywhere (placement_rule: anywhere)
-#   generator:  SDXL (G1) only, as in the pilot. SD2 / FLUX (or Kandinsky) are separate later
-#               runs in the same work dir (generators_enabled), once tested with these settings.
+#   generator:  SDXL (G1) only. The benchmark's scope was reduced to SDXL on 2026-10-17 (PRD §4);
+#               SD2 / FLUX are not run.
 #
 #   python -m inlayfake sample --config configs/insertion_inphoto.yaml
 #   python -m inlayfake plan   --config configs/insertion_inphoto.yaml
