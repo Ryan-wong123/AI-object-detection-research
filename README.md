@@ -139,8 +139,18 @@ To see every attempt, including the rejected ones (greyed, with the reason), add
 python -m inlayfake preview --config configs/insertion_inphoto.yaml --limit 544 --all-attempts
 ```
 
-During the run the page shows the state after the last finished check; re-run the command to
-refresh.
+**The page is a snapshot:** it shows the benchmark at the moment it was built and does not update
+itself. You do not need to rebuild it after every round (the run does not use it). To see the
+latest progress, rebuild it, then refresh the browser tab with **Ctrl+F5**. This takes a few
+seconds and does not disturb the running job:
+
+```powershell
+python -m inlayfake preview --config configs/insertion_inphoto.yaml --limit 544
+```
+
+New results appear only after a round's check (the `verify:` line reaching 100%), so rebuilding
+more than once per round shows nothing new. When the run has finished, rebuild it once more:
+that version shows the final benchmark and is the one to use for the human audit.
 
 ### When it's done
 
