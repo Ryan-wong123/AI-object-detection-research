@@ -73,7 +73,8 @@ run, the 10% human audit and the Open Images download.
   and size boxes like the photo's own instance?
 - Whether the sham check should look for any new object, not only the target class.
 - Decided 18 Oct: smaller covered objects (32 px) and more box sizes for C5, so 535 of 544
-  photos now have a C5 box (was 407).
+  photos now have a C5 box (was 407); more box sizes for C4 (rules unchanged), so 531 of 544
+  have a C4 box (was 474).
 - Decided 17 Oct: keep the sham edit C2 as a control (never scored as an AI object; shows
   whether methods detect AI objects or just AI-repainted areas); rationale now in the paper.
 - Scope decided 17 Oct: SDXL is the only generator (SD2 and the held-out FLUX dropped for time).

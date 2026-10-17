@@ -28,6 +28,8 @@ placement:
   allow_anywhere: true
   occlusion_fill:          # author, 2026-10-18: 137 photos had no C5 box; add one where the C5
     enabled: true          # rules allow it, trying several sizes and covered objects >= 32 px
+  free_fill:               # author, 2026-10-18: 70 photos had no C4 box; add one with several
+    enabled: true          # sizes, C4 rules (8 px margin) unchanged
 edit:
   window_scale: 1.2
   window_min_px: 64

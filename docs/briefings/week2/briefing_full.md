@@ -166,6 +166,13 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 17. More photos get a C4 edit (18 Oct)
+- 70 photos had no C4 box. As with C5, a check showed the cause was the box search (one size
+  tried), not the rules: the 8 px margin barely matters.
+- With several box sizes and unchanged rules, **57 more photos get a C4 box (531 of 544)**, each
+  with its C2 sham and C3 paste. No other plan changed; the run was restarted again (Sun 01:28),
+  adding an estimated 1.5–2 h.
+
 ### 16. More photos get a C5 edit (18 Oct)
 - 137 of the 544 photos had no C5 box. A check showed this was mostly the box search (one size
   tried), not the overlap rule. On the author's decision, covered objects may now be as small as

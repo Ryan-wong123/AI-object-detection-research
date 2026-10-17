@@ -41,6 +41,10 @@ placement:
     min_target_px: 32                  # smallest covered object, box side (original rule: 64)
     sizes: 6                           # box sizes tried (the main search tries one)
     max_other_frac: 0.05               # unchanged: other objects covered at most 5%
+  free_fill:                           # give a C4 box to plans that have none (plan stage)
+    enabled: false                     # off: plans stay as before (week 1, pilots)
+    sizes: 6                           # box sizes tried per class (the main search tries one);
+                                       # the C4 rules (incl. margin_px) are unchanged
   allow_anywhere: false                # very last resort: a C5 box anywhere, no overlap rule
                                        # (ledger placement_rule "anywhere")
   support:                             # boxes rest on a plausible surface (COCO-Stuff labels)
