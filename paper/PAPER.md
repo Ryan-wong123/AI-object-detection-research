@@ -153,20 +153,41 @@ harm metric.
 
 ## 4. The InlayFake benchmark
 
-**Sources.** We sample [[TBD: 600]] photographs from COCO val2017 [Lin et al. 2014], which is unseen
-by COCO-trained detectors. We exclude images dominated by people, and we split train/val/test
-(60/20/20) by source photograph. We audit the original labels with a detector ensemble and manual
-review. Confirmed missing objects are added and unresolved regions are ignored
+**Sources.** All photographs come from COCO val2017 [Lin et al. 2014] (5,000 images, 80 object
+categories). We use val2017 rather than train2017 because the COCO-trained detectors we evaluate
+were trained on train2017, so val2017 photographs are unseen by them. Selection proceeds in four
+deterministic steps:
+
+1. *Eligibility.* A photograph is eligible if its shorter side is at least 256 px (excludes 42),
+   it has at least one non-crowd labelled object (excludes a further 47), and people cover at most
+   30% of its area (excludes a further 490; edits should not centre on people, §8). This leaves
+   4,421 eligible photographs <!-- computed 2026-10-17 from the COCO val2017 annotations with the sampling settings of configs/default.yaml (min_image_side 256, max_person_area_frac 0.30), filters applied in this order -->.
+2. *Random sample.* The eligible image ids are sorted, shuffled with a random generator seeded
+   with the project seed, and the first 600 are taken. The same seed reproduces the same 600.
+3. *Splits.* Each photograph is assigned to train / val / test (60/20/20) by hashing its id, so
+   all conditions of a photograph share a split and the assignment does not depend on sampling
+   order: 362 / 114 / 124 photographs <!-- run:task2_insertion (sample; identical to task1_real_baseline), data/inlayfake_v2/sources.jsonl -->.
+4. *Planning* (below) keeps the photographs that admit an insertion plan.
+
+We audit the original labels with a detector ensemble and manual review. Confirmed missing
+objects are added and unresolved regions are ignored.
 Of 107 candidates in 70 of 544 photographs, we add 77 labels, keep 26 as ignore regions and reject 4 as detector errors <!-- run:task1_real_baseline, file:paper/results/task1_audit_decisions.csv -->.
 
-**Insertion plan.** Of 600 sampled photographs, 544 admitted a free-space box for the
-target category <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->. The remaining 56 (9.3%) had no free space and are excluded from every
+**Insertion plan.** The real-only baseline (§7.1) fixed the photograph set with a first plan:
+for each photograph, one of ten fixed categories (chair, cup, bottle, potted plant, vase, clock,
+bench, umbrella, backpack, dog), rotated so that each is used about equally, with a box sized
+like a typical COCO instance of that category, placed in free space (no overlap with any labelled
+object, 8 px margin, up to 200 random positions); if no position fits, the next category is
+tried. Of the 600 sampled photographs, 544 admitted such a free-space box <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->. The remaining 56 (9.3%) had no free space and are excluded from every
 condition. They are close-ups rather than crowded scenes: they have the same median number of labelled
 objects as the kept photographs (4), but their object boxes cover a median 97% of the frame (kept: 32%),
 and in 52 of the 56 a single object covers more than half the image <!-- run:task1_real_baseline (plan failed_sources, seed 20261008; COCO val2017 annotations), see docs/RESEARCH_LOG.md 2026-10-11 -->.
 The benchmark therefore under-represents close-up, frame-filling shots (§8). Of the 544, 363 also
 admitted a controlled-occlusion box for C5 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
- For each source we insert a class that is **already present** in that photograph's audited
+These 544 photographs are the benchmark's photograph set: the real-only baseline and the
+insertion run use exactly the same photographs, so results on unedited and edited images are
+comparable. For the insertion run they are planned again with the rules below.
+For each source we insert a class that is **already present** in that photograph's audited
 ground truth (any COCO class except *person*), so every edited photograph contains a photographed
 and an AI-generated instance of the same class. Among the classes present, the one used least so
 far is chosen, which keeps classes as balanced as the photographs allow. The box size follows that
