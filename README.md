@@ -132,9 +132,9 @@ last resort carry a note (`class not in photo` or `placed anywhere`). A grey not
 heading names what it lacks: `not in benchmark (yet): C4, C5` (planned, not passed yet) or
 `not planned (no room): C2, C3, C4` (the photo never had room for that box, e.g. C5-only photos).
 
-At the top, a summary counts complete and incomplete photos, and three buttons filter the page
-instantly (no rebuild): **all photos**, **only photos missing a planned edit**, and **only photos
-without all of C0–C5** (missing or not planned).
+At the top, a summary counts complete and incomplete photos, and a checkbox **"show only photos
+missing any of C0–C5"** hides the complete ones instantly (no rebuild). It keeps every photo
+that lacks a condition, whether not passed yet or never planned.
 
 To see every attempt, including the rejected ones (greyed, with the reason), add
 `--all-attempts`:
