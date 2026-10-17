@@ -166,6 +166,13 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 19. Round-7 results; verified edits are always kept (18 Oct)
+- The fills' first attempts: 35 of 57 new C4 and 34 of 128 new C5 edits passed. Totals now C4
+  459, C5 325 verified.
+- 13 C4 edits with a class not in the photo had stopped counting when the C5 fill later gave
+  their photos an in-photo C5. On the author's decision, a verified edit is now always kept;
+  they are back (with their C2 and C3), with no regeneration.
+
 ### 18. Seven dropped C4 edits brought back (18 Oct)
 - 7 C4 edits had been dropped because new boxes were sized like the photo's own (large) objects
   and found no free space. New boxes now also try a typical object size; all 7 get a new box,

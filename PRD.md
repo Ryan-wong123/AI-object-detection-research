@@ -87,7 +87,9 @@ capability is **object-origin estimation**.
   classes are no longer balanced and include large or non-rigid ones (bus, giraffe, surfboard).
   **Exception (author, 2026-10-17):** a photo with no verified AI object of its own classes
   (after new boxes and class switches) may get one of the 10 original categories that is not in
-  it; such edits carry `class_in_photo: false` and are excluded from same-class analyses.
+  it; such edits carry `class_in_photo: false` and are excluded from same-class analyses. Once
+  such an edit has passed it is kept, even if the photo later gains an in-photo AI object
+  (author, 2026-10-18).
   **Second exception (author, 2026-10-17):** if no box satisfies the placement rules at all, a
   C5 box may be placed anywhere in the image with no overlap rule (`placement_rule: anywhere`),
   so every photo gets a box. C4 always keeps its no-occlusion rule.

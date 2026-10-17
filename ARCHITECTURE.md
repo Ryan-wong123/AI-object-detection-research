@@ -187,7 +187,9 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   that object's box area, the class's aspect ratio).
   Last resort, `edit.max_outside_classes`: classes not in the photo (`placement.outside_classes`,
   default the 10 original categories), only if the photo has no in-photo pass in C4 or C5 and both
-  edits are exhausted; also used by the plan stage for photos with no insertable class.
+  edits are exhausted; also used by the plan stage for photos with no insertable class. A
+  verified edit is always kept (`track_version` returns its passing version first); the
+  restriction only decides what to try next.
   `EditInfo.class_in_photo` is False for these edits.
   C5 fill, `placement.occlusion_fill` (2026-10-18): after the main search, plans without a C5
   box get one (6 sizes, then a box sized from the covered object; covered objects ≥ 32 px instead
