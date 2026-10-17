@@ -202,6 +202,10 @@ then a box sized from the covered object, and accepts covered objects of at leas
 of 64 px), with the other occlusion rules unchanged. This adds an occluding box to 128 of the
 137 photographs that lacked one, for 535 of 544 in total, without changing any other plan
 <!-- run:task2_insertion (plan with occlusion_fill, 2026-10-18), file:paper/results/task2_insertion_plan_occlusion_fill.json -->.
+The same single-size search left 70 photographs without a free-space box; trying several box
+sizes (and, if needed, another class present in the photograph) under unchanged free-space rules
+gives 57 of them one, for 531 of 544 with C2–C4 and 13 occlusion-only photographs
+<!-- run:task2_insertion (plan with occlusion_fill and free_fill, 2026-10-18), file:paper/results/task2_insertion_plan_fills.json -->.
 
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
 insertion without occlusion; C5 AI insertion with controlled occlusion.

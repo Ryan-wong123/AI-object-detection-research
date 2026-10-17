@@ -169,16 +169,27 @@ def load_versions(wd: Path) -> dict[tuple[int, str, int], dict]:
     return {(r["source_id"], r["track"], r["version"]): r for r in rows}
 
 
+def track_plan(plan: dict, track: str) -> dict:
+    """The plan as seen by one track. The C4 fill (``placement.free_fill``) may give the free
+    track (C2, C3, C4) another class of the photo (``free_category``); C5 keeps the plan class."""
+    if track == FREE and plan.get("free_category"):
+        return dict(plan, category=plan["free_category"], class_in_photo=True)
+    return plan
+
+
 def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
     """The plan with the boxes and classes of the given versions (box None if none fits).
     ``category`` is the free track's class (C2, C3, C4), ``category_occ`` the C5 class."""
     base_in = plan.get("class_in_photo", True)
+    free_plan = track_plan(plan, FREE)  # the C4 fill may have chosen another class for C2-C4
+    free_in = free_plan.get("class_in_photo", True)
     p = dict(
         plan,
         free_version=v_free,
         occ_version=v_occ,
+        category=free_plan["category"],
         category_occ=plan["category"],
-        class_in_photo=base_in,
+        class_in_photo=free_in,
         class_in_photo_occ=base_in,
         placement_rule_occ=plan.get("placement_rule", "standard"),
     )
@@ -189,8 +200,8 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
             p["box_free"] = None
         else:
             p["box_free"] = row["box"]
-            p["category"] = row.get("category") or plan["category"]
-            p["class_in_photo"] = row.get("class_in_photo", base_in)
+            p["category"] = row.get("category") or free_plan["category"]
+            p["class_in_photo"] = row.get("class_in_photo", free_in)
     if v_occ:
         row = versions.get((sid, OCC, v_occ))
         if row is None or row["box"] is None:
@@ -409,7 +420,14 @@ def ensure_versions(cfg, index, sources, plans, state, wd: Path) -> dict:
                     stuff = StuffIndex.load(scfg["stuff_annotations"])
                 for ver in missing:
                     row = make_version(
-                        cfg, index, sources[sid], plan, track, ver, stuff, extra.get(sid, [])
+                        cfg,
+                        index,
+                        sources[sid],
+                        track_plan(plan, track),
+                        track,
+                        ver,
+                        stuff,
+                        extra.get(sid, []),
                     )
                     versions[(sid, track, ver)] = row
                     new.append(row)

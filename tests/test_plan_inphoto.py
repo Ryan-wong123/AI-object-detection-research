@@ -110,6 +110,66 @@ def test_occlusion_fill_adds_c5_and_leaves_other_plans_unchanged(cfg, tmp_path):
     assert summary["n_occlusion_filled"] == gained
 
 
+def test_free_fill_adds_c4_with_unchanged_rules(cfg, tmp_path):
+    """placement.free_fill gives a C4 box to plans without one; the box touches no labelled box
+    (margin kept); plans that had a C4 box and every C5 box are untouched."""
+    from inlayfake.config import deep_merge
+    from inlayfake.data.coco import CocoIndex
+    from inlayfake.edit.placement import expand, intersection
+    from inlayfake.stages import plan, sample
+
+    cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
+    sample.run(cfg)
+    plan.run(cfg)
+    wd = tmp_path / "work"
+    plans = [json.loads(line) for line in (wd / "plans.jsonl").open()]
+    removed = {p["source_id"] for p in plans[::3]}
+    for p in plans:  # pretend the main search found no C4 box for every third photo
+        if p["source_id"] in removed:
+            p["box_free"] = None
+    before = json.loads(json.dumps(plans))
+    index = CocoIndex.load(cfg["paths"]["coco_annotations"], cfg["paths"]["coco_images"])
+    sources = {s["source_id"]: s for s in map(json.loads, (wd / "sources.jsonl").open())}
+    fcfg = deep_merge(cfg, {"placement": {"free_fill": {"enabled": True}}})
+    n = plan.fill_free(fcfg, index, plans, sources, {})
+    assert n == sum(p.get("free_filled", False) for p in plans) and n > 0
+    m = cfg["placement"]["margin_px"]
+    for p, b in zip(plans, before, strict=True):
+        assert p["box_occ"] == b["box_occ"] and p["category"] == b["category"]
+        if p["source_id"] not in removed:
+            assert p == b
+        elif p["box_free"] is not None:
+            for a in index.image_anns(p["source_id"]):
+                assert intersection(p["box_free"], expand(a["bbox"], m)) == 0
+    assert plan.fill_free(cfg, index, plans, sources, {}) is None  # off by default
+
+
+def test_free_category_used_by_c2_c3_c4_not_c5(cfg, tmp_path):
+    """When the C4 fill picks another class, C2/C3/C4 use it and C5 keeps the plan class."""
+    from inlayfake.config import deep_merge
+    from inlayfake.data.coco import CocoIndex
+    from inlayfake.ledger import read_ledger
+    from inlayfake.stages import insert, plan, sample
+
+    cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
+    sample.run(cfg)
+    plan.run(cfg)
+    wd = tmp_path / "work"
+    plans = [json.loads(line) for line in (wd / "plans.jsonl").open()]
+    index = CocoIndex.load(cfg["paths"]["coco_annotations"], cfg["paths"]["coco_images"])
+    target = next(p for p in plans if p["box_occ"] is not None and p["box_free"] is not None)
+    own = {index.cat_name[a["category_id"]] for a in index.image_anns(target["source_id"])}
+    other = sorted(own - {target["category"], "person"})[0]
+    target["free_category"] = other
+    (wd / "plans.jsonl").write_text("".join(json.dumps(p) + "\n" for p in plans))
+    insert.run(deep_merge(cfg, {"generators_enabled": ["G1"]}))
+    recs = [r for r in read_ledger(wd / "ledger.jsonl") if r.source_id == target["source_id"]]
+    by = {r.condition.value: r for r in recs}
+    for c in ("C2", "C3", "C4"):
+        assert by[c].edit.target_category == other
+    assert by["C5"].edit.target_category == target["category"]
+
+
 def test_plan_stage_in_photo(cfg, tmp_path):
     """Every plan's class is one of that photo's own GT classes, never person."""
     from inlayfake.config import deep_merge

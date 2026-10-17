@@ -93,7 +93,9 @@ capability is **object-origin estimation**.
   so every photo gets a box. C4 always keeps its no-occlusion rule.
   **C5 fill (author, 2026-10-18):** photos whose plan has no C5 box get one where the C5 rules
   allow it, with several box sizes tried and covered objects down to 32 px (originally 64 px);
-  the other C5 rules are unchanged.
+  the other C5 rules are unchanged. **C4 fill (author, 2026-10-18):** photos without a C4 box
+  get one where the unchanged C4 rules allow it (several box sizes, the photo's other classes
+  if needed; 8 px margin kept).
 - **Generator:** G1 SDXL-Inpainting only (used for training, calibration and test).
   **Scope change (author, 2026-10-17):** the originally planned G2 SD-2-Inpainting (second seen
   generator) and G3 FLUX.1-Fill-dev (held-out generator, fallback Kandinsky 2.2) are dropped for

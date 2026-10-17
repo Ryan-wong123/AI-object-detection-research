@@ -27,6 +27,33 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: C4 fill: 57 more photos get a C4 box (run `task2_insertion` restarted again)
+
+- **Question (author):** 70 photos had no C4 box; relax the margin to 0 px and drop the surface
+  preference? Answered: the surface preference never blocks a box (it falls back to free space),
+  and 0 px would let the edit (box + 6 px dilation, 3 px feather) repaint real objects.
+- **Read-only test on the 70 photos** (every class in the photo, as the planner does): current
+  rules with 1 size per class 32 fit; **current rules with 6 sizes 53**; margin 6 px 33; margin
+  6 px + 6 sizes 54; margin 0 px + 6 sizes 54. So again the search, not the rule: the planner
+  draws one random size per class. Labelled boxes cover a median 61% of these frames (16 over 75%).
+- **Decision (author):** C4 fill with several sizes, 8 px margin kept. Implemented as
+  `placement.free_fill` (off by default; on in `configs/insertion_inphoto.yaml`): plans without a
+  C4 box get one, the plan class first, then the photo's other classes; 6 sizes per class; C4
+  rules unchanged; own seeded generator per photo. A different class is stored as
+  `free_category` and used by C2/C3/C4 (and their re-plans), while C5 keeps the plan class.
+  2 new tests; plan/config/re-plan/verify tests pass (31).
+- **Check before applying:** re-planned in a scratch copy and compared with the live plan
+  (which holds the C5 fill): 487 plans byte-identical, 57 gained a C4 box (5 with another class),
+  nothing else changed in them, C5 fill reproduced (128). 13 photos stay C5-only.
+- **Restart:** stopped at Sun 01:27 (that round at 145/302) and restarted at 01:28 (process
+  13064). Plans now: 531 of 544 with a C4 box, 535 with a C5 box
+  (run_plan_2026-10-17T172754Z.json, paper/results/task2_insertion_plan_fills.json). Kept:
+  `plans_before_free_fill.jsonl`, `insert_progress_part2.log`, `insert_part2.log`.
+- **Expected cost (estimate):** 57 new C4 jobs, each with its C2 (and C3, no GPU): roughly
+  1.5–2 h more.
+
+---
+
 ## 2026-10-18: C5 fill: 128 more photos get a C5 box (run `task2_insertion` restarted)
 
 - **Question (author):** why do 137 of the 544 photos have no C5 box? A read-only test re-ran

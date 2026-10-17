@@ -193,6 +193,10 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   box get one (6 sizes, then a box sized from the covered object; covered objects ≥ 32 px instead
   of 64; 20–50% of one object, ≤ 5% of any other), with an own seeded generator per photo, so
   existing plans stay identical. C5 re-plans use the same minimum.
+  C4 fill, `placement.free_fill` (2026-10-18): plans without a C4 box get one (plan class first,
+  then the photo's other classes; 6 sizes per class; C4 rules and `margin_px` unchanged; own
+  generator per photo). Another class is stored as `free_category`, used by C2/C3/C4 and their
+  re-plans (`replan.track_plan`), while C5 keeps the plan class.
   Very last resort, `placement.allow_anywhere`: if no box satisfies the rules, a C5 box anywhere
   in the image with no overlap rule (`placement.place_anywhere`; plan stage and C5 re-plans;
   `EditInfo.placement_rule = "anywhere"`). C4 is never placed this way.
