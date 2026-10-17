@@ -81,7 +81,7 @@ STYLE = (
     "figure{margin:0;max-width:240px}"
     ".w{position:relative}.b{position:absolute;border:2px solid}"
     "figcaption{text-align:center}.s{font-size:11px}.ok .s{color:#080;font-weight:600}"
-    ".rej img{opacity:.4}.rej .s{color:#777}.pending .s{color:#b60}</style>"
+    ".rej img{opacity:.4}.rej .s{color:#777}.pending .s{color:#b60}.flag .s{color:#b60}</style>"
 )
 
 
@@ -115,14 +115,14 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
             note = ""
             if r["condition"] in EDITED:
                 n_edits += 1
-                note = f"attempt {r['edit'].get('attempts', 1)}"
-                if r["edit"].get("plan_version"):
-                    note += f" · box {r['edit']['plan_version']}"
+                # only the last-resort flags are shown (author: no "attempt n" wording)
+                flags = []
                 if not r["edit"].get("class_in_photo", True):
-                    note += " · class not in photo"
+                    flags.append("class not in photo")
                 if r["edit"].get("placement_rule", "standard") != "standard":
-                    note += " · placed anywhere"
-            panels.append(_panel(r, wd, thumb, "ok" if note else "", note))
+                    flags.append("placed anywhere")
+                note = " · ".join(flags)
+            panels.append(_panel(r, wd, thumb, "flag" if note else "", note))
         miss = f" <small>· not in benchmark (yet): {', '.join(missing)}</small>" if missing else ""
         rows.append(
             f"<section><h3>source {sid} · {html.escape(cat)}{miss}</h3>{''.join(panels)}</section>"
