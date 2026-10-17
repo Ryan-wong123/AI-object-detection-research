@@ -27,6 +27,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-17: Decision: keep C2; condition rationale written into the paper
+
+- **Question (author):** is C2 useful, since its box holds no object and is AI-repainted like
+  C4? Could C3/C4/C5 alone test real vs AI objects?
+- **Answer recorded:** the core real-vs-AI object test needs only objects (C1/C3 real, C4/C5 AI),
+  but C2 is the placebo-like control: same generator, box and pipeline, no object. It shows
+  whether a forensic method detects AI *objects* or any *regenerated region* (H3), and whether
+  repainting alone disturbs nearby real objects (H2). It is never scored as an AI object.
+- **Decision (author):** keep C2. Remaining cost about 1 h of the run (re-done shams at moved
+  C4 boxes).
+- **Paper:** §4 now explains why each condition exists, why C2/C3/C4 share one box (and move
+  together on re-plan) while C5 has its own (no box can avoid all objects and cover 20–50% of one),
+  and why C5 matters (realistic overlap, hardest case, occlusion control for H2). §6 states that
+  origin metrics are over objects only and that C2 gives a separate edited-background flag rate;
+  §7.6 lists the planned control analyses. About 450 words added; may need shortening later.
+- **Seen in the preview:** some C2 shams are flat grey patches (e.g. source 42296), an obvious
+  editing trace; to be marked in the human audit (realistic = n) and discussed if frequent.
+
+---
+
 ## 2026-10-17: Decision: scope reduced to one generator (SDXL)
 
 - **Decision (author):** not enough time for the planned second seen generator (G2 SD-2-Inpainting)

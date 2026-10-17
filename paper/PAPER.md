@@ -9,7 +9,8 @@
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
 > | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C5, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C5 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C5, 31 classes). Same-class pilot generated at window 1.2× with the looser verifier (IoU ≥ 0.3 or ≥ 80% inside the box): C4 27/41, C5 17/34 verified after ≤ 3 attempts, C2 41/41 (paper/results/task2_pilot_inphoto_final_verify.json); §4 verification text updated. With re-plan on failure (up to 3 new boxes): C4 38/41, C5 25/34 verified, C2 39/41 (paper/results/task2_pilot_inphoto_replan_verify.json). With class switch and C5-only plans (2026-10-17): C4 39/41, C5 35/41; 46 of 50 photos have a verified AI object (paper/results/task2_pilot_inphoto_classswitch_verify.json). With C5 boxes sized from the covered object: C5 37/42, 48 of 50 photos (paper/results/task2_pilot_inphoto_targetsize_verify.json). With a class not in the photo as last resort: 49 of 50 photos, one such edit (paper/results/task2_pilot_inphoto_outside_verify.json). With a C5 box anywhere as very last resort: 50 of 50 photos (one doubtful tiny object; paper/results/task2_pilot_inphoto_anywhere_verify.json). Full run task2_insertion planned on the 544 week-1 photos (544 of 544, configs/insertion_inphoto.yaml), generation pending; success rate stays TBD until it finishes |
-> | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
+> | Approx. length | ~3,800 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures); §4 condition rationale added 2026-10-17 (~450 words, may need shortening for the page limit) |
+> | Design decision | 2026-10-17 (author): C2 sham edit kept as a control; its justification and scoring (never an AI object; separate edited-background flag rate) written into §4, §6, §7.6 |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
 > Conventions: `[[TBD: ...]]` = result not yet available. Every number carries
@@ -179,6 +180,39 @@ is the week-1 plan with ten fixed categories.
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
 insertion without occlusion; C5 AI insertion with controlled occlusion.
 
+*Why each condition.* The conditions form a ladder in which neighbouring rungs differ in roughly
+one factor, so that any change in detector or forensic output can be attributed to one cause.
+C1 applies only the benchmark's decode–encode pipeline and is the reference for every contrast
+(re-encoding alone already shifts every hand-crafted forensic score, §7.1). C4 adds an AI-generated
+object in free space. Three controls isolate what in C4 is specific to *AI origin*:
+
+- *C2 (sham edit)* runs the same generator on the same box with the same pipeline, but with the
+  prompt "empty background" (and the object class as a negative prompt); a verifier confirms that
+  no object of the class appeared. The box therefore contains AI-repainted background and **no
+  object**. C2 is the analogue of a placebo: it receives the editing procedure without the
+  object. Without it, a forensic method that flags the C4 box could be responding to regenerated
+  pixels rather than to an AI-made object, and a detector change near the box could be caused by
+  repainting alone. C2 boxes are never scored as AI objects (§6); they measure how often methods
+  flag edited background, and they provide the "editing without a new object" control for H2.
+- *C3 (real paste)* composites a *photographed* object of the same class into the same box with
+  the same feathered blending. C3 versus C4 contrasts two objects that are both composited, one
+  real and one AI-made, so compositing seams alone cannot explain an origin difference.
+- *C1* versus C2, C3 and C4 separates re-encoding from editing.
+
+C2, C3 and C4 share **one box** per photograph, so they differ only in what fills it: nothing
+(C2), a real object (C3) or an AI object (C4). When the AI insertion fails and is re-planned to a
+new box, C2 and C3 are regenerated at the new box to keep the triple matched.
+
+C5 answers a different question and therefore has **its own box**. The C4 box must overlap no
+original object (so effects on real objects cannot be due to occlusion), whereas the C5 box must
+cover 20–50% of exactly one original object; no box can satisfy both. C5 represents the common
+real-world case of an inserted object in front of a real one. It is the most demanding case for
+origin estimation, because AI and photographed pixels meet along the occluding edge, and the
+partly covered real object is where a false "AI" accusation is most likely. Against C4, it
+isolates the effect of occlusion: H2 asks whether insertions disturb untouched real objects
+beyond resaving, sham editing, real pasting *and* occlusion, and the covered object's visible
+mask and visible fraction are recomputed so that occlusion is accounted for in the labels.
+
 **Generator.** All insertions use SDXL-Inpainting [Podell et al. 2024]. A second seen generator and
 a held-out generator were planned but are left to future work (§8). Inpainting operates on a square
 window of 1.2× the planned box at the generator's native resolution (a wider 2.5× window mostly
@@ -270,7 +304,13 @@ It is reported separately for original and inserted subsets.
 *Matched-instance change*: for each original instance, the detected→missed rate, class flips, box IoU
 drift and score change from C1 to each condition, stratified by distance to the edit and by
 visibility. *Origin*: AUROC, AUPRC, TPR at 5% FPR and the **real-object false-accusation rate** at 80%
-TPR, computed both with oracle localisation and end to end. *Joint origin-aware AP*: a true positive
+TPR, computed both with oracle localisation and end to end. Origin metrics are computed **over
+objects only**: positives are AI-inserted objects (C4, C5); negatives are photographed objects,
+including the real pasted objects of C3. A C2 box contains no object and is never a positive or a
+negative object; instead we report an *edited-background flag rate*, the share of C2 boxes a
+method scores above its operating threshold. A method that flags C4 and C2 boxes alike detects
+regenerated pixels rather than AI objects, which the main metric alone cannot reveal.
+*Joint origin-aware AP*: a true positive
 requires the class, IoU ≥ 0.5 and the correct origin. *Calibration*: ECE, Brier score and
 risk–coverage (AURC) [Guo et al. 2017; Geifman & El-Yaniv 2017]. All numbers have 95% bootstrap CIs
 over source photographs (1000 resamples), because edits of one photograph are correlated.
@@ -349,7 +389,11 @@ localisation. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.6 Controls: what are the detectors actually responding to?
-C3 (real paste) and C2 (sham) results that separate origin from compositing and editing. [[TBD]]
+For each forensic method, the origin score on C4 objects against the edited-background flag rate
+on C2 boxes (does it detect AI objects or any regenerated region?), and C4 against C3 objects
+(AI-made versus real objects composited the same way). For detectors, false detections inside
+empty C2 boxes, and matched-instance changes under C2 versus C4 (does repainting alone disturb
+nearby real objects?). [[TBD]]
 
 ### 7.7 Origin claims in grounded captions (H5)
 **Table 6.** False-AI / false-real / abstention rates for Florence-2 and Qwen2.5-VL across three

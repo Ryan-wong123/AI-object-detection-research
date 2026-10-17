@@ -166,6 +166,14 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 15. Decision: keep the sham edit C2 (17 Oct)
+- C2 is the "placebo": SDXL repaints the same box with "empty background", so no object is
+  added. It is not counted as an AI object; it shows whether a method detects AI objects or just
+  any AI-repainted area, and whether repainting alone disturbs nearby real objects.
+- The reasons for every condition (C1–C5), and why C5 has its own box, are now written into
+  the paper (§4, §6, §7.6).
+- Some shams come out as flat grey patches; these will be marked in the human audit.
+
 ### 14. Decision: SDXL is the only generator (17 Oct)
 - The planned SD2 (second training generator) and FLUX / Kandinsky (held-out generator) are
   dropped for lack of time.
