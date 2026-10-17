@@ -182,8 +182,12 @@ insertion without occlusion; C5 AI insertion with controlled occlusion.
 
 *Why each condition.* The conditions form a ladder in which neighbouring rungs differ in roughly
 one factor, so that any change in detector or forensic output can be attributed to one cause.
-C1 applies only the benchmark's decode–encode pipeline and is the reference for every contrast
-(re-encoding alone already shifts every hand-crafted forensic score, §7.1). C4 adds an AI-generated
+C0 is the photograph exactly as distributed by COCO. It anchors the benchmark to ordinary,
+unedited images (detector accuracy and forensic false alarms on real photographs), and it is
+where the label audit is done. It is not used as the reference for edits, because its encoding
+differs from that of every edited image. C1 applies only the benchmark's decode–encode pipeline
+and is therefore the reference for every contrast (re-encoding alone already shifts every
+hand-crafted forensic score, §7.1); C0 versus C1 measures that re-encoding effect. C4 adds an AI-generated
 object in free space. Three controls isolate what in C4 is specific to *AI origin*:
 
 - *C2 (sham edit)* runs the same generator on the same box with the same pipeline, but with the
@@ -212,6 +216,17 @@ partly covered real object is where a false "AI" accusation is most likely. Agai
 isolates the effect of occlusion: H2 asks whether insertions disturb untouched real objects
 beyond resaving, sham editing, real pasting *and* occlusion, and the covered object's visible
 mask and visible fraction are recomputed so that occlusion is accounted for in the labels.
+
+**Table 1b.** What each condition tests.
+
+| Cond. | Changed relative to the previous rung | Comparison | What it tests | Used for |
+|---|---|---|---|---|
+| C0 | — (original file) | C0 | detectors and forensics on unedited real photographs; label audit | baseline, false alarms on real photos |
+| C1 | re-encoding with the benchmark pipeline | C1 vs C0 | effect of re-encoding alone | reference for all edits |
+| C2 | AI repainting of the box, no object | C2 vs C1 | effect of AI editing without a new object; false "AI" flags on edited background | H2, H3 (control) |
+| C3 | a real object composited into the box | C3 vs C2, C4 | compositing a photographed object; real-object negatives in the same box as C4 | H1, H3 (control) |
+| C4 | an AI object in the box | C4 vs C1, C2, C3 | origin of an AI object without occlusion | H1, H2, H3, H4 |
+| C5 | an AI object covering 20–50% of a real object (own box) | C5 vs C4, C1 | occlusion; origin estimation where AI and real pixels meet | H1, H2, H3 |
 
 **Generator.** All insertions use SDXL-Inpainting [Podell et al. 2024]. A second seen generator and
 a held-out generator were planned but are left to future work (§8). Inpainting operates on a square
