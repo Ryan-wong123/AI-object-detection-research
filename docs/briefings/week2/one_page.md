@@ -63,6 +63,9 @@ run, the 10% human audit and the Open Images download.
 
 **To discuss:**
 
+- Related work (17 Oct search, to verify): COinCO (CVPR 2026) is closest (COCO, object
+  *replacement*). Our edge: every object's origin + false accusations of real objects, real-paste
+  and occlusion controls, same-class pairs, frozen detectors on inserted vs real objects, abstention.
 - Edit window 1.2–1.5× instead of 2.5×, and whether to keep surface placement (costs 11 of 46
   plans and half of C5). Then a third pilot.
 - OWLv2 rejected some clearly visible objects: does the verifier need a closer look?

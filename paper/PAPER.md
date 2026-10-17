@@ -112,6 +112,17 @@ annotation. OpenSDI [Wang et al. 2025] and BR-Gen [BR-Gen 2026] localise *diffus
 These methods output pixel masks. We link their evidence to semantic instances, and we evaluate the
 false-accusation rate on intact photographed objects.
 
+**AI object edits in COCO photographs.** Several recent datasets inpaint objects into COCO
+images: CocoGlide [Guillaro et al. 2023], TGIF [TGIF 2024], COCO-Inpaint [COCO-Inpaint 2025] and
+COinCO [COinCO 2026]. COinCO, the closest to our setting, replaces one object per image and uses an
+object detector to keep only edits where the new object appears. TGIF releases each edit both
+spliced into the original and fully regenerated. INP-X [INP-X 2026] shows that whole-image detectors
+largely key on the global artefacts of the generator's autoencoder, which is the confound our
+resave, sham-edit and mask-only composite controls are designed to remove. These works label the
+edited region or the edited object. We additionally label the origin of every object, include a
+real-object paste control and a same-class real counterpart in the same photograph, and measure
+how frozen detectors and forensic methods treat inserted and photographed objects side by side.
+
 **Explainable forensics and captioning.** FakeShield [Xu et al. 2025] and SIDA [Huang et al. 2025] pair
 localisation with language explanations. Captioning benchmarks measure object hallucination [Rohrbach
 et al. 2018; Li et al. 2023], but a caption mentioning an inserted chair is not hallucinating. Our
@@ -418,3 +429,7 @@ All entries must be checked against the published versions before submission. En
 - [Zhang et al. 2023] H. Zhang et al. DINO: DETR with Improved DeNoising Anchor Boxes for End-to-End Object Detection. ICLR 2023.
 - [Zhao et al. 2024] Y. Zhao et al. DETRs Beat YOLOs on Real-time Object Detection (RT-DETR). CVPR 2024.
 - [Zhu et al. 2023] M. Zhu et al. GenImage: A Million-Scale Benchmark for Detecting AI-Generated Image. NeurIPS 2023 (Datasets & Benchmarks).
+- [COinCO 2026] Common Inpainted Objects In-N-Out of Context. CVPR 2026. [verify authors]
+- [COCO-Inpaint 2025] COCO-Inpaint: A Benchmark for Detecting and Localizing Inpainting-Based Image Manipulations. arXiv 2504.18361, 2025. [verify venue]
+- [INP-X 2026] AI-Generated Image Detectors Overrely on Global Artifacts: Evidence from Inpainting Exchange. arXiv 2602.00192, 2026. [verify]
+- [TGIF 2024] TGIF: Text-Guided Inpainting Forgery Dataset. arXiv 2407.11566, 2024. [verify venue]
