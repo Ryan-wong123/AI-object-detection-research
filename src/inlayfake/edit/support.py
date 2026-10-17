@@ -97,7 +97,11 @@ class Support:
     ) -> Box | None:
         """A w×h box anchored on a random surface pixel: its bottom-centre (``on``) or centre
         (``inside``). ``region`` (x0, y0, x1, y1) restricts the anchor; None if no pixel fits."""
-        ys, xs = np.nonzero(self.mask)
+        # the surface pixels are computed once per Support: re-scanning the full mask on every
+        # try made re-planning hundreds of boxes take many minutes (same pixels, same order)
+        if getattr(self, "_pixels", None) is None:
+            self._pixels = np.nonzero(self.mask)
+        ys, xs = self._pixels
         if region is not None:
             keep = (xs >= region[0]) & (xs <= region[2]) & (ys >= region[1]) & (ys <= region[3])
             ys, xs = ys[keep], xs[keep]
