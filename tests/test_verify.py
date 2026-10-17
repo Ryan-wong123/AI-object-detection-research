@@ -121,10 +121,19 @@ def test_failed_edit_is_regenerated_with_new_seed(cfg, tmp_path):
     final_ids = {r.image_id for r in read_ledger(wd / "ledger.jsonl")}
     assert mine[1]["image_id"] in final_ids and first_c4.image_id not in final_ids
 
-    # the preview never presents the rejected attempt as a benchmark image
+    # default preview: benchmark images only, the rejected attempt is not on the page at all
     from inlayfake.stages import preview
 
-    preview.run(cfg)
+    out = preview.run(cfg)
+    page = (wd / "preview.html").read_text(encoding="utf-8")
+    assert f"{first_c4.image_id}.jpg" not in page and "rejected" not in page
+    assert f"{mine[1]['image_id']}.jpg" in page  # the passing retry is shown
+    assert out["edits_in_benchmark"] == sum(
+        r.condition.value in ("C2", "C4", "C5") for r in read_ledger(wd / "ledger.jsonl")
+    )
+
+    # --all-attempts: every attempt, the rejected one greyed and labelled
+    preview.run(cfg, all_attempts=True)
     page = (wd / "preview.html").read_text(encoding="utf-8")
     fig = page.split(f"{first_c4.image_id}.jpg")[0].rsplit("<figure", 1)[1]
     assert 'class="rej"' in fig
