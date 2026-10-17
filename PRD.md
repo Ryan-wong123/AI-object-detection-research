@@ -91,6 +91,9 @@ capability is **object-origin estimation**.
   **Second exception (author, 2026-10-17):** if no box satisfies the placement rules at all, a
   C5 box may be placed anywhere in the image with no overlap rule (`placement_rule: anywhere`),
   so every photo gets a box. C4 always keeps its no-occlusion rule.
+  **C5 fill (author, 2026-10-18):** photos whose plan has no C5 box get one where the C5 rules
+  allow it, with several box sizes tried and covered objects down to 32 px (originally 64 px);
+  the other C5 rules are unchanged.
 - **Generator:** G1 SDXL-Inpainting only (used for training, calibration and test).
   **Scope change (author, 2026-10-17):** the originally planned G2 SD-2-Inpainting (second seen
   generator) and G3 FLUX.1-Fill-dev (held-out generator, fallback Kandinsky 2.2) are dropped for

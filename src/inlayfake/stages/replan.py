@@ -1,6 +1,6 @@
 """Re-plan on failure: give a job a new box, then another class, when every seed failed.
 
-Each source has two box *tracks*, each with versions 0, 1, 2, …:
+Each source has two box *tracks*, each with versions 0, 1, 2, â€¦:
   free  the C4 box, shared by C2 (sham) and C3 (paste) so the controls stay matched;
   occ   the C5 box (its own placement).
 Version 0 is the original plan. A track moves to version n+1 when its *leader* job (C4 or C5 of
@@ -8,7 +8,7 @@ the first generator in ``generation.insert_generators`` / ``occlusion_generators
 ``edit.max_attempts`` seeds at version n. Followers (C2, C3, C4 of the other generators) are
 redone at the leader's current version; a pass at an older version no longer counts for them.
 
-Versions 1 … ``edit.max_replans`` keep the planned class and only move the box. Versions after
+Versions 1 â€¦ ``edit.max_replans`` keep the planned class and only move the box. Versions after
 that (up to ``edit.max_class_switches`` more) switch to **another class already in the photo**
 (``placement.class_choice: in_photo`` rules: audited GT, never person), smallest first, one class
 per version. A version where no box fits is skipped. The track's class is stored per version
@@ -16,7 +16,7 @@ per version. A version where no box fits is skipped. The track's class is stored
 
 A new box rests on one of the class's surfaces when COCO-Stuff labels are available
 (``placement.support.stuff_annotations``; free space otherwise) and is sized like one of the
-photo's own instances of that class (×0.8–1.2), falling back to COCO size statistics. Versions
+photo's own instances of that class (Ã—0.8â€“1.2), falling back to COCO size statistics. Versions
 are stored in ``<work>/replans.jsonl`` (one row per source, track and version), so a re-run reuses
 them. With ``edit.max_replans: 0`` and ``max_class_switches: 0`` (default) nothing changes.
 """
@@ -29,8 +29,9 @@ from pathlib import Path
 import numpy as np
 
 from inlayfake.edit.placement import (
-    box_area,
     occluding_sized_to_target,
+    occlusion_min_side,
+    occlusion_targets,
     place_free,
     place_occluding,
     sample_size,
@@ -78,7 +79,7 @@ def _no_box(versions: dict | None, sid: int, track: str, v: int) -> bool:
 
 
 def _core_version(cfg, rows, sid, track, versions, top) -> int:
-    """Version of a track counting only versions ≤ ``top``."""
+    """Version of a track counting only versions â‰¤ ``top``."""
     rows = [r for r in rows if r.get("version", 0) <= top]
     passed = [r for r in rows if r["passed"]]
     if passed:
@@ -323,12 +324,7 @@ def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, st
                 )
                 occ_id = None
             else:
-                targets = [
-                    a
-                    for a in anns
-                    if not a.get("iscrowd", 0)
-                    and box_area(a["bbox"]) >= (2 * pcfg["min_side_px"]) ** 2
-                ]
+                targets = occlusion_targets(anns, occlusion_min_side(pcfg))
                 box, occ_id = None, None
                 for t in rng.permutation(len(targets)) if targets else []:
                     tgt = targets[t]
@@ -356,11 +352,7 @@ def make_version(cfg, index, src: dict, plan: dict, track: str, version: int, st
                 )
                 return row
     if track == OCC:  # last try: size the box from the object it must cover
-        targets = [
-            a
-            for a in anns
-            if not a.get("iscrowd", 0) and box_area(a["bbox"]) >= (2 * pcfg["min_side_px"]) ** 2
-        ]
+        targets = occlusion_targets(anns, occlusion_min_side(pcfg))
         own = _own(index, anns, cat)
         if own:
             aspect = float(np.median([a["bbox"][2] / a["bbox"][3] for a in own]))

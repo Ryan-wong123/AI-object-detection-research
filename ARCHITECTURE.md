@@ -189,6 +189,10 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   default the 10 original categories), only if the photo has no in-photo pass in C4 or C5 and both
   edits are exhausted; also used by the plan stage for photos with no insertable class.
   `EditInfo.class_in_photo` is False for these edits.
+  C5 fill, `placement.occlusion_fill` (2026-10-18): after the main search, plans without a C5
+  box get one (6 sizes, then a box sized from the covered object; covered objects ≥ 32 px instead
+  of 64; 20–50% of one object, ≤ 5% of any other), with an own seeded generator per photo, so
+  existing plans stay identical. C5 re-plans use the same minimum.
   Very last resort, `placement.allow_anywhere`: if no box satisfies the rules, a C5 box anywhere
   in the image with no overlap rule (`placement.place_anywhere`; plan stage and C5 re-plans;
   `EditInfo.placement_rule = "anywhere"`). C4 is never placed this way.

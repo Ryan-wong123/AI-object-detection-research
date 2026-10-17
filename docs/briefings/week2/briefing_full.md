@@ -166,6 +166,14 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 16. More photos get a C5 edit (18 Oct)
+- 137 of the 544 photos had no C5 box. A check showed this was mostly the box search (one size
+  tried), not the overlap rule. On the author's decision, covered objects may now be as small as
+  32 px (was 64), and several box sizes are tried.
+- **Result: 128 more photos get a C5 box (535 of 544).** No existing plan changed; the run was
+  briefly stopped and restarted (Sun 00:40) and continues with these new C5 edits, adding an
+  estimated 2–4 h.
+
 ### 15. Decision: keep the sham edit C2 (17 Oct)
 - C2 is the "placebo": SDXL repaints the same box with "empty background", so no object is
   added. It is not counted as an AI object; it shows whether a method detects AI objects or just
