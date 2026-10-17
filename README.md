@@ -34,19 +34,90 @@ Commands (PowerShell, in the repo folder). First activate the environment:
 .venv\Scripts\Activate.ps1
 ```
 
-Start the run, which writes progress to a log file:
+### Start the run (pick one way)
+
+**A. In a PowerShell window.** Simple, but the window must stay open for the whole run. Progress
+and the final summary both go to `insert.log`:
 
 ```powershell
 python -m inlayfake insert --config configs/insertion_inphoto.yaml *> data\inlayfake_v2\insert.log
 ```
 
-To check progress from a second PowerShell window:
+**B. As a background process.** Keeps running after you close the window or this app, and asks
+Windows not to idle-sleep while it runs (a closed lid still sleeps). Progress goes to
+`insert_progress.log`, the final summary to `insert.log`, and the process ID to `insert.pid`:
 
 ```powershell
-Get-Content data\inlayfake_v2\insert.log -Tail 3
+$code = "import ctypes, runpy, sys; ctypes.windll.kernel32.SetThreadExecutionState(0x80000001); sys.argv=['inlayfake','insert','--config','configs/insertion_inphoto.yaml']; runpy.run_module('inlayfake', run_name='__main__')"
+$p = Start-Process -FilePath (Resolve-Path .venv\Scripts\python.exe) -ArgumentList @('-c', "`"$code`"") -WorkingDirectory (Get-Location).Path -RedirectStandardOutput data\inlayfake_v2\insert.log -RedirectStandardError data\inlayfake_v2\insert_progress.log -WindowStyle Hidden -PassThru
+$p.Id | Out-File data\inlayfake_v2\insert.pid -Encoding ascii
 ```
 
-When it's done, build the preview page:
+Never start a second run while one is still running: both would write to the same folder.
+
+### Check on it (from any PowerShell window)
+
+Progress (way B; for way A use `insert.log` instead):
+
+```powershell
+Get-Content data\inlayfake_v2\insert_progress.log -Tail 2 -Encoding utf8
+```
+
+A line like `G1: 85% | 1145/1355 [5:47:52<1:05:04, 18.59s/it]` means: SDXL (G1) has made 1,145 of
+this round's 1,355 images, 5 h 48 min so far, about 1 h 5 min left in this round, 18.6 s per
+image. Without `-Encoding utf8` the bar shows as `â–ˆ`, which is harmless. A line starting with
+`verify:` is OWLv2 checking the round's images (a few minutes). Right after a round reaches 100%,
+the log can stay unchanged for a minute or two while OWLv2 and SAM load.
+
+Is it still running? (way B; for way A, the window is still busy):
+
+```powershell
+Get-Process -Id (Get-Content data\inlayfake_v2\insert.pid)
+```
+
+This is the small `.venv` launcher, so its CPU time stays near 0; the real work runs in a child
+Python process. If this shows an error, the run has ended: finished if `insert.log` ends with
+the JSON summary, otherwise it stopped (restart it, below).
+
+### How many edits need a retry
+
+Round 1 makes one image per edit; OWLv2 then checks them, and only the failed edits go into the
+next round (new seed, then new box, then another class; see `ARCHITECTURE.md` §3.5). After a
+round's check:
+
+1. **The verify summary** of the newest round. The last `needs_retry` line is the total going
+   into the next round; `passed` lines are edits already in the benchmark:
+
+   ```powershell
+   Get-Content (Get-ChildItem data\inlayfake_v2\runs -Filter run_verify_*.json | Sort-Object Name | Select-Object -Last 1).FullName | Select-String '"(passed|needs_retry|dropped)"'
+   ```
+
+2. **Passed and failed images per condition** so far (all rounds together):
+
+   ```powershell
+   python -c "import json,collections; rows=[json.loads(l) for l in open('data/inlayfake_v2/verify.jsonl')]; c=collections.Counter((r['condition'], 'passed' if r['passed'] else 'failed') for r in rows); [print(k, v) for k, v in sorted(c.items())]"
+   ```
+
+3. **The next round's size**: when it starts, its progress bar shows the total, e.g.
+   `G1: 0% | 0/640` means 640 images in that round (same `Get-Content ... -Tail 2` command as
+   above).
+
+### Stop or restart
+
+Stop (way B; for way A press Ctrl+C in its window):
+
+```powershell
+Stop-Process -Id (Get-Content data\inlayfake_v2\insert.pid)
+Get-Process python
+```
+
+If `Get-Process python` still lists a Python process using the GPU, stop that one too
+(`Stop-Process -Id <id>`). To continue after a stop, a reboot or a crash, start it again with
+way A or B: finished images and checks are kept, and it continues where it stopped.
+
+### When it's done
+
+Build the preview page:
 
 ```powershell
 python -m inlayfake preview --config configs/insertion_inphoto.yaml
@@ -61,12 +132,11 @@ Notes:
 - **Time:** about 28 h of GPU time on the RTX 4070 laptop (estimate from the pilot: ~5,100 SDXL
   images at ~20 s each; the first round of 1,355 images takes ~7.5 h), so plan for about two
   nights. Keep the laptop plugged in and stop Windows from sleeping.
-- **Resumable:** if it stops for any reason, run the same `insert` command again; finished images
-  and checks are kept.
 - **Already done:** `sample` and `plan` for this run (544 of 544 photos planned). To redo them:
   `python -m inlayfake sample --config configs/insertion_inphoto.yaml`, then `plan` the same way.
 - The final counts are in the JSON at the end of `insert.log`; record them in the research log,
   the paper and the week-2 briefing.
+- The run started on 17 Oct 2026, 02:21, used way B.
 
 ## Viewing the detector results
 
