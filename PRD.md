@@ -1,5 +1,7 @@
 # PRD: InlayFake (research product requirements)
 
+> Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
+
 | | |
 |---|---|
 | Owner | Ryan Wong |
@@ -74,17 +76,16 @@ capability is **object-origin estimation**.
 | C2 | Sham edit: same mask, same generator, "empty background" prompt | Editor side effects without a new object |
 | C3 | Real-object paste: same-class COCO instance from another photo, same box | Compositing artifacts without AI origin |
 | C4 | **AI insertion** (merged 2026-10-18): one AI object of a class already in the photo, placed anywhere | Origin and collateral effects |
-| ~~C5~~ | ~~AI insertion with controlled occlusion (20–50% of one original object)~~, merged into C4 | (see below) |
 
-- **Merged AI condition (scope change, author, 2026-10-18):** C4 and C5 become **one AI
+- **Merged AI condition (scope change, author, 2026-10-18):** the free-space rule (C4) and the occlusion rule (C4-occ) become **one AI
   condition** (kept under the code C4). Its only placement rule is that the class is already in
   the photo; the box may go anywhere. Per photo: a verified C4 (free space) is kept; otherwise
-  the photo's verified C5 (covers 20–50% of one object) is used; otherwise a new box of one of
+  the photo's verified C4-occ (covers 20–50% of one object) is used; otherwise a new box of one of
   the photo's classes is placed anywhere (no overlap rule; up to 6 boxes × 3 seeds, OWLv2 must
-  still confirm the object). Photos with both a C4 and a C5 use the C4 (author's choice: their
-  C2/C3 already exist), so those C5s leave the benchmark (kept on disk). C2 and C3 always sit at
-  the chosen AI box. The ledger records where each AI edit came from (`merged_source`: C4, C5,
-  anywhere). Reason: after 8 rounds, 44 photos still had no AI object under the separate C4/C5
+  still confirm the object). Photos with both a C4 and a C4-occ use the C4 (author's choice: their
+  C2/C3 already exist), so those occluding edits leave the benchmark (kept on disk). C2 and C3 always sit at
+  the chosen AI box. The ledger records where each AI edit came from (`merged_source`: C4, C4-occ,
+  anywhere). Reason: after 8 rounds, 44 photos still had no AI object under the separate C4/C4-occ
   rules. Consequence: H2 no longer has a dedicated occlusion condition; occlusion effects are
   analysed by splitting the merged AI edits into those that cover a real object and those that
   do not (from the verified masks), which is observational, not a controlled contrast.
@@ -104,11 +105,11 @@ capability is **object-origin estimation**.
   such an edit has passed it is kept, even if the photo later gains an in-photo AI object
   (author, 2026-10-18).
   **Second exception (author, 2026-10-17):** if no box satisfies the placement rules at all, a
-  C5 box may be placed anywhere in the image with no overlap rule (`placement_rule: anywhere`),
+  C4-occ box may be placed anywhere in the image with no overlap rule (`placement_rule: anywhere`),
   so every photo gets a box. C4 always keeps its no-occlusion rule.
-  **C5 fill (author, 2026-10-18):** photos whose plan has no C5 box get one where the C5 rules
+  **C4-occ fill (author, 2026-10-18):** photos whose plan has no C4-occ box get one where the C4-occ rules
   allow it, with several box sizes tried and covered objects down to 32 px (originally 64 px);
-  the other C5 rules are unchanged. **C4 fill (author, 2026-10-18):** photos without a C4 box
+  the other C4-occ rules are unchanged. **C4 fill (author, 2026-10-18):** photos without a C4 box
   get one where the unchanged C4 rules allow it (several box sizes, the photo's other classes
   if needed; 8 px margin kept).
 - **Generator:** G1 SDXL-Inpainting only (used for training, calibration and test).
@@ -121,7 +122,7 @@ capability is **object-origin estimation**.
 - **Splits (by source image):** train 60% / val 20% / test 20%.
 - **Held-out source domain:** about 100 Open Images V7 photos with instance masks for the mapped
   categories (Chair, Mug/Coffee cup, Bottle, Houseplant, Vase, Clock, Bench, Umbrella, Backpack, Dog).
-  `source_dataset = "openimages"`, test split only. C5 is skipped (time), and C3 donors come from other
+  `source_dataset = "openimages"`, test split only. C4-occ is skipped (time), and C3 donors come from other
   Open Images photos.
 - **Ledger:** one JSONL record per (source, condition, generator) with all instances and their origin,
   intended mask, actual changed mask, seed, prompt, model revision and file hashes.
@@ -150,7 +151,7 @@ capability is **object-origin estimation**.
 | Laptop VRAM (assume 8 GB) | FLUX is slow or does not fit | Resolved 2026-10-17 by scope: SDXL only (no G2/G3) |
 | Single generator | Findings may be SDXL-specific; no held-out-generator test | Stated as a limitation; post-processing and Open Images axes of H4 kept; other generators as future work |
 | Inpainting often fails to insert the object (it fills background instead) | Noisy labels | Verification with OWLv2 (not one of the evaluated detectors) + SAM mask + retry up to 3 seeds; human audit |
-| Format shortcut (PNG vs JPEG, resolution) | Spurious "detection" | Identical encoding policy for C1–C5 |
+| Format shortcut (PNG vs JPEG, resolution) | Spurious "detection" | Identical encoding policy for C1–C4 |
 | COCO labels are incomplete (Incomplete Benchmarks, arXiv:2609.21822) | Real unlabeled objects count as false positives | Label audit on C0 with a detector ensemble; flagged regions become "ignore" |
 | 5-week deadline | Incomplete experiments | P0/P1 split; pilot first; tables designed now; write in parallel |
 | Stage 2 adds GPU time in weeks 3–4 | Squeezes week 4 | Small models (Florence-2, Qwen2.5-VL-3B in 4-bit), about 200 test images, runs overnight; plain and grounded prompts run in week 3 as soon as detections exist; if time slips, reduce the number of images, never drop the study |
@@ -168,8 +169,8 @@ That false-alarm rate is the baseline every later result is compared against.
 | Week | Deliverables |
 |---|---|
 | 1 | **Task 1: real-only COCO baseline (no AI).** Repo, environment, COCO download; sample 600 sources; C0/C1 only (`configs/real_baseline.yaml`); label audit; run the 4 detectors and the hand-crafted forensic methods on the real photos → detector AP on real photos and **each forensic method's score distribution on real photos** (the false-alarm rate itself needs a threshold fixed on validation data with AI objects, so it is computed in Task 3) |
-| 2  | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C5 + visual check; verification + SAM masks; full generation run (SDXL on the 544 week-1 sources; G2/G3 dropped 2026-10-17); ledger finalised; human audit of 10% |
-| 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C4 (C5 merged into C4); learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2); **Stage 2:** `vlm` stage and caption metrics written, plain and grounded prompts run |
+| 2  | **Task 2: AI insertion.** 50-source SDXL pilot through C2–C4 + visual check; verification + SAM masks; full generation run (SDXL on the 544 week-1 sources; G2/G3 dropped 2026-10-17); ledger finalised; human audit of 10% |
+| 3  | **Task 3: detection on edited images.** Detectors and forensics on C2–C4 (C4-occ is part of C4); learned forensics (TruFor, UnivFD); semantic + matched-instance metrics (H1, H2); **Stage 2:** `vlm` stage and caption metrics written, plain and grounded prompts run |
 | 4  | Crop classifier training; joint AP, calibration, abstention; robustness (H3, H4); **Open Images held-out domain: sample 100 (start download in week 2), generate C1–C4 with G1 (SDXL), run detectors + forensics, evaluate**; **Stage 2:** origin-aware prompts (need the week-4 origin scores) and caption evaluation (H5); figures |
 | 5  | Writing, LaTeX conversion, supplementary material, related-work verification |
 

@@ -1,12 +1,14 @@
 # ARCHITECTURE: InlayFake pipeline
 
+> Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
+
 This document describes how the system is built. `PRD.md` says what and why. Module paths refer to
 `src/inlayfake/`. Status markers: ✅ implemented · 🚧 in progress · ⬜ planned.
 
 ## 1. Pipeline overview
 
 ```
-COCO val2017 ──► [1 sample] ──► [2 audit] ──► [3 plan] ──► [4 generate C1–C5] ──► [5 verify+annotate]
+COCO val2017 ──► [1 sample] ──► [2 audit] ──► [3 plan] ──► [4 generate C1–C4] ──► [5 verify+annotate]
                                                                                         │
                                                        ledger.jsonl (ground truth) ◄────┘
                                                                                         │
@@ -40,7 +42,7 @@ ImageRecord
   image_id        "<coco_id>__<condition>__<generator|none>__s<seed>"
   source_id       COCO image id (bootstrap / split grouping key)
   split           train | val | test
-  condition       C0 | C1 | C2 | C3 | C4 | C5   (C5 merged into C4 in the full run, 2026-10-18)
+  condition       C0 | C1 | C2 | C3 | C4   (C4 covers the former occlusion rule C4-occ, 2026-10-18)
   generator       G1 | G2 | G3 | null
   path, sha256    final image (what models see)
   width, height
@@ -61,7 +63,7 @@ Instance
   bbox              final-image visible extent [x, y, w, h]
   mask_path / rle   final visible mask (optional)
   origin            photographed | ai_inserted | real_pasted | mixed_modified | unresolved
-  visible_fraction  1.0 unless occluded by an insertion (C5)
+  visible_fraction  1.0 unless occluded by an insertion (C4-occ)
   iscrowd           COCO crowd flag (ignored in scoring)
 ```
 
@@ -110,10 +112,10 @@ week-1 and first-pilot plans byte for byte. Classes not in `support.categories` 
 - size: sampled from that category's COCO area distribution (relative to image area), clipped to
   [32², 0.25·HW] pixels; aspect ratio from the category's median.
 - **C4**: box with IoU = 0 against every GT box and an 8-px margin; inside the image.
-- **C5**: box that covers 20–50% of the area of one chosen original instance (the "occluded" one).
+- **C4-occ**: box that covers 20–50% of the area of one chosen original instance (the "occluded" one).
 - C2 and C3 reuse the C4 box, so all conditions share **one geometric plan**.
 - **Surface placement** (`placement.support`, `edit/support.py`; off in `default.yaml`, on in
-  `configs/pilot_surface.yaml`): the C4 and C5 boxes must also *rest on* a surface from the
+  `configs/pilot_surface.yaml`): the C4 and C4-occ boxes must also *rest on* a surface from the
   COCO-Stuff human labels (`stuff_val2017.json`). "On": at least 50% of the band from 15% of the
   box height above its bottom edge to 5% below it (central 80% of the width) is surface. Groups:
   ground (floor, carpet, rug, grass, dirt, sand, pavement, …), tabletop (table, desk, counter,
@@ -124,7 +126,7 @@ week-1 and first-pilot plans byte for byte. Classes not in `support.categories` 
   bed) are not used, because C4 must not overlap any GT box.
 
 ### 3.4 `generate` ✅ (`edit/`, `stages/generate.py`)
-- `encode.py` **Encoding policy** (critical): every image a model sees in C1–C5 is produced by
+- `encode.py` **Encoding policy** (critical): every image a model sees in C1–C4 is produced by
   `decode(original) → float RGB → [edit] → uint8 → JPEG q=95, 4:4:4, PIL`. C1 is exactly this with no
   edit. The format and quality are therefore identical across origins.
 - `compose.py` **Local inpainting**: crop a window of 2.5× the target box (square, clipped), resize
@@ -161,7 +163,7 @@ Implemented as below, with these specifics: `verify.jsonl` logs one row per chec
 `generate` reads it and regenerates failed jobs with seed attempt n+1 (max `edit.max_attempts` = 3),
 skipping model loading when nothing is pending. `insert` runs generate → verify in rounds. Sham
 edits (C2) pass only if OWLv2 finds *no* target object. The final `ledger.jsonl` carries C0/C1
-unchanged (tested), C3 with its pasted mask, and one passed record per C2/C4/C5 job. The human audit
+unchanged (tested), C3 with its pasted mask, and one passed record per C2/C4/C4-occ job. The human audit
 is `audit_edits.html` + `audit_edits.csv` (before/after crops; object_ok / realistic / other_change).
 Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml` for CPU tests).
 
@@ -175,44 +177,44 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
 - **Re-plan on failure** (`stages/replan.py`, `edit.max_replans`, 0 by default, 3 in
   `pilot_inphoto.yaml`): after all seeds fail on a box, the job gets a new box version (stored in
   `<work>/replans.jsonl`, recorded as `EditInfo.plan_version`). Tracks: *free* (C4 leads, C2 and
-  C3 follow so the controls stay on the C4 box) and *occ* (C5). New boxes rest on a surface of
+  C3 follow so the controls stay on the C4 box) and *occ* (C4-occ). New boxes rest on a surface of
   the class when COCO-Stuff is available (free space otherwise) and are sized like the photo's
   own instance of the class (×0.8–1.2). Only the current box counts in the final ledger.
   After the new boxes, `edit.max_class_switches` further versions switch to another class
   already in the photo (smallest first; class stored per version; C2/C3 follow C4). Versions
   where no box fits are skipped. In `in_photo` plans, a photo without free space may get a
-  C5-only plan (`box_free` null), searched with its own generator so other plans are unchanged.
+  C4-occ-only plan (`box_free` null), searched with its own generator so other plans are unchanged.
   When the class's usual size cannot cover 20% of any object (e.g. one train filling the frame),
-  the C5 box is sized from the object it covers (`placement.occluding_sized_to_target`: 30–60% of
+  the C4-occ box is sized from the object it covers (`placement.occluding_sized_to_target`: 30–60% of
   that object's box area, the class's aspect ratio).
   Last resort, `edit.max_outside_classes`: classes not in the photo (`placement.outside_classes`,
-  default the 10 original categories), only if the photo has no in-photo pass in C4 or C5 and both
+  default the 10 original categories), only if the photo has no in-photo pass in C4 or C4-occ and both
   edits are exhausted; also used by the plan stage for photos with no insertable class. A
   verified edit is always kept (`track_version` returns its passing version first); the
   restriction only decides what to try next.
   `EditInfo.class_in_photo` is False for these edits.
-  C5 fill, `placement.occlusion_fill` (2026-10-18): after the main search, plans without a C5
+  C4-occ fill, `placement.occlusion_fill` (2026-10-18): after the main search, plans without a C4-occ
   box get one (6 sizes, then a box sized from the covered object; covered objects ≥ 32 px instead
   of 64; 20–50% of one object, ≤ 5% of any other), with an own seeded generator per photo, so
-  existing plans stay identical. C5 re-plans use the same minimum.
+  existing plans stay identical. C4-occ re-plans use the same minimum.
   C4 fill, `placement.free_fill` (2026-10-18): plans without a C4 box get one (plan class first,
   then the photo's other classes; 6 sizes per class; C4 rules and `margin_px` unchanged; own
   generator per photo). Another class is stored as `free_category`, used by C2/C3/C4 and their
-  re-plans (`replan.track_plan`), while C5 keeps the plan class.
-  Very last resort, `placement.allow_anywhere`: if no box satisfies the rules, a C5 box anywhere
-  in the image with no overlap rule (`placement.place_anywhere`; plan stage and C5 re-plans;
+  re-plans (`replan.track_plan`), while C4-occ keeps the plan class.
+  Very last resort, `placement.allow_anywhere`: if no box satisfies the rules, a C4-occ box anywhere
+  in the image with no overlap rule (`placement.place_anywhere`; plan stage and C4-occ re-plans;
   `EditInfo.placement_rule = "anywhere"`). C4 is never placed this way.
 - **Merged AI condition** (`placement.merged.enabled`, full run since 2026-10-18; author scope
-  change): C4 and C5 become one AI condition, labelled C4 in the final ledger. The free track
+  change): C4 and C4-occ become one AI condition, labelled C4 in the final ledger. The free track
   carries it (`replan.merged_version`): a verified C4 at any version ≤ `max_version` is kept;
-  else the first verified C5 is adopted as free version 100 (`replan.ADOPT`, box and class copied
-  from the C5 version, `placement_rule: adopted_c5`), and no new C4 is generated; else versions
+  else the first verified C4-occ is adopted as free version 100 (`replan.ADOPT`, box and class copied
+  from the C4-occ version, `placement_rule: adopted_c5`), and no new C4 is generated; else versions
   101 … 100 + `placement.merged.versions` (6) place a box anywhere (`place_anywhere`, size
   alternating the photo's own instance ×0.8–1.2 and a typical COCO size, classes cycling through
-  the photo's own classes, free-track class first), 3 seeds each, verified as usual. C5 is no
+  the photo's own classes, free-track class first), 3 seeds each, verified as usual. C4-occ is no
   longer generated. C2 and C3 at a merged version wait until its AI edit is verified
   (`replan.leader_passed`), then follow its box. `verify` writes one AI record per photo,
-  relabelled C4, with `EditInfo.merged_source` = C4 / C5 / anywhere; other C5 records stay out
+  relabelled C4, with `EditInfo.merged_source` = free / occluding / anywhere; other C4-occ records stay out
   of the ledger. `verify` reports `merged_ai_source`, and `needs_retry` counts pending AI and C2
   jobs (`replan.merged_pending`). `preview` shows the merged view (Show dropdown by AI source and
   missing condition). `placement.merged.avoid_same_class_from` (7 in the full run, 2026-10-18):
@@ -226,7 +228,7 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological
   open.
-- **Occlusion update (C5)**: occluded instance's visible mask = original mask − inserted mask;
+- **Occlusion update (C4-occ)**: occluded instance's visible mask = original mask − inserted mask;
   recompute bbox and visible_fraction; if < 0.1, mark it ignore.
 - **mixed_modified**: an original instance whose actual-changed overlap is > 10% of its area.
 - Human audit: `annotate/contact_sheet.py` builds an HTML grid of 10% random edits with checkboxes;
@@ -300,7 +302,7 @@ and one panel per detector. Boxes are drawn only at the evaluation operating poi
 (same class, IoU ≥ `eval.iou_threshold`). Each panel's "found X/N" therefore equals the
 corresponding `images_used.md` cell; a test enforces this. Colours: green = box on a label, orange =
 box on no label (false positive or unlabelled object), grey = box on an ignore region, dashed = label
-not found. Controls: condition (C0/C1, later C2–C5 per generator), COCO id search, pages,
+not found. Controls: condition (C0/C1, later C2–C4 per generator), COCO id search, pages,
 click-to-enlarge.
 `viewer --share` writes a self-contained copy to `docs/viewer/<run>/` instead: the same page and
 data plus downscaled JPEG copies of the photos (max side 640, quality 80), so it can be committed,
@@ -337,7 +339,7 @@ wall time.
 
 | Item | Count | Est. time on an 8 GB laptop GPU |
 |---|---|---|
-| G1 SDXL (C2, C4, C5) | 544 sources: 1,355 in round 1 + retries (~5,100 est.) | measured ~18–19 s each; round 1 took 6 h 53 min (run task2_insertion) |
+| G1 SDXL (C2, C4, C4-occ) | 544 sources: 1,355 in round 1 + retries (~5,100 est.) | measured ~18–19 s each; round 1 took 6 h 53 min (run task2_insertion) |
 | G2 SD2, G3 FLUX Fill | — | dropped 2026-10-17 (SDXL only) |
 | Detectors | ~5k images × 4 | ~1–2 h |
 | Forensics hand-crafted | ~5k (CPU) | ~1 h |

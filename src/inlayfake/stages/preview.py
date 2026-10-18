@@ -127,24 +127,13 @@ def _edit_status(cfg, cond, sid, p, conds, state, versions) -> str:
     return "dropped"
 
 
-# merged AI condition (placement.merged): one AI edit per photo, shown as C4
-SOURCE_LABEL = {
-    "C4": "from C4: free space",
-    "C5": "from C5: covers a real object",
-    "anywhere": "new: placed anywhere",
-}
+# merged AI condition (placement.merged): one AI edit per photo, shown as plain C4 (author,
+# 2026-10-18: no placement wording on the page, three Show options)
 MERGED_REASON = REASON | {"waiting": "waits for the AI edit to be verified"}
 MERGED_FILTERS = [
     ("all", "all photos"),
     ("complete", "all conditions C0–C4 in the benchmark"),
-    ("missing", "any missing C (AI edit, C2 or C3)"),
-    ("ai-C4", "AI edit from the verified C4 (free space)"),
-    ("ai-C5", "AI edit from the verified C5 (covers a real object)"),
-    ("ai-anywhere", "AI edit newly placed anywhere"),
-    ("ai-retrying", "AI edit still retrying (placed anywhere, no attempt passed yet)"),
-    ("ai-dropped", "AI edit dropped: every allowed attempt failed"),
-    ("c2-missing", "C2 sham missing (retrying, waiting or dropped)"),
-    ("c3-missing", "C3 paste missing"),
+    ("missing", "any missing C (C2, C3 or C4)"),
 ]
 
 
@@ -200,19 +189,13 @@ def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         cat = ai["edit"]["target_category"] if ai else planned.get(sid, {}).get("category", "")
         panels = []
         for r in have:
-            note, css = "", ""
             if r["condition"] in EDITED:
                 n_edits += 1
-            if r["condition"] == "C4":
-                note = "AI · " + SOURCE_LABEL.get(r["edit"].get("merged_source") or "", "")
-                if not r["edit"].get("class_in_photo", True):
-                    note += " · class not in photo"
-                    css = "flag"
-            panels.append(_panel(r, wd, thumb, css, note))
+            panels.append(_panel(r, wd, thumb, "", ""))
         groups: dict[str, list[str]] = defaultdict(list)
         for c in ("C4", "C2", "C3"):
             if status[c] != "passed":
-                groups[status[c]].append("AI edit (C4)" if c == "C4" else c)
+                groups[status[c]].append(c)
         miss = "".join(
             f" <small>· {', '.join(groups[s])}: {MERGED_REASON[s]}</small>"
             for s in ("retrying", "waiting", "dropped")
@@ -241,9 +224,7 @@ def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
     )
     controls = (
         f"<p>{len(rows)} photos: <b>{tally['complete']}</b> have C0–C4 in the benchmark, "
-        f"<b>{tally['missing']}</b> still miss the AI edit, C2 or C3. AI edit from C4: "
-        f"{tally['ai-C4']}, from C5: {tally['ai-C5']}, newly placed anywhere: "
-        f"{tally['ai-anywhere']}.</p>"
+        f"<b>{tally['missing']}</b> still miss C2, C3 or C4.</p>"
         f'<p><label>Show: <select id="f">{options}</select></label> '
         f'<b id="n">{len(rows)} photos shown</b></p>'
         "<script>const sel=document.getElementById('f');sel.onchange=()=>{const v=sel.value;"
@@ -254,12 +235,10 @@ def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
     )
     page = (
         STYLE
-        + "<p>Only images in the benchmark (<code>ledger.jsonl</code>), merged AI condition: the "
-        "original (C0), the re-save (C1), the sham (C2), the real paste (C3) and <b>one AI edit "
-        "(C4)</b> of a class already in the photo. A photo keeps its verified C4 (free space), "
-        "else its verified C5 (covers a real object), else gets an AI object placed anywhere; "
-        "C2 and C3 sit at the AI edit's box. Yellow: planned box. Red: inserted or pasted object "
-        "(verified box).</p>"
+        + "<p>Only images in the benchmark (<code>ledger.jsonl</code>): the original (C0), the "
+        "re-save (C1), the sham (C2), the real paste (C3) and the AI insertion (C4) of a class "
+        "already in the photo. C2 and C3 sit at the C4 box. Yellow: planned box. Red: inserted "
+        "or pasted object (verified box).</p>"
         + ("" if lpath.exists() else "<p><b>No edits checked yet.</b></p>")
         + controls
         + "".join(rows)
@@ -272,7 +251,7 @@ def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         "edits_in_benchmark": n_edits,
         "sources_complete": tally["complete"],
         "sources_missing": tally["missing"],
-        "ai_source": {k: tally[f"ai-{k}"] for k in ("C4", "C5", "anywhere")},
+        "ai_source": {k: tally[f"ai-{k}"] for k in ("free", "occluding", "anywhere")},
         "ai_retrying": tally["ai-retrying"],
         "ai_dropped": tally["ai-dropped"],
         "c2_missing": tally["c2-missing"],
