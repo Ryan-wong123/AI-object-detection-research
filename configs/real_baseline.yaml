@@ -4,6 +4,10 @@
 # It uses the same work dir and seed as the full run, so the later AI stages reuse these images.
 inherit: default.yaml
 run_name: task1_real_baseline
+site:                       # results website tab and folder (docs/results/week1_real_baseline/)
+  week: 1
+  title: Real-photo baseline
+  folder: week1_real_baseline
 conditions: [C0, C1]
 generators_enabled: []
 eval:

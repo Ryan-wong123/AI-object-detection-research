@@ -7,6 +7,27 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Results website: week folders renamed, one shared design
+
+- **Author request:** the folder names `docs/viewer/` and `docs/preview/` did not say which week
+  or task they hold, and the two pages looked different though they sit side by side in the
+  website; the same should hold for later weeks.
+- **Folders:** `docs/viewer/task1_real_baseline/` → `docs/results/week1_real_baseline/`,
+  `docs/preview/task2_insertion/` → `docs/results/week2_ai_insertion/` (git mv, images unchanged).
+  The folder comes from a new `site` block in the config (week, title, folder; `site.dir`
+  docs/results); configs without it (pilots, tests) fall back to `docs/results/<run_name>/`.
+- **One design:** `src/inlayfake/site.py` holds the shared stylesheet (colour tokens with
+  light/dark, sticky header, photo cards, image grid with SVG boxes, legend), the condition names
+  (C0 original … C4 AI insert) and the page title ("Week 2 · AI insertion"). The week-1 viewer
+  template now takes its base style from it; the week-2 preview was rebuilt on it (same header,
+  cards and grid as week 1; planned box dashed yellow, inserted/pasted object purple as in the
+  week-1 legend). `docs/index.html` uses the same tokens and the new paths.
+- **Checked:** both pages rebuilt (week 1: 544 photos, 66.9 MB; week 2: 2,720 images), shown in
+  the tab site through a local server in light and dark mode; week-1 cards render, week-2 dropdown
+  works (missing 0, all 544). Tests updated for the new markup and config; all pass.
+
+---
+
 ## 2026-10-18: One results website with week tabs (`docs/index.html`)
 
 - **Author request:** join the week-1 viewer and the week-2 preview into one site with tabs, to
