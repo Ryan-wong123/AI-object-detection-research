@@ -12,7 +12,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 - **What:** `runs/task1_real_baseline/forensics/*.jsonl` has per-object rows only for COCO labels:
   7,764 instance rows = 3,882 objects × 2 conditions, and none for the 77 audit "add" labels
   (checked in `ela.jsonl`). The detector metrics use 3,959 objects (3,882 + 77).
-- **Why:** `forensics` ran (10 Oct 01:52 local) before the audit decisions were saved (03:42); it
+- **Why:** `forensics` ran (9 Oct 02:52 local) before the audit decisions were saved (03:42); it
   scores the labels present at run time and skips photos already done, so the later "add" labels
   were never scored.
 - **Effect:** Table 2b's per-object contrast on real objects covers 3,882 objects, not 3,959 (2% left
