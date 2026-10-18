@@ -7,6 +7,25 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: One label-audit file for all weeks (scoring fix before week 3)
+
+- **Found:** scoring stages (`detect`, `forensics`, `evaluate`, `report`, `viewer`) read
+  `audit_decisions.csv` from the run's own work dir. Week 2's work dir (`data/inlayfake_v2`) has
+  none, so scoring the week-2 images in week 3 would silently have dropped the 77 added labels
+  and 26 ignore regions of the week-1 label audit (week-1 and week-3 numbers not comparable).
+  Nothing was scored with the wrong labels: week 2 has not been scored yet.
+- **Fix (author approved):** `common.decisions_path`: `audit.decisions`, else
+  `placement.audit_decisions`, else `<work>/audit_decisions.csv`. `configs/insertion_inphoto.yaml`
+  names `data/inlayfake/audit_decisions.csv`; a named file that is missing stops the run. 1 new
+  test.
+- **Checked:** week 1 and week 2 both resolve to that file and apply 77 adds and 26 ignore regions
+  over 544 photos. Week 1 used the same file before, so its results are unchanged.
+- **Effect of changing a decision later:** week 1 needs `evaluate` + `report` again (and the
+  viewer); week 2 picks it up when scored. Three week-2 AI edits rely on an "add" for their
+  "class in the photo" (196442 kite, 315257 bowl, 358525 bed).
+
+---
+
 ## 2026-10-18: Results website: week folders renamed, one shared design
 
 - **Author request:** the folder names `docs/viewer/` and `docs/preview/` did not say which week

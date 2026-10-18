@@ -93,6 +93,11 @@ the image-level labels to build ignore regions for unverified classes.
 Implemented rule: a detection with score ≥ 0.7 that ≥ 2 detectors agree on (same class, IoU ≥ 0.5)
 and that matches no GT box (same-class IoU < 0.3 and any-class IoU < 0.5). It outputs
 `audit.html` (crops) and `audit_decisions.csv` (add / ignore / reject / ?; "?" counts as ignore).
+Scoring stages apply **one** decisions file to every run on the same photos
+(`common.decisions_path`): `audit.decisions`, else `placement.audit_decisions`, else the run's own
+`<work>/audit_decisions.csv`. The week-2 config names the week-1 file
+(`data/inlayfake/audit_decisions.csv`), so a changed decision reaches both weeks at their next
+`evaluate`; a named file that is missing stops the run.
 Decisions are applied on load to every condition of that source (`stages/common.load_records`).
 
 Run a detector ensemble on C0. A high-confidence detection (≥ 0.7) with IoU < 0.3 against every GT

@@ -223,7 +223,10 @@ git push
 
 Images of edits that left the benchmark stay in `docs/results/week2_ai_insertion/images/` but are no
 longer linked from the page; delete that folder before rebuilding if you want only the current
-images in the repo. Before making the repo or the previews public, see
+images in the repo. Week-1 label-audit decisions live in one file, `data\inlayfakeudit_decisions.csv`, used by
+both weeks (and week 3). After changing a decision there, re-run week 1's `evaluate` and `report`
+(and the week-1 viewer with `--share`); week 2's images pick the change up when they are scored.
+Before making the repo or the previews public, see
 `docs/PUBLISHING_CHECKLIST.md` (licences of the COCO photos in these copies).
 
 To see every attempt, including the rejected ones (greyed, with the reason), add
