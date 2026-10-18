@@ -7,6 +7,20 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Bed and train photos: boxes in the bottom-left corner (restart 9)
+
+- **Status at the stop (14:36):** plain anywhere boxes 19–21 failed all 9 tries for both 10995
+  (bed) and 151857 (train), as did boxes 13–18.
+- **Author:** put the AI object in the bottom-left corner of these 2 images.
+  `placement.merged.corner_from: 22`, `versions: 27`: boxes 22–27 sit at x = 0 with their bottom
+  edge on the image bottom (any overlap; size alternates the photo's own instance and a typical
+  COCO size), 3 seeds each, still verified by OWLv2. The box-22 rows already made (plain anywhere)
+  and the one unverified image at box 22 were moved out (`replans_before_corner.jsonl`,
+  `superseded_box22/`). 1 new test. Scratch dry run: only these 2 jobs, first boxes bed
+  [0, 230, 263, 250], train [0, 349, 146, 104]. Restart 9 at 14:36, PID 18448. Result [[TBD]].
+
+---
+
 ## 2026-10-18: Paper: why C1 and C2 are needed, and how C3 is made
 
 - **What:** at the author's request, §4 (*Why each condition*) now says how the C3 real paste is

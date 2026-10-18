@@ -562,3 +562,32 @@ def test_avoid_rule_ends_after_until(monkeypatch):
     off = {"enabled": True, "versions": 24}
     assert box(on, ADOPT + 19) == box(off, ADOPT + 19)  # plain anywhere after box 18
     assert box(on, ADOPT + 17) != box(off, ADOPT + 17)  # rule still on at box 17
+
+
+def test_corner_box_bottom_left(monkeypatch):
+    """placement.merged.corner_from: the box sits in the bottom-left corner of the image."""
+    import inlayfake.stages.replan as rp
+    from inlayfake.stages.replan import ADOPT, make_merged_version
+
+    class Index:
+        cat_name = {1: "train"}
+
+        def image_anns(self, sid):
+            return [{"id": 1, "category_id": 1, "bbox": [0, 0, 600, 400], "iscrowd": 0}]
+
+    monkeypatch.setattr(rp, "_size", lambda cfg, index, anns, cat, W, H, rng: (200.0, 150.0))
+    cfg = {
+        "seed": 3,
+        "placement": {
+            "exclude_classes": ["person"],
+            "min_side_px": 16,
+            "max_area_frac": 0.25,
+            "merged": {"enabled": True, "versions": 27, "corner_from": 22},
+        },
+    }
+    plan = {"source_id": 9, "category": "train", "class_in_photo": True}
+    row = make_merged_version(
+        cfg, Index(), {"width": 640, "height": 480}, plan, ADOPT + 23, {}, {}, []
+    )
+    assert row["box"] == [0.0, 330.0, 200.0, 150.0]  # x = 0, bottom edge = image bottom
+    assert row["corner"] == "bottom_left" and row["occluded_ann_id"] == 1

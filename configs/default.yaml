@@ -53,6 +53,7 @@ placement:
                                        # boxes x edit.max_attempts seeds); C2/C3 follow the
                                        # chosen box; C5 is no longer generated
     c2_attempts: null                  # seeds for C2 at a merged box (null: edit.max_attempts)
+    corner_from: null                  # from this box on: bottom-left corner (null: off)
     avoid_same_class_until: null       # last box with that rule (null: all later boxes)
     avoid_same_class_from: null        # from this box on, a box may cover at most 30% of its
                                        # area with a real object of the same class (null: off)

@@ -71,10 +71,12 @@ AUDIT_PAGE_HEAD = (
     "body{font:14px sans-serif;margin:16px}section{margin:0 0 24px}"
     "div{display:flex;gap:10px;flex-wrap:wrap}figure{margin:0}"
     "img{width:min(380px,44vw);border:1px solid #ccc}</style>"
-    "<h2>Human audit of AI edits</h2><p>For each id, fill audit_edits.csv with y / n: "
-    "<b>object_ok</b> (C4/C5: the target object is clearly there; C2: nothing new appeared), "
-    "<b>realistic</b> (it blends into the photo), <b>other_change</b> (anything outside the "
-    "edited box changed).</p>"
+    "<h2>Human audit of AI edits</h2><p>Each card shows the region the verifier looked at, "
+    "before (C1) and after the edit. For each id, fill the same row of audit_edits.csv with "
+    "y / n: <b>object_ok</b> (C4: one object of the target class is clearly there; C2: no new "
+    "object appeared), <b>realistic</b> (the edited area blends into the photo), "
+    "<b>other_change</b> (something outside the edited box changed). Use <b>notes</b> for "
+    "anything else.</p>"
 )
 
 
@@ -294,7 +296,7 @@ def audit_sheet(
     crops = wd / "audit_crops"
     crops.mkdir(exist_ok=True)
     cards = []
-    for r in sample:
+    for k, r in enumerate(sample, 1):  # k = row k of audit_edits.csv (after the header)
         ref = c1.get(r.source_id)
         x0, y0, x1, y1 = verify_window(r, r.width, r.height, vcfg or {})
         figs = []
@@ -307,7 +309,8 @@ def audit_sheet(
                 f"</figcaption></figure>"
             )
         cards.append(
-            f"<section><h3>{html.escape(r.image_id)}</h3><p>{r.condition.value} · {r.generator} · "
+            f"<section><h3>{k}. {html.escape(r.image_id)}</h3><p>{r.condition.value} · "
+            f"{r.generator} · "
             f"target: {html.escape(r.edit.target_category)}</p><div>{''.join(figs)}</div></section>"
         )
     (wd / "audit_edits.html").write_text(

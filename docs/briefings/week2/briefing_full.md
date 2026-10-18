@@ -174,7 +174,8 @@ cloud sandbox, so their first real run is the pilot.
   that class; 3 new seeds each. The bed and train photos get up to 12 more boxes anywhere.
   **Result:** all 4 shams passed on the first new seed, so 542 of 544 photos are complete. The
   bed and train failed boxes 13–18; on the author's request boxes 19–24 are placed anywhere with
-  any overlap allowed (running since 14:12; result [[TBD]]).
+  any overlap allowed; boxes 19–21 failed too. On the author's request, boxes 22–27 are placed
+  in the bottom-left corner (running since 14:36; result [[TBD]]).
 
 ### 21. Merged run done: 537 of 544; re-run of the 7 dropped photos (18 Oct)
 - **Result:** 537 photos have a verified AI edit (from C4 464, from C4-occ 38, placed anywhere 35);
