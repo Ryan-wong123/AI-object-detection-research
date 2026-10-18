@@ -62,6 +62,12 @@ def main(argv: list[str] | None = None) -> int:
                 action="store_true",
                 help="self-contained copy in docs/viewer/<run>/ to commit or share",
             )
+        if name == "preview":
+            p.add_argument(
+                "--share",
+                action="store_true",
+                help="self-contained copy of all photos in docs/preview/<run>/ to commit or share",
+            )
     args = parser.parse_args(argv)
     if args.stage is None:
         parser.print_help()

@@ -7,6 +7,20 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Week-2 preview shared in the repo (`docs/preview/task2_insertion/`)
+
+- **Author request:** the week-2 preview should be on GitHub like the week-1 viewer.
+- **Code:** `preview --share` builds the benchmark view for all photos and writes a self-contained
+  copy to `preview.share_dir/<run_name>/` (default `docs/preview/`): index.html plus downscaled
+  JPEG copies (`preview.share_max_side` 480, quality 80) of every image it shows, links rewritten
+  to `images/`. Boxes are scaled from original pixel coordinates to the fixed 240 px thumbnails,
+  so they need no change. 1 new test.
+- **Built:** 544 photos, 2,720 images, 95 MB (week-1 viewer: 70 MB); every link resolves inside
+  the folder. Like the week-1 viewer it contains downscaled COCO photos, which carry their own
+  Flickr licences (the dataset licence statement is still on the paper's To-verify list).
+
+---
+
 ## 2026-10-18: Audit sheet: C4 only (544 rows)
 
 - **Author:** audit only the C4 AI insertions; no C2 rows. `verify.audit_only_conditions: [C4]`
