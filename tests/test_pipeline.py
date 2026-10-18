@@ -261,3 +261,23 @@ def test_audit_review_page(cfg, tmp_path):
     assert page.index(f"1. {sids[1]}-0") < page.index(f"2. {sids[0]}-0")  # CSV order
     assert "reject: detector mistake" in page and "add: a real object COCO missed" in page
     assert page.count('<section class="card"') == 2
+
+
+def test_detector_matches_hand_example():
+    """Per detector: best same-class score at IoU >= 0.5 with the candidate box, else None."""
+    from inlayfake.data.audit import detector_matches
+
+    box = [10, 10, 100, 100]
+    dets = {
+        "a": [
+            {"category": "cup", "bbox": [12, 12, 100, 100], "score": 0.9},
+            {"category": "cup", "bbox": [10, 10, 98, 98], "score": 0.95},
+        ],
+        "b": [
+            {"category": "cup", "bbox": [200, 200, 50, 50], "score": 0.99},  # elsewhere
+            {"category": "dog", "bbox": [10, 10, 100, 100], "score": 0.99},
+        ],  # other class
+        "c": [{"category": "cup", "bbox": [10, 10, 100, 100], "score": 0.4}],  # below 0.7
+        "d": [],
+    }
+    assert detector_matches(box, "cup", dets) == {"a": 0.95, "b": None, "c": 0.4, "d": None}

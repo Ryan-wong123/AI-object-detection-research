@@ -227,8 +227,9 @@ images in the repo.
 
 Week-1 label-audit decisions live in one file, `data\inlayfake\audit_decisions.csv`, used by
 both weeks (and week 3). To re-check them, build and open the review page (card *k* = row *k* of
-the CSV; current decision, zoom on the candidate in orange, COCO's own labels in green, whole
-photo; Show dropdown by decision):
+the CSV; current decision; which detectors found the object and their scores (✓ = agrees,
+score ≥ 0.7); zoom on the candidate in orange, COCO's own labels in green; whole photo; Show
+dropdown by decision):
 
 ```powershell
 python -m inlayfake audit --config configs/real_baseline.yaml --review
