@@ -168,6 +168,15 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 23. Insertion run complete: all 544 photos have C0–C4 (18 Oct)
+- The bed and train close-ups passed only with boxes in the bottom-left corner (author's
+  request), at verifier scores right at the threshold (0.20, 0.25). By eye both are doubtful;
+  they are flagged for the human audit <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json -->.
+- **Final:** 544 of 544 photos complete; AI edits from the free-space rule 464, the occlusion rule
+  38, placed anywhere 42; 1,088 edited images.
+- Audit sheet rebuilt from the final ledger: 109 edits (57 C2, 52 C4); the CSV and the HTML now
+  show the same edits in the same order. To be filled by the author.
+
 ### 22. Last 2 AI edits and 4 shams re-run (18 Oct)
 - The 4 missing C2 shams added nothing; OWLv2 kept seeing the photo's real train, umbrella, bus
   or book next to the box. Sham check now ignores a detection lying ≥ 25% on a real object of
@@ -292,7 +301,9 @@ cloud sandbox, so their first real run is the pilot.
 | Merged AI condition at restart 5: AI edit from C4 / from C4-occ / still to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z, file:paper/results/task2_insertion_merge_decision.json --> |
 | Full run, round 1 (attempt 1): passed C2 / C4 / C4-occ | 472/474 / 269/474 / 123/407; 491 to round 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_round1_verify.json (interim) --> |
 | Merged run (boxes 1–6): photos with a verified AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
-| After the re-run of the 7 (boxes 7–12): photos with an AI edit / all of C0–C4 / dropped | 542 / 538 / 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
+| After the re-run of the 7 (boxes 7–12): photos with an AI edit / all of C0–C4 / dropped | 542 / 538 / 2 <!-- run:task2_insertion (11:17), file:paper/results/task2_insertion_merged_round_final.json and log --> |
+| **Final (all re-runs): photos with all of C0–C4 / AI edits free-space / occluding / anywhere / edited images** | **544 / 464 / 38 / 42 / 1,088** <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
+| Human audit (109 edits: 57 C2, 52 C4) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
 | Human audit (10%): object present / realistic / other change | [[TBD]] |
 | GPU time per image on the RTX 4070 laptop | SDXL 21.6 s (pilot, 122 images in 43:57) <!-- run:task2_pilot, file:paper/results/task2_pilot_round1_generate.json -->; full run round 1: 1,355 images in 6 h 53 min (18.3 s each) <!-- run:task2_insertion, insert_progress.log --> |
