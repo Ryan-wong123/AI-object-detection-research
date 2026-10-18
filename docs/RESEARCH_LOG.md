@@ -7,6 +7,21 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Label-audit review on the results website
+
+- **Author request:** show the week-1 label-audit review on GitHub Pages, and keep it updatable
+  when a decision changes.
+- **What:** `audit --review --share` writes the review page as
+  `docs/results/week1_real_baseline/audit.html` (the week's website folder) and uses the photo
+  copies the week-1 viewer already put there (`images/<C0 id>.jpg`; any missing one is copied), so
+  only the page file is added (0.9 MB). New website tab *Week 1 · Label audit* in `docs/index.html`.
+- **Checked** through a local server: 3 tabs, 107 cards, all 70 photos load. Test extended (shared
+  page, every image link exists); 91 pass.
+- **Updating:** after a decision change, the same command rebuilds the page; commit
+  `docs/results/week1_real_baseline` (README steps).
+
+---
+
 ## 2026-10-18: Label-audit review page (`audit --review`)
 
 - **Author request:** a clear page to re-check the week-1 label-audit decisions. The old
