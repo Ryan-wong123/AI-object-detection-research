@@ -169,8 +169,25 @@ that version shows the final benchmark and is the one to use for the human audit
 
 ### When it's done
 
-Build the preview as above, then fill the human-audit sheet `data\inlayfake_v2\audit_edits.csv`
-(y/n for object_ok, realistic, other_change; before/after crops in `audit_edits.html`).
+Build the preview as above, then do the **human audit** of a random 10% of the edits (C2 and C4):
+
+```powershell
+start data\inlayfake_v2\audit_edits.html
+start excel data\inlayfake_v2\audit_edits.csv
+```
+
+Card *k* in the HTML page is row *k* of the CSV (after the header). Each card shows the region the
+verifier looked at, before (C1) and after the edit. Fill each row with `y` or `n`:
+
+| Column | C4 (AI insertion) | C2 (sham) |
+|---|---|---|
+| `object_ok` | one object of the target class is clearly there | no new object appeared |
+| `realistic` | the object blends into the photo | the repainted area blends in |
+| `other_change` | something outside the edited box changed | same |
+| `notes` | anything else (e.g. "half a bed", "blurry blob") | same |
+
+Save as CSV (keep the file name and columns). The audit sheet is rebuilt only if the CSV is
+missing, so a filled sheet is never overwritten.
 
 Notes:
 
