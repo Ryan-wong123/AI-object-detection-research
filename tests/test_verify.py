@@ -204,3 +204,53 @@ def test_viewer_shows_edited_conditions(cfg, tmp_path):
     assert im["cond"]["C4/G1"]["det"]["fake_a"] is None  # not run yet
     assert im["cond"]["C0"]["det"]["fake_a"] is not None
     assert any(g[5] == "inserted" for g in im["cond"]["C4/G1"]["gt"])
+
+
+def test_audit_sheet_all_c4_plus_random_sample(tmp_path):
+    """verify.audit_all_conditions: every C4 is on the sheet, plus the random sample (flagged);
+    the page is rebuilt from an existing CSV, so both always list the same edits."""
+    import numpy as np
+    from PIL import Image
+
+    from inlayfake.ledger import EditInfo, ImageRecord, Instance
+    from inlayfake.stages.verify import audit_sheet
+
+    img = tmp_path / "x.jpg"
+    Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(img)
+    recs = []
+    for sid in range(20):
+        recs.append(ImageRecord(f"{sid}__C1", sid, "test", "C1", str(img), 64, 64))
+        for cond in ("C2", "C4"):
+            edit = EditInfo("cup", 0, [10, 10, 20, 20])
+            inst = [Instance(f"ins:{sid}", "cup", [10, 10, 20, 20], Origin.AI_INSERTED)]
+            recs.append(
+                ImageRecord(
+                    f"{sid}__{cond}",
+                    sid,
+                    "test",
+                    cond,
+                    str(img),
+                    64,
+                    64,
+                    "G1",
+                    edit=edit,
+                    instances=inst if cond == "C4" else [],
+                )
+            )
+    vcfg = {"window_scale": 2.5, "window_min_px": 32, "audit_all_conditions": ["C4"]}
+    n = audit_sheet(tmp_path, recs, 0.1, 7, vcfg)
+    rows = list(csv.DictReader((tmp_path / "audit_edits.csv").open(encoding="utf-8")))
+    assert n == len(rows)
+    c4 = [r for r in rows if r["condition"] == "C4"]
+    assert len(c4) == 20  # every C4
+    assert sum(r["in_random_sample"] == "y" for r in rows) == 4  # 10% of 40 edits
+    assert all(r["in_random_sample"] == "y" for r in rows if r["condition"] == "C2")
+    page = (tmp_path / "audit_edits.html").read_text(encoding="utf-8")
+    ids = [r["image_id"] for r in rows]
+    assert [
+        line.split(". ", 1)[1] for line in __import__("re").findall(r"<h3>([^<]+)</h3>", page)
+    ] == ids
+    # a later call (e.g. after a new verify round) keeps the sheet and redraws the page from it
+    assert audit_sheet(tmp_path, recs, 0.5, 99, vcfg) == n
+    page2 = (tmp_path / "audit_edits.html").read_text(encoding="utf-8")
+    assert page2 == page

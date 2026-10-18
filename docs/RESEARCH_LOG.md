@@ -7,6 +7,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Human audit extended to every C4 edit (601-row sheet)
+
+- **Author decision:** audit all AI insertions, not only a 10% sample: a sample estimates the
+  verifier's error rate but leaves the wrong labels in the other 90% (with 52 sampled C4s, 2 errors
+  would mean roughly 5–60 unknown wrong labels among the other 492).
+- **Code:** `verify.audit_all_conditions` (full run: `[C4]`) puts those conditions on the sheet in
+  full, next to the random 10% sample, which is unchanged and flagged in a new CSV column
+  `in_random_sample`. The HTML page is now built from the CSV when one exists, so page and sheet
+  never diverge again (the cause of the mismatch found earlier today). 1 new test; 85 pass.
+- **Sheet:** 601 rows: 544 C4 (52 of them in the random sample) + 57 C2 (random sample), C4 rows
+  first. The bed (10995) is row 6, the train (151857) row 143. The empty 109-row sheet is kept as
+  `audit_edits_10pct_only.*`.
+- **Next:** author fills the sheet (about 1–1.5 h); rejected C4 edits are then removed and the
+  audit results go into §4 and Table 1.
+
+---
+
 ## 2026-10-18: Insertion run complete: 544 of 544 photos have C0–C4; audit sheet rebuilt
 
 - **Corner boxes** (restart 9, last check run_verify_2026-10-18T070254Z, 15:02 local): 151857

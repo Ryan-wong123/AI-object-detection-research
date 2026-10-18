@@ -60,7 +60,9 @@ capability is **object-origin estimation**.
 8. Paper draft in `paper/PAPER.md`, converted to the CVPR LaTeX template in week 5.
 
 ### Should-have (P1)
-- Human audit of 10% of edits (insertion success, unintended changes).
+- Human audit of 10% of edits (insertion success, unintended changes). **Extended (author,
+  2026-10-18): every C4 AI insertion is audited**, plus the random 10% sample of C2 and C4
+  (flagged `in_random_sample`) for an unbiased estimate of the verifier's error rate.
 
 ### Out of scope (future work, stated in the paper)
 - A new trained architecture beyond the crop classifier; FakeShield/SIDA re-runs (7B+ LMMs, do not fit
