@@ -5,6 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-18 |
+> | Insertion run done | 2026-10-18: 542 of 544 photos with a verified AI edit (464 C4, 38 C5, 40 anywhere), 538 complete C0–C4, 2 dropped (bed, train close-ups), 4 without C2 (paper/results/task2_insertion_final.json). Human audit and Table 1 counts pending |
 > | Merged run | 2026-10-18: 537 of 544 photos with a verified AI edit (464 C4, 38 C5, 35 anywhere), 7 dropped and re-run with 6 more boxes off the real same-class object (paper/results/task2_insertion_merged_round_final.json) |
 > | Scope change 2 | 2026-10-18 (author): C4 and C5 merged into one AI condition (C4: a class already in the photo, placed anywhere; verified C4 kept, else verified C5, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
 > | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
@@ -314,8 +315,10 @@ of 544 photographs (464 from the free-space rule, 38 from the occlusion rule, 35
 The remaining 7 are close-ups of a single large object (bed, train, toilet) whose box landed on
 the real object, which the verifier never accepts, or cluttered scenes whose small classes it did
 not recognise; they receive six more boxes that cover at most 30% of their area with a real object
-of the same class; otherwise the edit is discarded
-([[TBD: final success rate of the merged AI condition, C2 and C3 after the re-run]]). SAM [Kirillov et al. 2023], prompted with the
+of the same class; five of the seven then pass, so 542 of 544 photographs carry a verified AI
+object and 538 have all five conditions; the two failures are close-ups of a single bed and a
+single train, and four photographs lack only the sham control, whose attempts the verifier kept
+rejecting <!-- run:task2_insertion (final verify 2026-10-18 11:17), file:paper/results/task2_insertion_final.json -->. SAM [Kirillov et al. 2023], prompted with the
 verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
 objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
 become ignore regions. We record the actual changed region separately from the intended mask, and

@@ -5,6 +5,19 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Re-run done: 542 of 544 photos have an AI edit (run `task2_insertion` finished)
+
+- **Result** (run_verify_2026-10-18T031732Z, 11:17 local; 18 rounds of 3–7 images): 5 of the 7
+  dropped photos passed with boxes 7–12: toilet (box 7), tv (box 8), chair (box 9), bed in 65074
+  (box 10), surfboard (box 12); their C2 and C3 passed too. Still without an AI edit: 10995
+  (bed) and 151857 (train), both close-ups whose only class is the object filling the frame.
+- **Final benchmark:** AI edit for 542 of 544 photos (C4 464, C5 38, anywhere 40); 538 have every
+  condition C0–C4; 4 lack only C2 (sham attempts kept "producing" the target, 108440, 203580,
+  259571, 262938); 1,080 edited images in the ledger (`paper/results/task2_insertion_final.json`).
+- **Next:** human audit of 10% (`audit_edits.csv`), Table 1 counts, then week 3.
+
+---
+
 ## 2026-10-18: Merged run done (537 of 544); re-run of the 7 dropped photos (restart 6)
 
 - **Merged run result** (run_verify_2026-10-17T222301Z, 06:23 local; 10 rounds after restart 5):

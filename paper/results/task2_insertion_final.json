@@ -1,0 +1,36 @@
+{
+ "run": "task2_insertion",
+ "what": "final merged AI condition after the re-run of the 7 dropped photos (boxes 7-12, not on the real same-class object)",
+ "verify_file": "run_verify_2026-10-18T031732Z.json (UTC; 11:17 local)",
+ "merged_ai_source": {
+  "C4": 464,
+  "C5": 38,
+  "anywhere": 40,
+  "none": 2
+ },
+ "preview_counts": {
+  "photos": 544,
+  "complete_C0_C4": 538,
+  "ai_dropped": 2,
+  "c2_missing": 6,
+  "c3_missing": 2,
+  "edits_in_benchmark": 1080
+ },
+ "rerun_passed": {
+  "455981 toilet": "box 7 seed 2, score 0.59",
+  "472678 tv": "box 8 seed 1, score 0.31",
+  "277051 chair": "box 9 seed 1, score 0.21",
+  "65074 bed": "box 10 seed 2, score 0.57",
+  "262048 surfboard": "box 12 seed 2, score 0.47"
+ },
+ "still_dropped": {
+  "10995": "bed (bedroom close-up, only class)",
+  "151857": "train (train close-up, only class)"
+ },
+ "c2_dropped_with_ai_edit": [
+  108440,
+  203580,
+  259571,
+  262938
+ ]
+}
