@@ -166,6 +166,15 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 21. Merged run done: 537 of 544; re-run of the 7 dropped photos (18 Oct)
+- **Result:** 537 photos have a verified AI edit (from C4 464, from C5 38, placed anywhere 35);
+  533 have every condition C0–C4 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json -->.
+- **7 dropped**, after 6 boxes × 3 seeds. OWLv2 re-run on their 210 failed attempts: in close-ups
+  of one big object (bed, train, toilet) the box lands on the real object, which never counts;
+  in cluttered scenes small classes (remote, book, knife) are not recognised.
+- **Re-run (author):** 6 more boxes, still anywhere, but not on the real object of the same class
+  (≤ 30% overlap). Running since ~06:50; result [[TBD]].
+
 ### 20. Decision: C4 and C5 merged into one AI condition (18 Oct)
 - **Why:** after seven rounds, 44 of 544 photos still had no AI object under the separate rules
   (C4: touch no real object; C5: cover 20–50% of one). 284 photos had both, 175 only C4, 41
@@ -266,7 +275,8 @@ cloud sandbox, so their first real run is the pilot.
 | Merge decision (18 Oct): photos with C4 and C5 / only C4 / only C5 / neither (after round 7) | 284 / 175 / 41 / 44 <!-- file:paper/results/task2_insertion_merge_decision.json --> |
 | Merged AI condition at restart 5: AI edit from C4 / from C5 / still to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z, file:paper/results/task2_insertion_merge_decision.json --> |
 | Full run, round 1 (attempt 1): passed C2 / C4 / C5 | 472/474 / 269/474 / 123/407; 491 to round 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_round1_verify.json (interim) --> |
-| Full run: photos with a verified AI edit (merged C4) / with C2 / with C3 | [[TBD: after the merged run]] |
+| Merged run (boxes 1–6): photos with a verified AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
+| After the re-run of the 7 (boxes 7–12) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
 | Human audit (10%): object present / realistic / other change | [[TBD]] |
 | GPU time per image on the RTX 4070 laptop | SDXL 21.6 s (pilot, 122 images in 43:57) <!-- run:task2_pilot, file:paper/results/task2_pilot_round1_generate.json -->; full run round 1: 1,355 images in 6 h 53 min (18.3 s each) <!-- run:task2_insertion, insert_progress.log --> |
