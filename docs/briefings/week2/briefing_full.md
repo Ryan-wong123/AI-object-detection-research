@@ -230,6 +230,9 @@ cloud sandbox, so their first real run is the pilot.
   estimated 2–4 h.
 
 ### 15. Decision: keep the sham edit C2 (17 Oct)
+- 18 Oct: the paper (§4) now also explains why C0, C3 and C4 alone would not be enough (C1 is
+  the matched-encoding reference; C2 separates AI objects from AI-repainted pixels) and how C3
+  is built (a real COCO object of the same class, cut with its mask and pasted, no AI).
 - C2 is the "placebo": SDXL repaints the same box with "empty background", so no object is
   added. It is not counted as an AI object; it shows whether a method detects AI objects or just
   any AI-repainted area, and whether repainting alone disturbs nearby real objects.
