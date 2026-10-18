@@ -296,3 +296,15 @@ def test_audit_sheet_c4_only(tmp_path):
     assert {r["condition"] for r in only} == {"C4"} and len(only) == 20
     flagged = lambda rows: {r["image_id"] for r in rows if r["in_random_sample"] == "y"}  # noqa: E731
     assert flagged(only) == {i for i in flagged(both) if "__C4" in i}
+
+
+def test_audit_box_overlay_hand_example():
+    """A box is drawn in % of the crop and clipped to it."""
+    from inlayfake.stages.verify import _box_span
+
+    span = _box_span([30, 40, 20, 10], 10, 20, 110, 70, "ins")  # crop 100 x 50
+    assert "left:20.00%" in span and "top:40.00%" in span
+    assert "width:20.00%" in span and "height:20.00%" in span
+    clipped = _box_span([100, 60, 50, 50], 10, 20, 110, 70, "plan")  # runs past the crop
+    assert "width:10.00%" in clipped and "height:20.00%" in clipped
+    assert _box_span([200, 200, 5, 5], 10, 20, 110, 70, "plan") == ""  # outside the crop

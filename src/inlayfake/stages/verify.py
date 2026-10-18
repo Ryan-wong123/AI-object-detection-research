@@ -70,14 +70,36 @@ AUDIT_PAGE_HEAD = (
     "<!doctype html><meta charset=utf-8><title>Edit audit</title><style>"
     "body{font:14px sans-serif;margin:16px}section{margin:0 0 24px}"
     "div{display:flex;gap:10px;flex-wrap:wrap}figure{margin:0}"
-    "img{width:min(380px,44vw);border:1px solid #ccc}</style>"
+    "img{width:min(380px,44vw);border:1px solid #ccc;display:block}"
+    ".w{position:relative;display:inline-block}"
+    ".b{position:absolute;border:2px solid;box-sizing:border-box;pointer-events:none}"
+    ".plan{border-color:#fc0;border-style:dashed}.ins{border-color:#f22}"
+    ".k{display:inline-block;width:14px;height:10px;border:2px solid;margin:0 4px}</style>"
     "<h2>Human audit of AI edits</h2><p>Each card shows the region the verifier looked at, "
-    "before (C1) and after the edit. For each id, fill the same row of audit_edits.csv with "
-    "y / n: <b>object_ok</b> (C4: one object of the target class is clearly there; C2: no new "
-    "object appeared), <b>realistic</b> (the edited area blends into the photo), "
-    "<b>other_change</b> (something outside the edited box changed). Use <b>notes</b> for "
-    "anything else.</p>"
+    "before (C1) and after the edit. "
+    '<span class="k" style="border-color:#fc0;border-style:dashed"></span>planned box (where '
+    'the object was to be drawn), <span class="k" style="border-color:#f22"></span>the AI '
+    "object as the verifier found it (after only). For each id, fill the same row of "
+    "audit_edits.csv with y / n: <b>object_ok</b> (C4: one object of the target class is "
+    "clearly there; C2: no new object appeared), <b>realistic</b> (the edited area blends into "
+    "the photo), <b>other_change</b> (something outside the edited box changed). Use "
+    "<b>notes</b> for anything else.</p>"
 )
+
+
+def _box_span(box, x0: int, y0: int, x1: int, y1: int, css: str) -> str:
+    """A box [x, y, w, h] in image pixels as an overlay on the crop (x0, y0, x1, y1), in % of the
+    crop so it scales with the image; clipped to the crop."""
+    W, H = x1 - x0, y1 - y0
+    bx0, by0 = max(box[0], x0), max(box[1], y0)
+    bx1, by1 = min(box[0] + box[2], x1), min(box[1] + box[3], y1)
+    if bx1 <= bx0 or by1 <= by0:
+        return ""
+    return (
+        f'<span class="b {css}" style="left:{100 * (bx0 - x0) / W:.2f}%;'
+        f"top:{100 * (by0 - y0) / H:.2f}%;width:{100 * (bx1 - bx0) / W:.2f}%;"
+        f'height:{100 * (by1 - by0) / H:.2f}%"></span>'
+    )
 
 
 def job_key(rec: ImageRecord) -> str:
@@ -353,9 +375,14 @@ def audit_sheet(
             out = crops / f"{r.image_id}_{tag}.jpg"
             if not out.exists():
                 Image.fromarray(load_rgb(path)[y0:y1, x0:x1]).save(out, quality=90)
+            boxes = _box_span(r.edit.plan_box, x0, y0, x1, y1, "plan")
+            if tag == "after":  # the inserted object as verified (SAM box), not on the C1 crop
+                for i in r.instances:
+                    if i.origin is Origin.AI_INSERTED:
+                        boxes += _box_span(i.bbox, x0, y0, x1, y1, "ins")
             figs.append(
-                f'<figure><img src="audit_crops/{html.escape(out.name)}" loading="lazy">'
-                f"<figcaption>{tag}</figcaption></figure>"
+                f'<figure><span class="w"><img src="audit_crops/{html.escape(out.name)}" '
+                f'loading="lazy">{boxes}</span><figcaption>{tag}</figcaption></figure>'
             )
         rand = " · random sample" if in_random.get(r.image_id) else ""
         cards.append(

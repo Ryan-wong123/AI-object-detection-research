@@ -14,6 +14,9 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   sample of the C4 edits (`in_random_sample: y`). 1 new test. Sheet: 544 rows, bed row 6, train
   row 143; the empty 601-row sheet is kept as `audit_edits_c4_plus_c2.*`.
 - **Consequence:** C2 shams are checked by OWLv2 only; the paper says so (§4).
+- **Boxes on the audit page (author request):** each card now shows the planned box (dashed
+  yellow) on both crops and the verified AI object box (red) on the *after* crop, as overlays in
+  % of the crop; the CSV is unchanged. Checked by drawing the overlays onto rows 1 and 6.
 
 ---
 
