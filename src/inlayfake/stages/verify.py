@@ -282,16 +282,60 @@ def build_final_ledger(
     return final
 
 
+AUDIT_COLUMNS = [
+    "image_id",
+    "condition",
+    "generator",
+    "category",
+    "in_random_sample",
+    "object_ok",
+    "realistic",
+    "other_change",
+    "notes",
+]
+
+
 def audit_sheet(
     wd: Path, records: list[ImageRecord], fraction: float, seed: int, vcfg: dict | None = None
 ) -> int:
-    """HTML + CSV for the human check of a random sample of edits. Never overwrites the CSV."""
-    edits = sorted((r for r in records if r.condition.value in EDITED), key=lambda r: r.image_id)
-    if not edits:
-        return 0
-    rng = np.random.default_rng(seed)
-    k = max(1, int(round(fraction * len(edits))))
-    sample = [edits[i] for i in sorted(rng.choice(len(edits), size=k, replace=False))]
+    """HTML + CSV for the human check of the edits. Never overwrites the CSV.
+
+    A random ``fraction`` of the edits (C2, C4) is drawn with ``seed`` (``in_random_sample: y``,
+    the unbiased estimate of the verifier's error rate). Conditions in
+    ``verify.audit_all_conditions`` are added in full (author, 2026-10-18: every C4 is checked).
+    If the CSV exists, the HTML is built from its rows, so page and sheet always list the same
+    edits in the same order (before, the page was redrawn with a new sample at every verify).
+    """
+    by_id = {r.image_id: r for r in records}
+    csv_path = wd / "audit_edits.csv"
+    if csv_path.exists():
+        with csv_path.open(encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        sample = [by_id[r["image_id"]] for r in rows if r["image_id"] in by_id]
+        in_random = {r["image_id"]: r.get("in_random_sample", "y") == "y" for r in rows}
+    else:
+        edits = sorted(
+            (r for r in records if r.condition.value in EDITED), key=lambda r: r.image_id
+        )
+        if not edits:
+            return 0
+        rng = np.random.default_rng(seed)
+        k = max(1, int(round(fraction * len(edits))))
+        drawn = [edits[i] for i in sorted(rng.choice(len(edits), size=k, replace=False))]
+        in_random = {r.image_id: True for r in drawn}
+        full = set((vcfg or {}).get("audit_all_conditions") or [])
+        extra = [r for r in edits if r.condition.value in full and r.image_id not in in_random]
+        order = ["C4", "C5", "C2"]  # AI insertions first
+        sample = sorted(drawn + extra, key=lambda r: (order.index(r.condition.value), r.source_id))
+        with csv_path.open("w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(AUDIT_COLUMNS)
+            for r in sample:
+                flag = "y" if in_random.get(r.image_id) else "n"
+                w.writerow(
+                    [r.image_id, r.condition.value, r.generator, r.edit.target_category, flag]
+                    + [""] * 4
+                )
     c1 = {r.source_id: r for r in records if r.condition.value == "C1"}
     crops = wd / "audit_crops"
     crops.mkdir(exist_ok=True)
@@ -305,47 +349,16 @@ def audit_sheet(
             if not out.exists():
                 Image.fromarray(load_rgb(path)[y0:y1, x0:x1]).save(out, quality=90)
             figs.append(
-                f'<figure><img src="audit_crops/{html.escape(out.name)}"><figcaption>{tag}'
-                f"</figcaption></figure>"
+                f'<figure><img src="audit_crops/{html.escape(out.name)}" loading="lazy">'
+                f"<figcaption>{tag}</figcaption></figure>"
             )
+        rand = " · random sample" if in_random.get(r.image_id) else ""
         cards.append(
             f"<section><h3>{k}. {html.escape(r.image_id)}</h3><p>{r.condition.value} · "
-            f"{r.generator} · "
-            f"target: {html.escape(r.edit.target_category)}</p><div>{''.join(figs)}</div></section>"
+            f"{r.generator} · target: {html.escape(r.edit.target_category)}{rand}</p>"
+            f"<div>{''.join(figs)}</div></section>"
         )
-    (wd / "audit_edits.html").write_text(
-        AUDIT_PAGE_HEAD + "".join(cards),
-        encoding="utf-8",
-    )
-    csv_path = wd / "audit_edits.csv"
-    if not csv_path.exists():
-        with csv_path.open("w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(
-                [
-                    "image_id",
-                    "condition",
-                    "generator",
-                    "category",
-                    "object_ok",
-                    "realistic",
-                    "other_change",
-                    "notes",
-                ]
-            )
-            for r in sample:
-                w.writerow(
-                    [
-                        r.image_id,
-                        r.condition.value,
-                        r.generator,
-                        r.edit.target_category,
-                        "",
-                        "",
-                        "",
-                        "",
-                    ]
-                )
+    (wd / "audit_edits.html").write_text(AUDIT_PAGE_HEAD + "".join(cards), encoding="utf-8")
     return len(sample)
 
 

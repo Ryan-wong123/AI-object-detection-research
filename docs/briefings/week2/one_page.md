@@ -28,7 +28,7 @@ object are dropped, never labelled.
 | Conditions | C2 sham (SDXL), C3 real paste, C4 AI insert (SDXL; SD2 and FLUX dropped 17 Oct). Since 18 Oct C4 and C4-occ are **one AI condition**: a class already in the photo, placed anywhere; C2/C3 at the same box. |
 | Verification | OWLv2 (not an evaluated detector) must find the object (IoU ≥ 0.3, score ≥ 0.2); sham edits must contain no object; failed edits are regenerated with a new seed, up to 3 attempts. |
 | Annotation | SAM outline of each inserted object; actual changed region; visible fraction of occluded real objects; real objects altered by the editor marked `mixed_modified`. |
-| Audit | Random 10% of edits on a before/after page with a y/n sheet. |
+| Audit | Every C4 edit plus a random 10% of all edits (601) on a before/after page with a y/n sheet. |
 | Viewer | Shows C2–C4, inserted objects in purple, altered real objects in amber. |
 | Tests | 48 CPU tests pass, including a forced verifier failure that is retried with a new seed. |
 | Re-plan on failure | After 3 failed seeds an edit gets a new box on a surface, sized like the photo's own object (sham and paste move with it); up to 3 new boxes. 62 tests pass. |
@@ -59,7 +59,7 @@ object are dropped, never labelled.
 | Merged AI condition at restart: from C4 / from C4-occ / to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z --> |
 | Merged run: photos with an AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
 | Final: photos with all of C0–C4 / edited images | 544 / 1,088 (AI edits: 464 free-space, 38 occluding, 42 anywhere; bed and train in the corner, doubtful) <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
-| Human audit (109 edits) | [[TBD]] |
+| Human audit (601 edits: all C4 + 10% sample) | [[TBD]] |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss

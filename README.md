@@ -169,7 +169,10 @@ that version shows the final benchmark and is the one to use for the human audit
 
 ### When it's done
 
-Build the preview as above, then do the **human audit** of a random 10% of the edits (C2 and C4):
+Build the preview as above, then do the **human audit**: every C4 edit (544) plus a random 10% of
+all edits (57 C2 shams, 52 of the C4s), 601 rows in total. Column `in_random_sample` (`y`/`n`) marks
+the random 10% (do not edit it); the paper uses it for an unbiased error rate, and the full C4
+check to remove every wrong AI label. C4 rows come first, then the C2 rows.
 
 ```powershell
 start data\inlayfake_v2\audit_edits.html
