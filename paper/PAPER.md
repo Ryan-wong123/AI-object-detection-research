@@ -4,12 +4,19 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-08 |
+> | Last updated | 2026-10-18 |
+> | Insertion run done | 2026-10-18 15:02: all 544 photos complete C0–C4 (AI edits: 464 free-space, 38 occluding, 42 anywhere; the bed and train close-ups pass only in the bottom-left corner at threshold scores, flagged), 1,088 edited images (paper/results/task2_insertion_final.json). Human audit (all 544 C4 edits; C2 not audited) and Table 1 counts pending |
+> | Merged run | 2026-10-18: 537 of 544 photos with a verified AI edit (464 free-space, 38 occluding, 35 anywhere), 7 dropped and re-run with 6 more boxes off the real same-class object (paper/results/task2_insertion_merged_round_final.json) |
+> | Scope change 2 | 2026-10-18 (author): the two AI placement rules (free space, occlusion) merged into one condition C4 (a class already in the photo, placed anywhere; verified free-space edit kept, else verified occluding edit, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
+> | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | none. Task 1 (real-only COCO baseline) is next; the AI generation code is ready but deferred to Task 2 |
-> | Approx. length | ~3,300 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures) |
+> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C4-occ, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C4-occ 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C4-occ, 31 classes). Same-class pilot generated at window 1.2× with the looser verifier (IoU ≥ 0.3 or ≥ 80% inside the box): C4 27/41, C4-occ 17/34 verified after ≤ 3 attempts, C2 41/41 (paper/results/task2_pilot_inphoto_final_verify.json); §4 verification text updated. With re-plan on failure (up to 3 new boxes): C4 38/41, C4-occ 25/34 verified, C2 39/41 (paper/results/task2_pilot_inphoto_replan_verify.json). With class switch and C4-occ-only plans (2026-10-17): C4 39/41, C4-occ 35/41; 46 of 50 photos have a verified AI object (paper/results/task2_pilot_inphoto_classswitch_verify.json). With C4-occ boxes sized from the covered object: C4-occ 37/42, 48 of 50 photos (paper/results/task2_pilot_inphoto_targetsize_verify.json). With a class not in the photo as last resort: 49 of 50 photos, one such edit (paper/results/task2_pilot_inphoto_outside_verify.json). With a C4-occ box anywhere as very last resort: 50 of 50 photos (one doubtful tiny object; paper/results/task2_pilot_inphoto_anywhere_verify.json). Full run task2_insertion planned on the 544 week-1 photos (544 of 544, configs/insertion_inphoto.yaml), generation pending; success rate stays TBD until it finishes |
+> | Approx. length | ~3,800 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures); §4 condition rationale added 2026-10-17 (~450 words, may need shortening for the page limit) |
+> | Design decision | 2026-10-18: §4 explains how C3 is built and why C0, C3 and C4 alone would not suffice (C1 matched-encoding reference, C2 separates AI objects from AI-repainted pixels; ~370 words added). 2026-10-17 (author): C2 sham edit kept as a control; its justification and scoring (never an AI object; separate edited-background flag rate) written into §4, §6, §7.6 |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
+>
+> Terminology (status box only): C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
 >
 > Conventions: `[[TBD: ...]]` = result not yet available. Every number carries
 > `<!-- run:<run_id> -->`. Nothing in this draft is a measured result unless it is tagged.
@@ -25,13 +32,14 @@ object came from. Meanwhile, image forensics operates at the level of whole imag
 semantic instances. We introduce **InlayFake**, a benchmark for *mixed-origin object understanding*:
 localising and recognising every object in an edited photograph and estimating, with calibrated
 uncertainty, whether each one was photographed or AI-inserted. InlayFake builds
-[[TBD: N]] edited images from [[TBD: 600]] COCO photographs under six matched conditions (resave,
-sham edit, real-object paste, AI insertion with and without occlusion) using three inpainting
-generators, one held out, plus a source-domain-held-out test set from Open Images. Every instance carries a provenance record. We evaluate four detector
+[[TBD: N]] edited images from 544 COCO photographs under five matched conditions (original,
+resave, sham edit, real-object paste, AI insertion of a class already in the photograph) using the SDXL inpainting
+model, plus a source-domain-held-out test set from Open Images. Every instance carries a provenance record. We evaluate four detector
 families and [[TBD: 9]] hand-crafted and learned forensic methods at the instance level. We find that
 [[TBD: H1 finding: detector confidence does / does not separate origin]],
 that insertions [[TBD: H2 finding: do / do not alter predictions on untouched real objects beyond matched controls]],
-and that instance-conditioned forensic scoring [[TBD: H3/H4 finding incl. held-out generator]].
+that instance-conditioned forensic scoring [[TBD: H3/H4 finding incl. post-processing and held-out domain]],
+and that grounding origin evidence in VLM captions [[TBD: H5 finding: does / does not reduce false origin claims]].
 We release the benchmark protocol, provenance ledger and baselines.
 
 ---
@@ -63,20 +71,22 @@ insertion-induced false positive.
 
 InlayFake addresses these issues with **matched controls**. For every source photograph, we generate
 an identical-encoding resave, a *sham* edit (same mask and generator, no object), a *real-object paste*
-(a photographed object composited into the same box) and AI insertions with and without occlusion of
-original objects. All of these share one geometric plan. Contrasting the conditions separates the
+(a photographed object composited into the same box) and an AI insertion of a class already in the
+photograph, which may or may not cover original objects. All of these share one box. Contrasting the conditions separates the
 effect of AI origin from encoding, editing and compositing. A per-instance **provenance ledger**
 records intended and actual edit masks, so ground truth is auditable.
 
 **Contributions.**
 1. We formalise *mixed-origin object understanding*, a per-instance origin task with calibrated
    abstention, and separate it from semantic detection (§3).
-2. We build **InlayFake**, a benchmark with six matched conditions, three inpainting generators (one
-   held out), audited labels and a provenance ledger (§4).
+2. We build **InlayFake**, a benchmark with six matched conditions, verified AI insertions from an
+   open inpainting model (SDXL), audited labels and a provenance ledger (§4).
 3. We run an instance-level study of four detector families and of hand-crafted and learned forensic
    methods, scored image-level, region-pooled and instance-conditioned, alone and composed with
    detectors (§5–§7).
-4. We report [[TBD: key findings, 1–2 sentences each, after experiments]].
+4. We measure the origin claims that vision-language models make when describing mixed-origin
+   images, with and without grounded origin evidence (§7.7).
+5. We report [[TBD: key findings, 1–2 sentences each, after experiments]].
 
 ---
 
@@ -108,10 +118,21 @@ annotation. OpenSDI [Wang et al. 2025] and BR-Gen [BR-Gen 2026] localise *diffus
 These methods output pixel masks. We link their evidence to semantic instances, and we evaluate the
 false-accusation rate on intact photographed objects.
 
+**AI object edits in COCO photographs.** Several recent datasets inpaint objects into COCO
+images: CocoGlide [Guillaro et al. 2023], TGIF [TGIF 2024], COCO-Inpaint [COCO-Inpaint 2025] and
+COinCO [COinCO 2026]. COinCO, the closest to our setting, replaces one object per image and uses an
+object detector to keep only edits where the new object appears. TGIF releases each edit both
+spliced into the original and fully regenerated. INP-X [INP-X 2026] shows that whole-image detectors
+largely key on the global artefacts of the generator's autoencoder, which is the confound our
+resave, sham-edit and mask-only composite controls are designed to remove. These works label the
+edited region or the edited object. We additionally label the origin of every object, include a
+real-object paste control and a same-class real counterpart in the same photograph, and measure
+how frozen detectors and forensic methods treat inserted and photographed objects side by side.
+
 **Explainable forensics and captioning.** FakeShield [Xu et al. 2025] and SIDA [Huang et al. 2025] pair
 localisation with language explanations. Captioning benchmarks measure object hallucination [Rohrbach
 et al. 2018; Li et al. 2023], but a caption mentioning an inserted chair is not hallucinating. Our
-(P1) study evaluates *origin claims* in grounded captions from Florence-2 [Xiao et al. 2024] and
+study evaluates *origin claims* in grounded captions from Florence-2 [Xiao et al. 2024] and
 Qwen2.5-VL [Bai et al. 2025].
 
 ---
@@ -137,73 +158,249 @@ harm metric.
 
 ## 4. The InlayFake benchmark
 
-**Sources.** We sample [[TBD: 600]] photographs from COCO val2017 [Lin et al. 2014], which is unseen
-by COCO-trained detectors. We exclude images dominated by people, and we split train/val/test
-(60/20/20) by source photograph. We audit the original labels with a detector ensemble and manual
-review. Confirmed missing objects are added and unresolved regions are ignored
-([[TBD: number of added labels / ignore regions]]).
+**Sources.** All photographs come from COCO val2017 [Lin et al. 2014] (5,000 images, 80 object
+categories). We use val2017 rather than train2017 because the COCO-trained detectors we evaluate
+were trained on train2017, so val2017 photographs are unseen by them. Selection proceeds in four
+deterministic steps:
 
-**Insertion plan.** For each source we choose one of ten categories (chair, cup, bottle, potted plant,
-vase, clock, bench, umbrella, backpack, dog) and a box whose size follows that category's COCO size
-distribution. The box is placed either in free space or overlapping 20–50% of one original object.
-One plan is shared by every condition of a source.
+1. *Eligibility.* A photograph is eligible if its shorter side is at least 256 px (excludes 42),
+   it has at least one non-crowd labelled object (excludes a further 47), and people cover at most
+   30% of its area (excludes a further 490; edits should not centre on people, §8). This leaves
+   4,421 eligible photographs <!-- computed 2026-10-17 from the COCO val2017 annotations with the sampling settings of configs/default.yaml (min_image_side 256, max_person_area_frac 0.30), filters applied in this order -->.
+2. *Random sample.* The eligible image ids are sorted, shuffled with a random generator seeded
+   with the project seed, and the first 600 are taken. The same seed reproduces the same 600.
+3. *Splits.* Each photograph is assigned to train / val / test (60/20/20) by hashing its id, so
+   all conditions of a photograph share a split and the assignment does not depend on sampling
+   order: 362 / 114 / 124 photographs <!-- run:task2_insertion (sample; identical to task1_real_baseline), data/inlayfake_v2/sources.jsonl -->.
+4. *Planning* (below) keeps the photographs that admit an insertion plan.
+
+We audit the original labels with a detector ensemble and manual review. Confirmed missing
+objects are added and unresolved regions are ignored.
+Of 107 candidates in 70 of 544 photographs, we add 77 labels, keep 26 as ignore regions and reject 4 as detector errors <!-- run:task1_real_baseline, file:paper/results/task1_audit_decisions.csv -->.
+
+**Insertion plan.** The real-only baseline (§7.1) fixed the photograph set with a first plan:
+for each photograph, one of ten fixed categories (chair, cup, bottle, potted plant, vase, clock,
+bench, umbrella, backpack, dog), rotated so that each is used about equally, with a box sized
+like a typical COCO instance of that category, placed in free space (no overlap with any labelled
+object, 8 px margin, up to 200 random positions); if no position fits, the next category is
+tried. Of the 600 sampled photographs, 544 admitted such a free-space box <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->. The remaining 56 (9.3%) had no free space and are excluded from every
+condition. They are close-ups rather than crowded scenes: they have the same median number of labelled
+objects as the kept photographs (4), but their object boxes cover a median 97% of the frame (kept: 32%),
+and in 52 of the 56 a single object covers more than half the image <!-- run:task1_real_baseline (plan failed_sources, seed 20261008; COCO val2017 annotations), see docs/RESEARCH_LOG.md 2026-10-11 -->.
+The benchmark therefore under-represents close-up, frame-filling shots (§8). Of the 544, 363 also
+admitted a controlled-occlusion box <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
+These 544 photographs are the benchmark's photograph set: the real-only baseline and the
+insertion run use exactly the same photographs, so results on unedited and edited images are
+comparable. For the insertion run they are planned again with the rules below.
+For each source we insert a class that is **already present** in that photograph's audited
+ground truth (any COCO class except *person*), so every edited photograph contains a photographed
+and an AI-generated instance of the same class. Among the classes present, the one used least so
+far is chosen, which keeps classes as balanced as the photographs allow. The box size follows that
+class's COCO size distribution, and the box is placed either in free space or overlapping 20–50% of
+one original object. One plan is shared by every condition of a source. The insertion run uses
+the same 544 photographs as the real-only baseline; with the same-class rule all 544 receive a
+plan, 474 with a free-space box and 407 with an occluding box (70 occlusion-only)
+<!-- run:task2_insertion (plan), file:paper/results/task2_insertion_plan.json -->; the 363 above
+is the week-1 plan with ten fixed categories. Because the main search tries a single occluding
+box size, a second pass gives an occluding box to plans without one: it tries several sizes,
+then a box sized from the covered object, and accepts covered objects of at least 32 px (instead
+of 64 px), with the other occlusion rules unchanged. This adds an occluding box to 128 of the
+137 photographs that lacked one, for 535 of 544 in total, without changing any other plan
+<!-- run:task2_insertion (plan with occlusion_fill, 2026-10-18), file:paper/results/task2_insertion_plan_occlusion_fill.json -->.
+The same single-size search left 70 photographs without a free-space box; trying several box
+sizes (and, if needed, another class present in the photograph) under unchanged free-space rules
+gives 57 of them one, for 531 of 544 with C2–C4 and 13 occlusion-only photographs
+<!-- run:task2_insertion (plan with occlusion_fill and free_fill, 2026-10-18), file:paper/results/task2_insertion_plan_fills.json -->.
 
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
-insertion without occlusion; C5 AI insertion with controlled occlusion.
+insertion of a class already in the photograph. The design originally placed AI objects under two separate
+rules, free space (touching no real object) and occlusion (covering 20–50% of one real object). Under those
+separate placement rules, 44 of 544 photographs still had no verified AI object after seven
+checked generation rounds <!-- run:task2_insertion (state after the round-7 check, 2026-10-18), file:paper/results/task2_insertion_merge_decision.json -->,
+so the two were merged into one AI condition whose only placement rule is the class (see
+"Merged AI condition" below).
 
-**Generators.** SDXL-Inpainting [Podell et al. 2024] and SD-2-Inpainting [Rombach et al. 2022] are
-*seen* generators. FLUX.1-Fill [BFL 2024], a flow-matching transformer, is *held out* and appears only
-in test. Inpainting operates on a square window of 2.5× the planned box at the generator's native
-resolution. Only pixels inside the dilated rectangular mask are composited back, with a feather that
+*Why each condition.* The conditions form a ladder in which neighbouring rungs differ in roughly
+one factor, so that any change in detector or forensic output can be attributed to one cause.
+C0 is the photograph exactly as distributed by COCO. It anchors the benchmark to ordinary,
+unedited images (detector accuracy and forensic false alarms on real photographs), and it is
+where the label audit is done. It is not used as the reference for edits, because its encoding
+differs from that of every edited image. C1 applies only the benchmark's decode–encode pipeline
+and is therefore the reference for every contrast (re-encoding alone already shifts every
+hand-crafted forensic score, §7.1); C0 versus C1 measures that re-encoding effect. C4 adds an AI-generated
+object in free space. Three controls isolate what in C4 is specific to *AI origin*:
+
+- *C2 (sham edit)* runs the same generator on the same box with the same pipeline, but with the
+  prompt "empty background" (and the object class as a negative prompt); a verifier confirms that
+  no object of the class appeared. The box therefore contains AI-repainted background and **no
+  object**. C2 is the analogue of a placebo: it receives the editing procedure without the
+  object. Without it, a forensic method that flags the C4 box could be responding to regenerated
+  pixels rather than to an AI-made object, and a detector change near the box could be caused by
+  repainting alone. C2 boxes are never scored as AI objects (§6); they measure how often methods
+  flag edited background, and they provide the "editing without a new object" control for H2.
+- *C3 (real paste)* composites a *photographed* object of the same class into the same box with
+  the same feathered blending. C3 versus C4 contrasts two objects that are both composited, one
+  real and one AI-made, so compositing seams alone cannot explain an origin difference.
+  No generator is involved: a donor instance of the same class is drawn (with a fixed seed) from
+  another COCO photograph, excluding crowd annotations, instances under 48 px on their shorter
+  side and instances touching their image border (likely truncated), and preferring donors whose
+  aspect ratio is within 25% of the box. The donor is cut out with its COCO segmentation mask,
+  scaled with its aspect ratio kept to fit the box (centred horizontally, bottom-aligned, as if
+  standing on the ground), and alpha-blended with the same 3 px feather as the AI edits; every
+  pixel outside the pasted mask is the original photograph, and the result is saved with the
+  same JPEG settings. C3 therefore contains only camera-recorded pixels, with the usual traces of
+  cut-and-paste (resampling, a soft seam, possibly mismatched lighting and noise). Its object is
+  a real-object negative: calling it "AI" counts as a false accusation. One difference from C4
+  remains, and C2 covers it: the background inside a C3 box is untouched, whereas in C4 it is
+  regenerated together with the object.
+- *C1* versus C2, C3 and C4 separates re-encoding from editing.
+
+*Why not only C0, C3 and C4?* The task is to decide, per object, whether it is AI-made, so one
+might expect the original (C0), a real inserted object (C3) and an AI inserted object (C4) to
+suffice. Two confounds rule this out. First, C0 is COCO's original file with its own JPEG
+history, whereas C3 and C4 have passed through the benchmark's decode–encode pipeline; a method
+could separate C0 from C3/C4 by detecting re-encoding alone, which already shifts every
+hand-crafted forensic score (§7.1). C1 is not a resize but the same photograph re-saved with
+exactly the settings of every edited image, so it is the real, unedited reference with matched
+encoding. Second, in C4 the generator regenerates the whole box, background included, not only
+the object, while C3 contains no generated pixels; a method that flags C4 but not C3 may detect
+*AI-repainted pixels* rather than an *AI-made object*. C2 applies the same generator to the same
+box with no object, so a method that flags C2 boxes as often as C4 boxes detects repainting, not
+AI objects. C2 also provides the "editing without a new object" control for H2 and a false-alarm
+rate on edited real backgrounds. Neither control changes the headline task: positives are only
+the AI objects of C4, negatives are photographed objects (including those pasted in C3), and C2
+boxes are never scored as objects (§6). Without C1 and C2, a separation of C3 from C4 objects
+could only be claimed as "pasted-real versus AI-inserted", not as evidence that methods respond
+to AI origin.
+
+C2, C3 and C4 share **one box** per photograph, so they differ only in what fills it: nothing
+(C2), a real object (C3) or an AI object (C4). When the AI insertion fails and is re-planned to a
+new box, C2 and C3 are regenerated at the new box to keep the triple matched.
+
+*Merged AI condition.* Each photograph has exactly one AI edit, chosen in this order: its
+verified free-space insertion; otherwise its verified insertion covering 20–50% of
+one real object; otherwise a new insertion of one of the photograph's own classes
+placed anywhere in the image, with no overlap rule (up to six boxes with three seeds each, and
+the verifier must still confirm the object). When a photograph had both a free-space and an
+occluding insertion, the free-space one is used because its matched C2 and C3 already exist; the
+occluding one leaves the benchmark. C2 and C3 are always generated at the box of the chosen AI
+edit, so the triple stays matched. The ledger records the origin of every AI edit (free space,
+occluding, or anywhere): 464, 38 and 42 of the 544
+<!-- run:task2_insertion (final verify 2026-10-18 15:02), file:paper/results/task2_insertion_final.json -->.
+
+This merge has a cost that we state openly. The separate occlusion rule isolated occlusion as a controlled
+factor: H2 asked whether insertions disturb untouched real objects beyond resaving, sham
+editing, real pasting *and* occlusion. With one AI condition, AI edits that cover a real object
+and those that do not are no longer assigned by design. We therefore evaluate H2 on original
+objects that the AI object does not cover, and analyse covered objects separately, stratified by
+their recomputed visible fraction. That analysis is observational: which photographs received an
+occluding edit depends on where the rules could place a box and on which edits the verifier
+accepted. Occluding AI edits remain the hardest case for origin estimation, because AI and
+photographed pixels meet along the occluding edge and the partly covered real object is where a
+false "AI" accusation is most likely, so origin metrics are also reported per AI-edit origin.
+When the AI object covers part of a real object, so does the C2 sham at the same box: the sham
+repaints part of that object, which is then marked *mixed/modified*.
+
+**Table 1b.** What each condition tests.
+
+| Cond. | Changed relative to the previous rung | Comparison | What it tests | Used for |
+|---|---|---|---|---|
+| C0 | — (original file) | C0 | detectors and forensics on unedited real photographs; label audit | baseline, false alarms on real photos |
+| C1 | re-encoding with the benchmark pipeline | C1 vs C0 | effect of re-encoding alone | reference for all edits |
+| C2 | AI repainting of the box, no object | C2 vs C1 | effect of AI editing without a new object; false "AI" flags on edited background | H2, H3 (control) |
+| C3 | a real object composited into the box | C3 vs C2, C4 | compositing a photographed object; real-object negatives in the same box as C4 | H1, H3 (control) |
+| C4 | an AI object of a class in the photo, anywhere (free-space, occluding or anywhere placement) | C4 vs C1, C2, C3; covered vs not covered | origin of an AI object; occlusion effects (observational) | H1, H2, H3, H4 |
+
+**Generator.** All insertions use SDXL-Inpainting [Podell et al. 2024]. A second seen generator and
+a held-out generator were planned but are left to future work (§8). Inpainting operates on a square
+window of 1.2× the planned box at the generator's native resolution (a wider 2.5× window mostly
+made the generator fill the box with background in our pilot); verification looks at a 2.5×
+region. Only pixels inside the dilated rectangular mask are composited back, with a feather that
 vanishes at the mask border, so every pixel outside the intended mask is identical to the matched
-resave C1. FLUX.1-Fill is applied only to test-split sources.
+resave C1.
 
 **Held-out source domain.** To test whether conclusions transfer beyond COCO, we build a small
 test-only set of [[TBD: ~100]] Open Images V7 [Kuznetsova et al. 2020] photographs with conditions C1–C4,
-using one seen (SDXL) and one held-out (FLUX.1-Fill) generator. No model, calibrator or threshold is fit
+using the same generator (SDXL). No model, calibrator or threshold is fit
 on this set. Because Open Images boxes are exhaustive only for classes verified at image level, we
 score only verified classes and ignore the rest. We use Open Images rather than Objects365 because
 the latter is part of Grounding DINO's pretraining data [Liu et al. 2024].
 
-**Encoding policy.** All images in C1–C5 pass through the same decode → edit → JPEG (q=95, 4:4:4)
+**Encoding policy.** All images in C1–C4 pass through the same decode → edit → JPEG (q=95, 4:4:4)
 pipeline, so file format cannot reveal origin.
 
 **Verification and annotation.** An open-vocabulary verifier (OWLv2 [Minderer et al. 2023]), which is
-not among the evaluated detectors, confirms each insertion. SAM [Kirillov et al. 2023] provides its
-mask. Failed insertions are retried with new seeds or discarded
-([[TBD: success rate]]). We record the actual changed region separately from the intended mask, and
-we mark original objects overlapped by more than 10% as *mixed/modified*. A human audit of
-[[TBD: 10%]] of edits finds [[TBD: audit results]].
+not among the evaluated detectors, confirms each insertion: it must find the target class around the edit with score ≥ 0.2 and
+either IoU ≥ 0.3 to the planned box or at least 80% of the detection inside it (inserted objects
+are often smaller than the box); a detection that coincides with a same-class original object
+does not count. A sham edit (C2) passes only if the verifier finds no such object; since a sham
+box may now cover part of a real object of the class, a detection lying for at least a quarter of
+its area on that real object is attributed to it, not to the sham. Failed
+edits are regenerated with a new seed, up to three attempts per box; if all fail, the edit is
+re-planned with a new box resting on a supporting surface and sized like the photograph's own
+instance of the class (the sham and paste controls move with it), up to three new boxes, then
+switched to another class already present in the photograph; a photograph with no verified
+object of its own classes may, as a last resort, receive one of the ten original categories that
+it does not contain (flagged and excluded from same-class analyses), and if no box satisfies
+the placement rules at all, an occluding box may be placed anywhere (flagged). After the merge
+into one AI condition, a photograph still without a verified AI object receives boxes of its own
+classes placed anywhere (six boxes, three seeds each). This gives a verified AI object for 537
+of 544 photographs (464 from the free-space rule, 38 from the occlusion rule, 35 placed anywhere)
+<!-- run:task2_insertion (merged run, verify 2026-10-18 06:23), file:paper/results/task2_insertion_merged_round_final.json -->.
+The remaining 7 are close-ups of a single large object (bed, train, toilet) whose box landed on
+the real object, which the verifier never accepts, or cluttered scenes whose small classes it did
+not recognise; they receive six more boxes that cover at most 30% of their area with a real object
+of the same class; five of the seven then pass. The last two, close-ups of a single bed and a
+single train, pass only with boxes in the image's bottom-left corner, at verifier scores at the
+threshold, and are flagged for the human audit. Four sham edits whose box partly covered a real
+object of the class were rejected because the verifier detected that real object; with
+detections lying mostly on a real object attributed to it, they pass on a new seed. All 544
+photographs thus have all five conditions; their 544 AI edits come from the free-space rule
+(464), the occlusion rule (38) or placement anywhere (42)
+<!-- run:task2_insertion (final verify 2026-10-18 15:02), file:paper/results/task2_insertion_final.json -->. SAM [Kirillov et al. 2023], prompted with the
+verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
+objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
+become ignore regions. We record the actual changed region separately from the intended mask, and
+we mark original objects overlapped by more than 10% as *mixed/modified*. A person audits
+every AI insertion (544), judging object presence, realism and changes outside the box; a
+random subset of 52 gives an unbiased estimate of the verifier's error rate
+[[TBD: audit results]]. Insertions the auditor rejects are removed from the benchmark. Sham
+edits are checked by the verifier only.
 
 **Table 1.** Conditions and statistics. [[TBD: images, instances per origin, per condition]]
 
 | Cond. | Description | #images | #photographed | #AI-inserted | #real-pasted |
 |---|---|---|---|---|---|
-| C0 | untouched | [[TBD]] | [[TBD]] | – | – |
-| C1 | matched resave | [[TBD]] | [[TBD]] | – | – |
+| C0 | untouched | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
+| C1 | matched resave | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
 | C2 | sham edit | [[TBD]] | [[TBD]] | – | – |
 | C3 | real paste | [[TBD]] | [[TBD]] | – | [[TBD]] |
 | C4 | AI insert | [[TBD]] | [[TBD]] | [[TBD]] | – |
-| C5 | AI insert + occlusion | [[TBD]] | [[TBD]] | [[TBD]] | – |
 
-**Figure 1.** [[TBD: example source with C1–C5 panels and instance origin overlays]]
+**Figure 1.** [[TBD: example source with C1–C4 panels and instance origin overlays]]
 
 ---
 
 ## 5. Methods evaluated
 
 **Detectors (frozen, COCO-trained).** Faster R-CNN R50-FPN v2 [Ren et al. 2015], YOLO11-m [Jocher &
-Qiu 2024], RT-DETR-R50 [Zhao et al. 2024], and Grounding DINO-T [Liu et al. 2024] prompted with COCO
-class names.
+Qiu 2024], RT-DETR-R50 [Zhao et al. 2024], and Grounding DINO-T [Liu et al. 2024]. Grounding DINO
+receives the same text for every image: the 80 COCO class names, sorted alphabetically and split into
+four prompts of 20 names (e.g. "airplane. apple. backpack. …"), one forward pass per prompt because of
+its text-length limit. A box's score for a class is the maximum token score over that class name's
+tokens; boxes are kept at score ≥ 0.05, and the top 100 per image over all four prompts are evaluated.
+The prompt never depends on the image or its edits.
 
-**Hand-crafted forensics.** F1 error level analysis [Krawetz 2007]; F2 SRM high-pass residual variance
+**Hand-crafted forensics.** Each produces a dense map in which higher means more suspicious. For
+F3–F5 the map is the absolute deviation of a local statistic from the image median. F1 error level
+analysis [Krawetz 2007]; F2 SRM high-pass residual variance
 [Fridrich & Kodovsky 2012]; F3 local noise-level inconsistency (wavelet MAD) [Mahdian & Saic 2009];
 F4 high-frequency spectral energy [Durall et al. 2020]; F5 JPEG blocking-artifact grid [Li et al.
 2009].
 
 **Learned forensics.** L1 TruFor [Guillaro et al. 2023]; L2 a UnivFD-style CLIP probe [Ojha et al.
-2023]; L3 a CLIP-feature logistic probe trained on object crops from the seen generators of our train
-split (an in-domain upper reference); L4 B-Free [Guillaro et al. 2025] [[TBD: if runnable]].
+2023]; L3 a CLIP-feature logistic probe trained on SDXL object crops of our train split (an in-domain
+upper reference); L4 B-Free [Guillaro et al. 2025] [[TBD: if runnable]].
 
 **Instance scoring.** Each map-producing method is converted to a per-instance score in three ways:
 *image-level* (one score per image), *region-pooled* (mean / 95th percentile inside the instance mask)
@@ -216,11 +413,19 @@ and *instance-conditioned* (interior minus a surrounding context ring). Scores a
 
 ## 6. Metrics
 
-*Semantic*: COCO AP/AR [Lin et al. 2014], reported separately for original and inserted subsets.
+*Semantic*: COCO AP/AR [Lin et al. 2014]. Following COCO, "AP" denotes average precision averaged
+over the 80 categories and over IoU thresholds 0.50:0.05:0.95 (i.e. COCO mAP); AP50 uses IoU 0.50 only.
+It is reported separately for original and inserted subsets.
 *Matched-instance change*: for each original instance, the detected→missed rate, class flips, box IoU
 drift and score change from C1 to each condition, stratified by distance to the edit and by
 visibility. *Origin*: AUROC, AUPRC, TPR at 5% FPR and the **real-object false-accusation rate** at 80%
-TPR, computed both with oracle localisation and end to end. *Joint origin-aware AP*: a true positive
+TPR, computed both with oracle localisation and end to end. Origin metrics are computed **over
+objects only**: positives are AI-inserted objects (C4); negatives are photographed objects,
+including the real pasted objects of C3. A C2 box contains no object and is never a positive or a
+negative object; instead we report an *edited-background flag rate*, the share of C2 boxes a
+method scores above its operating threshold. A method that flags C4 and C2 boxes alike detects
+regenerated pixels rather than AI objects, which the main metric alone cannot reveal.
+*Joint origin-aware AP*: a true positive
 requires the class, IoU ≥ 0.5 and the correct origin. *Calibration*: ECE, Brier score and
 risk–coverage (AURC) [Guo et al. 2017; Geifman & El-Yaniv 2017]. All numbers have 95% bootstrap CIs
 over source photographs (1000 resamples), because edits of one photograph are correlated.
@@ -233,42 +438,94 @@ over source photographs (1000 resamples), because edits of one photograph are co
 Before any insertion, we run every detector and forensic method on the untouched (C0) and resaved
 (C1) photographs. COCO predates diffusion-based editing, so every object is photographed and every
 "AI" flag is a false alarm.
-**Table 2a.** Detector AP on C0 vs C1; per-method false-alarm rate on real photographs at the
-threshold later used for AI detection. [[TBD: run real_baseline]]
-**Finding.** [[TBD]]
+**Table 2a.** Detector AP on 544 unedited COCO val2017 photographs (C0) and their matched resaves
+(C1), with per-object detection flips caused only by resaving. Ground truth includes the 77 audit-added labels. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v4_200boot.md -->
+
+| Detector | AP C0 [95% CI] | AP C1 [95% CI] | AP50 C0 | AR100 C0 | lost C0→C1 | gained C0→C1 |
+|---|---|---|---|---|---|---|
+| Faster R-CNN v2 | 0.500 [0.460, 0.515] | 0.498 [0.460, 0.510] | 0.702 | 0.628 | 0.58% | 0.66% |
+| YOLO11-m | 0.530 [0.484, 0.547] | 0.528 [0.487, 0.547] | 0.692 | 0.651 | 0.53% | 0.40% |
+| RT-DETR-R50 | 0.512 [0.479, 0.527] | 0.511 [0.476, 0.532] | 0.675 | 0.635 | 0.66% | 0.45% |
+| Grounding DINO-T | 0.515 [0.481, 0.532] | 0.515 [0.476, 0.525] | 0.664 | 0.685 | 0.76% | 0.73% |
+
+Flips are over 3,959 photographed objects (3,882 COCO labels + 77 audit additions). An object counts as detected with a same-class prediction
+at IoU ≥ 0.5 and score ≥ 0.5. AP intervals are basic bootstrap intervals over source photographs
+(200 resamples).
+
+**Table 2b.** Hand-crafted forensic scores on real photographs. Image score is the 99th percentile
+minus the median of the map. Per-object contrast is the mean inside the object minus the mean in a
+surrounding context ring, over the 3,882 original COCO labels. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v4_200boot.md -->
+
+| Method | image score C0 (mean) | resave shift C1 − C0 [95% CI] | object contrast C1 (mean ± sd) |
+|---|---|---|---|
+| F1 ELA | 5.05 | +0.188 [0.170, 0.206] (+3.7%) | 0.515 ± 1.33 |
+| F2 SRM residual | 3.05 | −0.106 [−0.114, −0.099] (−3.5%) | 0.290 ± 0.81 |
+| F3 noise level | 10.38 | −0.089 [−0.142, −0.038] (−0.9%) | 0.254 ± 1.62 |
+| F4 FFT high-freq. | 0.365 | +0.0045 [0.0029, 0.0064] (+1.2%) | −0.002 ± 0.045 |
+| F5 JPEG blocking grid | 0.532 | −0.025 [−0.027, −0.022] (−4.7%) | −0.003 ± 0.052 |
+
+**Findings.** (i) The detectors reach AP 0.50–0.53 on our 544 sources, and resaving with the
+benchmark encoding changes AP by at most 0.002. Resaving alone flips 0.4–0.8% of photographed
+objects between detected and missed, in both directions. This is the noise floor against which
+insertion-induced changes to real objects (H2) must be judged. (ii) Every hand-crafted method
+responds to resaving, with CIs excluding zero: ELA rises by 3.7%, while SRM and the blocking-grid
+score fall by 3.5% and 4.7%. Comparing
+edited images against the original C0 rather than the matched resave C1 would therefore confound
+editing with re-encoding, which justifies C1 as the reference condition. (iii) Real objects are
+already more "suspicious" than their surroundings for ELA, SRM and noise level (positive mean
+contrast, sd ≈ 1–1.6). Object interiors carry more texture and edges than their context, so a naive
+"object stands out" rule would accuse real objects. Origin scores must be calibrated against
+photographed objects of similar content, not against zero. The frequency (F4) and blocking-grid
+(F5) scores show no such bias (mean contrast ≈ 0), so they may be less confounded by object texture. Fixed-threshold false-alarm rates are
+reported in §7.4.
+(iv) In 70 of 544 photographs (12.9%), at least two detectors agree on a confident object that COCO
+does not label (107 candidates), consistent with [Incomplete Benchmarks 2026]. Visual review confirms 77 as real
+missing objects, leaves 26 ambiguous (ignore regions) and rejects 4 (e.g. deer detected as sheep, a
+candle as a cup). Adding the confirmed labels raises AP by 0.004–0.006 for every detector, so
+unaudited COCO labels slightly understate detector accuracy. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v3_audited.md -->
 
 ### 7.2 Do detectors see inserted objects, and does confidence reveal origin? (H1)
 **Table 2.** AP / AR on original vs inserted instances per detector and condition. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.3 Do insertions disturb real objects? (H2)
-**Figure 2.** Matched-instance change rates (C2, C3, C4, C5 vs C1) by distance to the edit. [[TBD]]
+**Figure 2.** Matched-instance change rates (C2, C3, C4 vs C1) by distance to the edit, on original
+objects the AI object does not cover; covered objects shown separately by visible fraction. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.4 Can forensics tell origin per object? (H3)
 **Table 3.** Origin AUROC / AUPRC / false-accusation rate per method × scoring mode, oracle
-localisation, seen generators. [[TBD]]
+localisation. [[TBD]]
 **Table 4.** End-to-end joint origin-aware AP and calibration of composed systems. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.5 Generalisation and robustness (H4)
-**Table 5.** Held-out generator (FLUX.1-Fill) and held-out source domain (Open Images), in a 2×2 grid: seen/held-out generator × COCO/Open Images. [[TBD]]
+**Table 5.** Held-out source domain: COCO test split vs Open Images (SDXL insertions in both). [[TBD]]
 **Figure 3.** AUROC under JPEG 95/75/50, 0.5× resize, blur, screenshot. [[TBD]]
 **Finding.** [[TBD]]
 
 ### 7.6 Controls: what are the detectors actually responding to?
-C3 (real paste) and C2 (sham) results that separate origin from compositing and editing. [[TBD]]
+For each forensic method, the origin score on C4 objects against the edited-background flag rate
+on C2 boxes (does it detect AI objects or any regenerated region?), and C4 against C3 objects
+(AI-made versus real objects composited the same way). For detectors, false detections inside
+empty C2 boxes, and matched-instance changes under C2 versus C4 (does repainting alone disturb
+nearby real objects?). [[TBD]]
 
-### 7.7 (P1) Origin claims in grounded captions
+### 7.7 Origin claims in grounded captions (H5)
 **Table 6.** False-AI / false-real / abstention rates for Florence-2 and Qwen2.5-VL across three
-prompt settings, including unedited images. [[TBD: or move to supplementary / drop]]
+prompt settings, including unedited images. [[TBD]]
+**Finding.** [[TBD]]
 
 ---
 
 ## 8. Limitations, ethics and broader impact
 
-InlayFake covers ten non-human object categories, one main source domain (COCO) with a small held-out
-Open Images test set, and three open inpainting models. Commercial editors and other domains may behave differently. Pixel evidence cannot recover an
+InlayFake under-represents close-up, frame-filling photographs (9.3% of sampled sources had no free
+space for an insertion, mostly because one object fills the frame), one main source domain (COCO)
+with a small held-out Open Images test set, and **a single inpainting model (SDXL)**. Our findings
+may therefore be specific to SDXL; whether they transfer to other inpainting models (e.g.
+SD-2-Inpainting, FLUX.1-Fill) or commercial editors is not tested here and is left to future work.
+Other domains may also behave differently. Pixel evidence cannot recover an
 edit history with certainty, so models should be able to abstain, and our labels describe *how the
 image was made*, not whether anyone intended to deceive. Benign creative edits are in scope, and
 calling a real object fake is treated as a harm, not merely an error. We do not generate people or
@@ -332,3 +589,7 @@ All entries must be checked against the published versions before submission. En
 - [Zhang et al. 2023] H. Zhang et al. DINO: DETR with Improved DeNoising Anchor Boxes for End-to-End Object Detection. ICLR 2023.
 - [Zhao et al. 2024] Y. Zhao et al. DETRs Beat YOLOs on Real-time Object Detection (RT-DETR). CVPR 2024.
 - [Zhu et al. 2023] M. Zhu et al. GenImage: A Million-Scale Benchmark for Detecting AI-Generated Image. NeurIPS 2023 (Datasets & Benchmarks).
+- [COinCO 2026] Common Inpainted Objects In-N-Out of Context. CVPR 2026. [verify authors]
+- [COCO-Inpaint 2025] COCO-Inpaint: A Benchmark for Detecting and Localizing Inpainting-Based Image Manipulations. arXiv 2504.18361, 2025. [verify venue]
+- [INP-X 2026] AI-Generated Image Detectors Overrely on Global Artifacts: Evidence from Inpainting Exchange. arXiv 2602.00192, 2026. [verify]
+- [TGIF 2024] TGIF: Text-Guided Inpainting Forgery Dataset. arXiv 2407.11566, 2024. [verify venue]

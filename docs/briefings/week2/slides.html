@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InlayFake Week 2 Update</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400..700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+body{margin:0;padding:24px;background:#d9d7d0;font:15px 'IBM Plex Sans',Arial,sans-serif;color:#14213D}
+h1.page{font:600 22px 'Source Serif 4',Georgia,serif;margin:0 auto 16px;max-width:1200px}
+.slide{margin:0 auto 32px;max-width:1200px}
+.frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.frame>section{position:absolute;left:0;top:0;width:1920px;height:1080px;box-sizing:border-box;transform-origin:0 0}
+.frame section *{margin:0;box-sizing:border-box}
+.frame section ul,.frame section ol{padding-left:1.2em}
+.frame section table{border-collapse:collapse}
+.frame section th,.frame section td{padding:.35em .6em;border-bottom:1px solid #cfccc3}
+figcaption{margin-top:8px;line-height:1.5;color:#33415c}
+</style></head><body>
+<h1 class="page">InlayFake Week 2 Update (speaker notes under each slide)</h1>
+<figure class="slide"><div class="frame"><section id="cover" data-transition="fade" style="background:#14213D;color:#F7F6F2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:40px">
+<p style="font-size:32px;font-weight:600;color:#E8A06A;letter-spacing:4px;text-transform:uppercase">CVPR 2027 project · Progress briefing</p>
+<h1 style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1.05;color:#F7F6F2">InlayFake: Week 2</h1>
+<p style="font-size:44px;line-height:1.3;color:#C9D2E3;width:1400px">Inserting AI objects into real photos, with matched controls and verification</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1200px;font-size:24px;color:#9AA6BD">15–21 October 2026 · Ryan Wong · last updated 17 October 2026</p>
+</section></div><figcaption><b>Slide 1.</b> Week 2 of five. The insertion and verification code is written and tested, and two 50-photo SDXL pilots ran on the laptop GPU on 16 October.</figcaption></figure><figure class="slide"><div class="frame"><section id="how" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">How an insertion works</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;width:1600px">The generator only repaints the planned box; everything else stays identical to C1</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">1. Window</h3><p style="font-size:28px;line-height:1.45;color:#4A5568">Square crop of 2.5× the planned box, so the generator sees the scene.</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">2. Inpaint</h3><p style="font-size:28px;line-height:1.45;color:#4A5568">"a photo of a chair, realistic, natural lighting" inside the box, at the generator's native size.</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">3. Composite</h3><p style="font-size:28px;line-height:1.45;color:#4A5568">Only pixels inside the mask are blended back, then saved as JPEG q95 like C1.</p></div>
+</div>
+</section></div><figcaption><b>Slide 2.</b> The mask-only composite and identical JPEG settings stop a method from detecting the edit through format or global re-encoding instead of the object itself.</figcaption></figure><figure class="slide"><div class="frame"><section id="conditions" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Matched conditions</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Controls separate "AI object" from "edited" and "pasted"</h2>
+<table style="font-size:30px;width:1660px">
+<tr><th style="text-align:left">Condition</th><th style="text-align:left">What it is</th><th style="text-align:left">Generator</th></tr>
+<tr><td>C2 sham</td><td>Same mask, "empty background": the editor runs but adds nothing</td><td>SDXL</td></tr>
+<tr><td>C3 real paste</td><td>A real COCO object of the same class pasted into the box</td><td>none</td></tr>
+<tr><td>C4 AI insert</td><td>AI object of a class in the photo, anywhere (C4 and C4-occ merged 18 Oct)</td><td>SDXL (SD2, FLUX dropped 17 Oct)</td></tr>
+</table>
+</section></div><figcaption><b>Slide 3.</b> If a method flags C4 but also C2 or C3, it reacts to editing or pasting rather than to AI origin. Since 16 October the inserted (and pasted) class is one already in the photo, so each edited photo has a real and an AI object of the same class.</figcaption></figure><figure class="slide"><div class="frame"><section id="verify" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">New code: verification</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Every edit is checked before it enters the benchmark</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">Object present?</h3><ul style="font-size:28px;line-height:1.45;color:#4A5568"><li>OWLv2, not an evaluated detector, must find the class in the box</li><li>Sham edits must contain no object</li><li>Failures are regenerated with a new seed, up to 3 times</li></ul></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px"><h3 style="font-size:32px;font-weight:600">Ground truth</h3><ul style="font-size:28px;line-height:1.45;color:#4A5568"><li>SAM outline of each inserted object</li><li>Actual changed region per image</li><li>Visible fraction of occluded real objects</li><li>10% human audit sheet</li></ul></div>
+</div>
+</section></div><figcaption><b>Slide 4.</b> 48 CPU tests pass, including a forced verifier failure that is retried with a new seed. The real OWLv2 and SAM weights run for the first time in the pilot.</figcaption></figure><figure class="slide"><div class="frame"><section id="next" data-transition="fade" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Results and next steps</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15">Verified AI objects: from 6% to 93% (C4)</h2>
+<div style="display:flex;gap:40px">
+<div style="flex:3;display:flex;flex-direction:column;gap:20px;background:#ECEAE3;padding:48px;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600">Results</h3>
+<ul style="font-size:28px;line-height:1.45;color:#4A5568"><li>Pilot (46 photos, attempt 1): object confirmed in C4 4/46, C4-occ 1/38</li><li>Failed boxes hold background (sky, grass, road), not a missed object; no code bug</li><li>Sham: 0/46 contain the target class (one produced a bird)</li><li>SDXL: 21.6 s per image</li><li>Surface pilot (boxes on floor/table): C4 0/35, C4-occ 4/19, no better</li><li>Window 2.5× / 1.5× / 1.2× on 12 failed edits: 1 / 5 / 7 inserted</li><li>New rule: insert a class already in the photo (pilot re-planned: 41/50 photos, 31 classes)</li><li>Same-class pilot, window 1.2×, looser check: verified C4 27/41, C4-occ 17/34, sham 41/41 clean</li><li>Plus a new box after failures: verified C4 38/41 (93%), C4-occ 25/34 (74%)</li><li>Plus another class in the photo as last resort: 46 of 50 photos have an AI object</li><li>Plus occluding boxes sized from the covered object: 48 of 50</li><li>Plus a class not in the photo as last resort (flagged): 49 of 50</li><li>Plus an occluding box anywhere (flagged): 50 of 50, one doubtful</li><li>Full run set up on the 544 week-1 photos: all planned, ~28 h GPU expected</li><li>Full run round 1: C4 269/474, C4-occ 123/407 passed; 491 retried</li><li>Merged AI condition (18 Oct): 537 of 544 photos have an AI edit (C4 464, C4-occ 38, anywhere 35); 7 dropped, re-run with 6 more boxes; final: all 544 photos complete C0–C4 (bed and train only in the corner, doubtful); audit of all 544 C4 edits next</li><li>Full run and human audit: [[TBD]]</li></ul>
+</div>
+<div style="flex:2;display:flex;flex-direction:column;gap:20px;background:#FFFFFF;padding:48px;border:2px solid #B04A12;border-radius:16px">
+<h3 style="font-size:36px;font-weight:600;color:#B04A12">To discuss</h3>
+<ul style="font-size:28px;line-height:1.45;color:#4A5568"><li><b>C4 and C4-occ merged</b> (44 photos lacked an AI object): H2 loses its controlled occlusion condition; OK?</li><li>Closest work: COinCO (CVPR 2026, COCO object replacement). Our edge: every object labelled, real-paste control, same-class pairs, detector study</li><li>Scope: SDXL only (SD2 and held-out FLUX dropped for time); is one generator enough?</li><li>C2 sham kept as the "placebo" control; condition rationale now in the paper</li><li>C4-occ for 128 more photos (covered objects down to 32 px): 535 of 544 have a C4-occ box</li><li>C4 for 57 more photos (more box sizes, rules unchanged): 531 of 544 have a C4 box</li><li>Edit window 1.2–1.5×? Keep surface placement (costs 11 of 46 plans)?</li><li>OWLv2 misses some visible objects</li><li>Same-class rule: add surface placement and photo-based box size?</li><li>Should the sham check look for any new object?</li></ul>
+</div>
+</div>
+</section></div><figcaption><b>Slide 5.</b> Pilot numbers from run task2_pilot (16 Oct). A second pilot (task2_pilot_surface) put every box on a floor or table and did no better, so placement was not the cause. When the box is only 40% of the generator's canvas, SDXL completes the background; a tighter window made it paint the object in 7 of 12 cases. The full run task2_insertion waits for that change.</figcaption></figure>
+<script>
+function fit(){document.querySelectorAll('.frame').forEach(f=>{f.firstElementChild.style.transform='scale('+f.clientWidth/1920+')';});}
+addEventListener('resize',fit);fit();
+</script></body></html>

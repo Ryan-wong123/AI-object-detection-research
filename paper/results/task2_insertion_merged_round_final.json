@@ -1,0 +1,43 @@
+{
+ "run": "task2_insertion",
+ "what": "merged AI condition, boxes 1-6 anywhere, before the re-run of the dropped photos",
+ "verify_file": "run_verify_2026-10-17T222301Z.json",
+ "merged_ai_source": {
+  "C4": 464,
+  "C5": 38,
+  "anywhere": 35,
+  "none yet": 7
+ },
+ "final_ledger_records": 2695,
+ "preview_counts": {
+  "complete_C0_C4": 533,
+  "ai_from_C4": 464,
+  "ai_from_C5": 38,
+  "ai_anywhere": 35,
+  "ai_dropped": 7,
+  "c2_missing": 11,
+  "c3_missing": 7,
+  "c2_dropped_with_ai": [
+   108440,
+   203580,
+   259571,
+   262938
+  ]
+ },
+ "dropped_photos": [
+  10995,
+  65074,
+  151857,
+  262048,
+  277051,
+  455981,
+  472678
+ ],
+ "dropped_diagnosis_owlv2_rerun_on_210_failed_attempts": {
+  "real_same_class_object_only": 59,
+  "strong_detection_outside_box": 93,
+  "weak_score_below_0.2": 32,
+  "nothing_detected": 26,
+  "note": "read-only re-run of OWLv2 on all 210 failed C4/C5/anywhere attempts of the 7 photos; one category per attempt"
+ }
+}

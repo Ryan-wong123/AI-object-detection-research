@@ -3,5 +3,8 @@
 # photographs later used to measure how often detectors and forensic methods raise false alarms.
 # It uses the same work dir and seed as the full run, so the later AI stages reuse these images.
 inherit: default.yaml
+run_name: task1_real_baseline
 conditions: [C0, C1]
 generators_enabled: []
+eval:
+  ap_bootstrap: 200                    # final-table setting (default.yaml uses 20 for quick runs)

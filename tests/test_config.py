@@ -14,5 +14,29 @@ def test_pilot_inherits_default():
     assert config_hash(cfg) != config_hash(load_config(ROOT / "configs" / "default.yaml"))
 
 
+def test_full_run_uses_the_pilot_settings():
+    """configs/insertion_inphoto.yaml = pilot_inphoto settings on all 600 sources, new work dir."""
+    pilot = load_config(ROOT / "configs" / "pilot_inphoto.yaml")
+    full = load_config(ROOT / "configs" / "insertion_inphoto.yaml")
+    for key in ("edit", "generators_enabled", "encoding", "generation"):
+        assert full[key] == pilot[key], key
+    # verify: identical except the sham rule and full C4 audit added to the full run (2026-10-18)
+    added = ("sham_original_overlap", "audit_all_conditions", "audit_only_conditions")
+    full_v = {k: v for k, v in full["verify"].items() if k not in added}
+    assert full_v == {k: v for k, v in pilot["verify"].items() if k not in added}
+    # placement: identical except the C5 fill added to the full run on 2026-10-18
+    # fills and the merged AI condition: added to the full run on 2026-10-18
+    fills = ("occlusion_fill", "free_fill", "merged")
+    strip = lambda p: {k: v for k, v in p.items() if k not in fills}  # noqa: E731
+    assert strip(full["placement"]) == strip(pilot["placement"])
+    for f in fills:
+        assert full["placement"][f]["enabled"] is True
+        assert pilot["placement"][f]["enabled"] is False
+    assert full["sampling"]["n_sources"] == 600 and pilot["sampling"]["n_sources"] == 50
+    assert full["paths"]["work"] not in ("data/inlayfake", pilot["paths"]["work"])
+    assert full["run_name"] == "task2_insertion"
+    assert full["sampling"]["only_sources"] == "data/inlayfake/plans.jsonl"  # week-1 photos
+
+
 def test_cli_help():
     assert main([]) == 0

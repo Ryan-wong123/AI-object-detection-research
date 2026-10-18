@@ -7,5 +7,17 @@ hardware:
 generators_enabled: [G1]
 generators:
   G1: {model_id: fake, resolution: 256, role: seen}
+run_name: dryrun
+verify:
+  model_id: fake
+detect:
+  detectors: [fake_a, fake_b]
+detectors:
+  fake_a: {impl: fake}
+  fake_b: {impl: fake}
+eval:
+  bootstrap_resamples: 50
+  ap_bootstrap: 5
 paths:
   work: data/inlayfake_dryrun
+  runs: runs

@@ -69,14 +69,17 @@ def local_edit(
     dilate: float,
     feather: float,
     composite_mode: str = "mask",
+    min_window: int = 256,
 ) -> tuple[np.ndarray, np.ndarray, list[int]]:
     """Inpaint ``box`` and return (edited image, intended mask bool HxW, crop window).
 
     ``composite_mode="window"`` is the ablation that keeps the generator output for the whole
-    window (including VAE re-encoding outside the mask).
+    window (including VAE re-encoding outside the mask). ``min_window`` is the smallest window
+    side in pixels; the box's share of the generator canvas is ``1 / window_scale`` only when
+    the window is not raised to this minimum.
     """
     H, W = image.shape[:2]
-    win = crop_window(box, W, H, window_scale)
+    win = crop_window(box, W, H, window_scale, min_window)
     rect = rect_mask(box, W, H, dilate)
     intended = np.zeros((H, W), dtype=bool)
     intended[rect[1] : rect[3], rect[0] : rect[2]] = True

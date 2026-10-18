@@ -29,6 +29,9 @@ inlayfake = "inlayfake.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+inlayfake = ["stages/*.html"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
@@ -39,3 +42,6 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# Keep test temp files inside the repo: on some Windows setups pytest cannot access
+# %TEMP%\pytest-of-<user> (WinError 5). pytest empties this folder at the start of each run.
+addopts = "--basetemp=.pytest_tmp"

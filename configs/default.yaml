@@ -1,6 +1,7 @@
 # InlayFake default configuration. Every stage reads from here; runs copy the resolved config.
 project: inlayfake
 seed: 20261008
+run_name: main                       # outputs go to runs/<run_name>/
 
 paths:
   coco_annotations: data/coco/annotations/instances_val2017.json
@@ -14,12 +15,14 @@ hardware:
   dtype: float16
   gpu: NVIDIA GeForce RTX 4070 Laptop GPU  # nvidia-smi, 2026-10-08
   vram_gb: 8
+  ram_gb: 32                         # systeminfo "Total Physical Memory: 32,471 MB", 2026-10-16
   cpu_offload: true
 
 sampling:
   n_sources: 600
   split: {train: 0.6, val: 0.2, test: 0.2}
   max_person_area_frac: 0.30
+  only_sources: null                   # plan only these source_ids (a jsonl with source_id rows)
   min_image_side: 256
   categories: [chair, cup, bottle, potted plant, vase, clock, bench, umbrella, backpack, dog]
 
@@ -29,6 +32,55 @@ placement:
   margin_px: 8
   occlusion_frac: [0.2, 0.5]           # C5: fraction of the occluded original instance covered
   max_tries: 200
+  class_choice: fixed                  # fixed: cycle sampling.categories (week 1) | in_photo: a
+                                       # class already in the photo's audited GT (pilot_inphoto.yaml)
+  exclude_classes: [person]            # never inserted (ethics, AGENTS.md rule 10)
+  audit_decisions: null                # in_photo: week-1 audit CSV ("add" rows count as present)
+  occlusion_fill:                      # give a C5 box to plans that have none (plan stage)
+    enabled: false                     # off: plans stay as before (week 1, pilots)
+    min_target_px: 32                  # smallest covered object, box side (original rule: 64)
+    sizes: 6                           # box sizes tried (the main search tries one)
+    max_other_frac: 0.05               # unchanged: other objects covered at most 5%
+  free_fill:                           # give a C4 box to plans that have none (plan stage)
+    enabled: false                     # off: plans stay as before (week 1, pilots)
+    sizes: 6                           # box sizes tried per class (the main search tries one);
+                                       # the C4 rules (incl. margin_px) are unchanged
+  allow_anywhere: false                # very last resort: a C5 box anywhere, no overlap rule
+                                       # (ledger placement_rule "anywhere")
+  merged:                              # one AI condition instead of C4 + C5 (insert stage):
+    enabled: false                     # keep a verified C4, else adopt a verified C5, else
+    versions: 6                        # place a box of a photo class anywhere (this many
+                                       # boxes x edit.max_attempts seeds); C2/C3 follow the
+                                       # chosen box; C5 is no longer generated
+    c2_attempts: null                  # seeds for C2 at a merged box (null: edit.max_attempts)
+    corner_from: null                  # from this box on: bottom-left corner (null: off)
+    avoid_same_class_until: null       # last box with that rule (null: all later boxes)
+    avoid_same_class_from: null        # from this box on, a box may cover at most 30% of its
+                                       # area with a real object of the same class (null: off)
+  support:                             # boxes rest on a plausible surface (COCO-Stuff labels)
+    enabled: false                     # off here so week-1 plans stay valid; on in pilot_surface.yaml
+    stuff_annotations: data/coco/annotations/stuff_val2017.json
+    band: [0.15, 0.05]                 # "on": rows from 15% of h above to 5% below the box bottom
+    min_frac: 0.5                      # share of surface pixels in that band (central 80% width)
+    groups:
+      ground: {mode: "on", classes: [floor-marble, floor-other, floor-stone, floor-tile, floor-wood,
+               carpet, rug, mat, grass, gravel, ground-other, dirt, sand, pavement, playingfield,
+               platform, snow, mud]}
+      tabletop: {mode: "on", classes: [table, desk-stuff, counter, shelf]}
+      wall: {mode: "inside", classes: [wall-brick, wall-concrete, wall-other, wall-panel,
+             wall-stone, wall-tile, wall-wood]}
+    default_surfaces: [ground, tabletop]  # classes not listed below (in_photo mode)
+    categories:                        # allowed surfaces per class, tried in order
+      chair: [ground]
+      bench: [ground]
+      dog: [ground]
+      backpack: [ground]
+      umbrella: [ground]
+      potted plant: [ground, tabletop]
+      cup: [tabletop]
+      bottle: [tabletop, ground]
+      vase: [tabletop, ground]
+      clock: [wall, tabletop]
 
 conditions: [C0, C1, C2, C3, C4, C5]
 
@@ -38,11 +90,16 @@ encoding:
   subsampling: 0                       # 4:4:4
 
 edit:
-  window_scale: 2.5
+  window_scale: 2.5                    # generator window = scale × box side (box = 1/scale of canvas)
+  window_min_px: 256                   # smallest generator window side (raises tiny windows)
   mask_dilate_px: 6
   feather_px: 3
   composite: mask                      # mask (default) | window (ablation: keep VAE output for the whole window)
-  max_attempts: 3
+  max_attempts: 3                      # seeds per box
+  max_replans: 0                       # new boxes after all seeds failed (stages/replan.py)
+  max_class_switches: 0                # then other classes already in the photo, smallest first
+  max_outside_classes: 0               # last resort: classes NOT in the photo (class_in_photo false),
+                                       # from placement.outside_classes (default sampling.categories)
   prompt: "a photo of a {category}, realistic, natural lighting"
   negative_prompt: "text, watermark, cartoon, painting, drawing, blurry"
   sham_prompt: "empty background, nothing"
@@ -50,7 +107,8 @@ edit:
   guidance: 7.5
 
 generation:                            # which generator produces which condition
-  insert_generators: [G1, G2, G3]      # C4
+  insert_generators: [G1]              # C4. SDXL only since 2026-10-17 (scope change, PRD §4);
+                                       # G2/G3 below are kept for future work, not run
   sham_generators: [G1]                # C2
   occlusion_generators: [G1]           # C5
 
@@ -69,9 +127,35 @@ verify:
   model_id: google/owlv2-base-patch16-ensemble
   min_iou: 0.3
   min_score: 0.2
+  min_inside: 0.8                      # ...or ≥ 80% of the detection inside the box (objects smaller
+                                       # than the box; IoU alone rejected 14/58, 2026-10-16)
+  original_iou: 0.5                    # detections matching a same-class original never count
+  window_scale: 2.5                    # region OWLv2/SAM look at, independent of edit.window_scale
+  window_min_px: 256
   sam_model_id: facebook/sam-vit-base
   changed_pixel_threshold: 4
   mixed_modified_overlap: 0.10
+  candidate_threshold: 0.05            # OWLv2 candidates kept before the min_score/min_iou check
+  min_visible_fraction: 0.10           # occluded originals below this become ignore regions
+  audit_fraction: 0.10                 # share of verified edits put on the human-audit sheet
+  audit_all_conditions: []             # conditions put on the sheet in full (e.g. [C4])
+  audit_only_conditions: null          # only these conditions on the sheet (null: all edits)
+
+detect:
+  detectors: [faster_rcnn, yolo, rtdetr, grounding_dino]
+
+viewer:                                # `viewer --share`: self-contained copy to commit / publish
+  share_dir: docs/viewer               # -> docs/viewer/<run_name>/
+  share_max_side: 640                  # downscaled photo copies (boxes are rescaled by the page)
+  share_quality: 80
+preview:
+  share_dir: docs/preview               # preview --share -> docs/preview/<run_name>/
+  share_max_side: 480                  # downscaled copies (shown at 240 px wide)
+  share_quality: 80
+
+audit:                                 # candidate missing COCO labels (on C0)
+  min_score: 0.7
+  min_agree: 2                         # at least 2 detectors must agree
 
 detectors:
   faster_rcnn: {impl: torchvision, weights: FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1}
@@ -93,7 +177,7 @@ ood:                                   # held-out source domain (week 4), test o
   root: data/openimages
   n_sources: 100
   conditions: [C1, C2, C3, C4]
-  generators: [G1, G3]
+  generators: [G1]                     # SDXL only (G3 dropped 2026-10-17)
   class_map:                           # Open Images label -> COCO category
     Chair: chair
     Mug: cup
@@ -119,3 +203,6 @@ eval:
   ece_bins: 15
   fixed_fpr: 0.05
   fixed_tpr: 0.80
+  recall_score: 0.5                    # a GT object counts as detected at score >= this
+  ap_bootstrap: 20                     # resamples for AP CIs; each is a full COCOeval (~2-5 s).
+                                       # 20 for quick runs; raise to 200 for the paper's final tables.

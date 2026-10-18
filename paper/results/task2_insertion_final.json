@@ -1,0 +1,41 @@
+{
+ "run": "task2_insertion",
+ "what": "final merged AI condition: all re-runs done (7 dropped photos, 4 C2 shams, bed/train in the bottom-left corner)",
+ "verify_file": "run_verify_2026-10-18T070254Z.json (UTC; 15:02 local)",
+ "merged_ai_source": {
+  "free": 464,
+  "occluding": 38,
+  "anywhere": 42
+ },
+ "preview_counts": {
+  "photos": 544,
+  "complete_C0_C4": 544,
+  "edits_in_benchmark": 1088
+ },
+ "rerun_passed": {
+  "455981 toilet": "box 7 seed 2, score 0.59",
+  "472678 tv": "box 8 seed 1, score 0.31",
+  "277051 chair": "box 9 seed 1, score 0.21",
+  "65074 bed": "box 10 seed 2, score 0.57",
+  "262048 surfboard": "box 12 seed 2, score 0.47"
+ },
+ "c2_dropped_with_ai_edit": [
+  108440,
+  203580,
+  259571,
+  262938
+ ],
+ "c2_rerun": "108440, 203580, 259571, 262938 passed on the first new seed with verify.sham_original_overlap 0.25",
+ "corner_boxes": {
+  "151857 train": "corner box 23 seed 2, OWLv2 score 0.25",
+  "10995 bed": "corner box 27 seed 1, OWLv2 score 0.20",
+  "note": "both scores at the 0.2 threshold; by eye doubtful (pale pillow-like shape; small grey shape at the left edge); flagged for the human audit"
+ },
+ "audit_sheet": {
+  "edits": 109,
+  "C2": 57,
+  "C4": 52,
+  "csv_and_html_same_rows": true,
+  "previous_sheet": "audit_edits_before_final.csv (86 rows from 17 Oct, unfilled)"
+ }
+}

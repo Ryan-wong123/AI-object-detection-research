@@ -1,0 +1,5 @@
+# Task 2 (week 2): full AI-insertion run on the 544 planned sources.
+# Same work dir and seed as Task 1, so C0/C1 and the plans are reused unchanged.
+#   python -m inlayfake insert --config configs/insertion.yaml      (generate + verify, overnight)
+inherit: default.yaml
+run_name: task2_insertion

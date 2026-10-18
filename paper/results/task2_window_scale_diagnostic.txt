@@ -1,0 +1,39 @@
+107226__C4__G1__s1816602884 bench 2.5 fail
+107226__C4__G1__s1816602884 bench 1.5 fail
+107226__C4__G1__s1816602884 bench 1.2 PASS
+108440__C4__G1__s1953869424 backpack 2.5 PASS
+108440__C4__G1__s1953869424 backpack 1.5 PASS
+108440__C4__G1__s1953869424 backpack 1.2 fail
+129756__C4__G1__s562564160 dog 2.5 fail
+129756__C4__G1__s562564160 dog 1.5 PASS
+129756__C4__G1__s562564160 dog 1.2 PASS
+178028__C4__G1__s1172957921 potted plant 2.5 fail
+178028__C4__G1__s1172957921 potted plant 1.5 fail
+178028__C4__G1__s1172957921 potted plant 1.2 PASS
+203095__C4__G1__s1941104089 clock 2.5 fail
+203095__C4__G1__s1941104089 clock 1.5 fail
+203095__C4__G1__s1941104089 clock 1.2 fail
+206411__C4__G1__s1142676244 bench 2.5 fail
+206411__C4__G1__s1142676244 bench 1.5 fail
+206411__C4__G1__s1142676244 bench 1.2 fail
+26204__C4__G1__s336804554 potted plant 2.5 fail
+26204__C4__G1__s336804554 potted plant 1.5 fail
+26204__C4__G1__s336804554 potted plant 1.2 PASS
+276284__C4__G1__s546508176 potted plant 2.5 fail
+276284__C4__G1__s546508176 potted plant 1.5 PASS
+276284__C4__G1__s546508176 potted plant 1.2 PASS
+31050__C4__G1__s1787494567 clock 2.5 fail
+31050__C4__G1__s1787494567 clock 1.5 PASS
+31050__C4__G1__s1787494567 clock 1.2 PASS
+314251__C4__G1__s644369979 chair 2.5 fail
+314251__C4__G1__s644369979 chair 1.5 fail
+314251__C4__G1__s644369979 chair 1.2 fail
+428218__C4__G1__s1825730284 umbrella 2.5 fail
+428218__C4__G1__s1825730284 umbrella 1.5 PASS
+428218__C4__G1__s1825730284 umbrella 1.2 PASS
+551794__C4__G1__s1309484898 umbrella 2.5 fail
+551794__C4__G1__s1309484898 umbrella 1.5 fail
+551794__C4__G1__s1309484898 umbrella 1.2 fail
+passed of 12 {2.5: 1, 1.5: 5, 1.2: 7}
+
+[exited with code 0]
