@@ -29,6 +29,7 @@ from pathlib import Path
 import numpy as np
 
 from inlayfake.edit.placement import (
+    intersection,
     occluding_sized_to_target,
     occlusion_min_side,
     occlusion_targets,
@@ -516,7 +517,34 @@ def make_merged_version(cfg, index, src: dict, plan: dict, version: int, state, 
             w, h = sample_size(st, W, H, rng, pcfg["min_side_px"], pcfg["max_area_frac"])
     except ValueError:  # no usable size statistics for this class: version skipped
         return row
-    box, occ_id = place_anywhere(W, H, w, h, index.image_anns(sid), rng)
+    gt = index.image_anns(sid)
+    box, occ_id = place_anywhere(W, H, w, h, gt, rng)
+    start = pcfg["merged"].get("avoid_same_class_from")
+    if start is not None and k + 1 >= start:
+        # author, 2026-10-18 (re-run of the 7 dropped photos): 59 of their 210 failed attempts
+        # had the box on the photo's real object of the same class, which the verifier can never
+        # accept (a detection on a real object does not count). Still anywhere in the image, but
+        # the box may cover at most 30% of its area with a real object of the same class; it
+        # shrinks (x0.8) if no such spot is found, else the plain anywhere box is kept.
+        same = [
+            a["bbox"]
+            for a in gt
+            if not a.get("iscrowd", 0) and index.cat_name.get(a.get("category_id")) == cat
+        ]
+        min_side = pcfg["min_side_px"]
+        for _ in range(6):
+            found = None
+            for _ in range(200):
+                b, o = place_anywhere(W, H, w, h, gt, rng)
+                if all(intersection(b, s) <= 0.3 * b[2] * b[3] for s in same):
+                    found = (b, o)
+                    break
+            if found:
+                box, occ_id = found
+                break
+            if min(w, h) * 0.8 < min_side:
+                break
+            w, h = w * 0.8, h * 0.8
     return row | {
         "box": [float(v) for v in box],
         "occluded_ann_id": occ_id,

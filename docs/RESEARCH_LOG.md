@@ -5,6 +5,31 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Merged run done (537 of 544); re-run of the 7 dropped photos (restart 6)
+
+- **Merged run result** (run_verify_2026-10-17T222301Z, 06:23 local; 10 rounds after restart 5):
+  AI edit for 537 of 544 photos: from C4 464, from C5 38, newly placed anywhere 35; 7 dropped
+  after 6 boxes × 3 seeds. 533 photos have every condition C0–C4; 4 more lack only C2: in all 3 sham
+  attempts OWLv2 found the target class at the box (108440 at an adopted C5 box, 203580, 259571,
+  262938 at anywhere boxes; probably the real object partly inside the box, not yet checked)
+  (`paper/results/task2_insertion_merged_round_final.json`). Anywhere boxes passed 35 of the 42
+  photos; per round the pass rate fell from 7/42 to 0–4 per round.
+- **Why the 7 were dropped** (OWLv2 re-run, read-only, on all 210 failed C4/C5/anywhere attempts
+  of the 7): 59 found only the photo's real object of that class (never accepted), 93 a confident
+  detection outside the box (mostly the real object as well), 32 only weak detections
+  (score < 0.2, best 0.16–0.19), 26 nothing. Two groups: close-ups of one large object (bed,
+  train, toilet, beach umbrella), where the box lands on the real object or dark background; and
+  cluttered photos with small classes (remote, book, knife), where SDXL's object is not
+  recognised.
+- **Decision (author):** re-run the 7, still anywhere in the image. `placement.merged.versions`
+  6 → 12; from box 7 (`avoid_same_class_from: 7`) a box may cover at most 30% of its area with
+  a real object of the same class (shrinks ×0.8 if no spot is found), because a box on the real
+  object cannot pass. Boxes 1–6 and all other photos are unchanged (scratch dry run: only the 7
+  get jobs). 1 new test; 80 pass. Restart 6 at ~06:50, PID 3304, 7 images per round.
+- **Next:** record the result of boxes 7–12; final Table 1 counts.
+
+---
+
 ## 2026-10-18: Scope change: C4 and C5 merged into one AI condition (restart 5)
 
 - **Why:** after the round-7 check, 44 of 544 photos still had no verified AI object under the

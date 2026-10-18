@@ -432,3 +432,38 @@ def test_merged_preview(cfg, tmp_path):
     # a fresh run has no verified C4/C5, so every AI edit is placed anywhere
     assert "C5 G1" not in page and "new: placed anywhere" in page
     assert 'value="ai-C5"' in page
+
+
+def test_merged_box_avoids_real_same_class_object(monkeypatch):
+    """From placement.merged.avoid_same_class_from on, a merged box covers at most 30% of its
+    area with a real object of its class; earlier boxes are unchanged."""
+    import numpy as np
+
+    from inlayfake.edit.placement import intersection
+    from inlayfake.stages.replan import ADOPT, make_merged_version
+
+    class Index:
+        cat_name = {1: "train"}
+
+        def image_anns(self, sid):
+            return [{"id": 1, "category_id": 1, "bbox": [0, 0, 600, 400], "iscrowd": 0}]
+
+    cfg = {
+        "seed": 3,
+        "placement": {
+            "exclude_classes": ["person"],
+            "min_side_px": 16,
+            "max_area_frac": 0.25,
+            "merged": {"enabled": True, "versions": 12, "avoid_same_class_from": 7},
+        },
+    }
+    plan = {"source_id": 9, "category": "train", "class_in_photo": True}
+    import inlayfake.stages.replan as rp
+
+    monkeypatch.setattr(rp, "_size", lambda cfg, index, anns, cat, W, H, rng: (200.0, 150.0))
+    real = [0, 0, 600, 400]
+    for v in range(ADOPT + 7, ADOPT + 13, 2):
+        row = make_merged_version(cfg, Index(), {"width": 640, "height": 480}, plan, v, {}, {}, [])
+        b = row["box"]
+        assert intersection(b, real) <= 0.3 * b[2] * b[3] + 1e-6, (v, b)
+    assert np.isfinite(b).all()

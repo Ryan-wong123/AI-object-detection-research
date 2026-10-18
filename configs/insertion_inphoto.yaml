@@ -34,6 +34,9 @@ placement:
     enabled: true          # class already in the photo, placed anywhere. Verified C4s are kept
                            # (preferred), else the verified C5 is used, else a box anywhere;
                            # C2/C3 sit at the chosen box
+    versions: 12           # author, 2026-10-18: 7 photos were dropped after 6 boxes; re-run them
+    avoid_same_class_from: 7   # with 6 more boxes anywhere that do not sit on the photo's real
+                               # object of the same class (boxes 1-6 unchanged)
 edit:
   window_scale: 1.2
   window_min_px: 64

@@ -5,6 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-18 |
+> | Merged run | 2026-10-18: 537 of 544 photos with a verified AI edit (464 C4, 38 C5, 35 anywhere), 7 dropped and re-run with 6 more boxes off the real same-class object (paper/results/task2_insertion_merged_round_final.json) |
 > | Scope change 2 | 2026-10-18 (author): C4 and C5 merged into one AI condition (C4: a class already in the photo, placed anywhere; verified C4 kept, else verified C5, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
 > | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
@@ -307,8 +308,14 @@ object of its own classes may, as a last resort, receive one of the ten original
 it does not contain (flagged and excluded from same-class analyses), and if no box satisfies
 the placement rules at all, an occluding box may be placed anywhere (flagged). After the merge
 into one AI condition, a photograph still without a verified AI object receives boxes of its own
-classes placed anywhere (six boxes, three seeds each); otherwise the edit is discarded
-([[TBD: success rate of the merged AI condition, C2 and C3]]). SAM [Kirillov et al. 2023], prompted with the
+classes placed anywhere (six boxes, three seeds each). This gives a verified AI object for 537
+of 544 photographs (464 from the free-space rule, 38 from the occlusion rule, 35 placed anywhere)
+<!-- run:task2_insertion (merged run, verify 2026-10-18 06:23), file:paper/results/task2_insertion_merged_round_final.json -->.
+The remaining 7 are close-ups of a single large object (bed, train, toilet) whose box landed on
+the real object, which the verifier never accepts, or cluttered scenes whose small classes it did
+not recognise; they receive six more boxes that cover at most 30% of their area with a real object
+of the same class; otherwise the edit is discarded
+([[TBD: final success rate of the merged AI condition, C2 and C3 after the re-run]]). SAM [Kirillov et al. 2023], prompted with the
 verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
 objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
 become ignore regions. We record the actual changed region separately from the intended mask, and

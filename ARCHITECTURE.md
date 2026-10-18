@@ -215,7 +215,9 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   relabelled C4, with `EditInfo.merged_source` = C4 / C5 / anywhere; other C5 records stay out
   of the ledger. `verify` reports `merged_ai_source`, and `needs_retry` counts pending AI and C2
   jobs (`replan.merged_pending`). `preview` shows the merged view (Show dropdown by AI source and
-  missing condition).
+  missing condition). `placement.merged.avoid_same_class_from` (7 in the full run, 2026-10-18):
+  from that box on, a merged box may cover at most 30% of its area with a real object of its
+  class (shrinks ×0.8 if no spot is found), since a box on the real object cannot pass verify.
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological
