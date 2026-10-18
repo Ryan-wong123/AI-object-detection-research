@@ -38,6 +38,8 @@ placement:
                            # re-run of 7 dropped photos; 24 for the last 2, bed and train)
     avoid_same_class_from: 7   # from box 7 on, a box does not sit on the photo's real object of
                                # the same class (<= 30% of its area; boxes 1-6 unchanged)
+    avoid_same_class_until: 18 # author, 2026-10-18: boxes 19-24 (bed and train photos) are
+                               # plain anywhere again, any overlap allowed
     c2_attempts: 6         # author, 2026-10-18: 4 C2 shams failed 3 seeds; 3 more seeds, checked
                            # with verify.sham_original_overlap
 verify:

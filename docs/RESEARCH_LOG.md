@@ -7,6 +7,18 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Bed and train photos: plain anywhere boxes again from box 19 (restart 8)
+
+- **Status at the stop (14:08):** the 4 C2 shams passed on their first new seed (restart 7);
+  10995 (bed) and 151857 (train) failed all 16 tries on boxes 13–18 (box 18 seed 1).
+- **Author:** for these 2, place the box anywhere, any overlap allowed.
+  `placement.merged.avoid_same_class_until: 18`: boxes 19–24 are plain anywhere (as boxes 1–6;
+  the verifier still never counts a detection of the real bed or train). Box 18 keeps its box
+  for its last 2 seeds. 1 new test. Scratch dry run: only these 2 jobs. Restart 8 at 14:12,
+  PID 31452. Result [[TBD]].
+
+---
+
 ## 2026-10-18: Last 2 AI edits and 4 C2 shams re-run (restart 7)
 
 - **Author:** add the same class anywhere for 10995 (bed) and 151857 (train); regenerate C2 for

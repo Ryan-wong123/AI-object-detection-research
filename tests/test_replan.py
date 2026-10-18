@@ -535,3 +535,30 @@ def test_sham_detection_on_real_object_does_not_count(tmp_path):
     vcfg["sham_original_overlap"] = 0.25
     passed, _, _ = verify_one(rec, img, img, finder, seg, vcfg, None, tmp_path)
     assert passed
+
+
+def test_avoid_rule_ends_after_until(monkeypatch):
+    """After placement.merged.avoid_same_class_until the box is plain anywhere again (same box
+    as with the rule switched off)."""
+    import inlayfake.stages.replan as rp
+    from inlayfake.stages.replan import ADOPT, make_merged_version
+
+    class Index:
+        cat_name = {1: "train"}
+
+        def image_anns(self, sid):
+            return [{"id": 1, "category_id": 1, "bbox": [0, 0, 600, 400], "iscrowd": 0}]
+
+    monkeypatch.setattr(rp, "_size", lambda cfg, index, anns, cat, W, H, rng: (200.0, 150.0))
+    base = {"exclude_classes": ["person"], "min_side_px": 16, "max_area_frac": 0.25}
+
+    def box(merged, v):
+        cfg = {"seed": 3, "placement": base | {"merged": merged}}
+        plan = {"source_id": 9, "category": "train", "class_in_photo": True}
+        src = {"width": 640, "height": 480}
+        return make_merged_version(cfg, Index(), src, plan, v, {}, {}, [])["box"]
+
+    on = {"enabled": True, "versions": 24, "avoid_same_class_from": 7, "avoid_same_class_until": 18}
+    off = {"enabled": True, "versions": 24}
+    assert box(on, ADOPT + 19) == box(off, ADOPT + 19)  # plain anywhere after box 18
+    assert box(on, ADOPT + 17) != box(off, ADOPT + 17)  # rule still on at box 17
