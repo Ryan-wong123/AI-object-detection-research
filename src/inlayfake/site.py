@@ -78,6 +78,14 @@ CONDITION_NAMES = {
 }
 
 
+DETECTOR_NAMES = {
+    "faster_rcnn": "Faster R-CNN",
+    "yolo": "YOLO11-m",
+    "rtdetr": "RT-DETR",
+    "grounding_dino": "Grounding DINO",
+}
+
+
 def site_cfg(cfg: dict) -> dict:
     return cfg.get("site") or {}
 

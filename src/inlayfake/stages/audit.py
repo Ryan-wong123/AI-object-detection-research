@@ -133,8 +133,8 @@ def review_page(cfg: dict) -> dict:
     photo. Orange: the candidate (a confident detection that matches no label); green: the
     labels COCO already has, with their class. A Show dropdown filters by decision. Read-only:
     decisions are still changed in the CSV (author request 2026-10-18: re-check decisions)."""
-    from inlayfake.data.audit import read_decisions
-    from inlayfake.site import SITE_CSS, page_title
+    from inlayfake.data.audit import detector_matches, read_decisions
+    from inlayfake.site import DETECTOR_NAMES, SITE_CSS, page_title
     from inlayfake.stages.common import decisions_path
 
     wd = work_dir(cfg)
@@ -142,6 +142,15 @@ def review_page(cfg: dict) -> dict:
     decisions = read_decisions(path)
     c0 = {r.source_id: r for r in read_ledger(ledger_path(cfg)) if r.condition.value == "C0"}
     counts = Counter(d["decision"] for d in decisions)
+    names = cfg["detect"]["detectors"]
+    dets = {}
+    for n in names:  # saved C0 detections; a missing file shows as "not run"
+        try:
+            dets[n] = load_detections(cfg, n)
+        except FileNotFoundError:
+            dets[n] = None
+    min_score = cfg["audit"]["min_score"]
+    n_mismatch = 0
     cards = []
     for k, d in enumerate(decisions, 1):
         rec = c0.get(int(d["source_id"]))
@@ -169,6 +178,23 @@ def review_page(cfg: dict) -> dict:
             f'<svg viewBox="0 0 {W} {H}" class="whole"><image href="{src}" width="{W}" '
             f'height="{H}"/>{_svg_boxes(labels + cand, max(W, H))}</svg>'
         )
+        found = detector_matches(
+            box, d["category"], {n: (v or {}).get(rec.image_id, []) for n, v in dets.items()}
+        )
+        cells = []
+        for n in names:
+            label = html.escape(DETECTOR_NAMES.get(n, n))
+            sc = found.get(n)
+            if dets[n] is None:
+                cells.append(f'<span class="det no">{label}: not run</span>')
+            elif sc is not None and sc >= min_score:
+                cells.append(f'<span class="det yes">✓ {label} {sc:.2f}</span>')
+            elif sc is not None:
+                cells.append(f'<span class="det low">{label} {sc:.2f} (below {min_score})</span>')
+            else:
+                cells.append(f'<span class="det no">{label}: no box here</span>')
+        agree = sum(1 for n in names if (found.get(n) or 0) >= min_score)
+        n_mismatch += agree != int(d["n_detectors"])
         dec = d["decision"]
         cards.append(
             f'<section class="card" data-dec="{html.escape(dec)}"><h2>{k}. '
@@ -177,6 +203,8 @@ def review_page(cfg: dict) -> dict:
             f'{rec.source_id}</span></h2><p class="dec" style="border-color:'
             f'{DECISION_COLOR.get(dec, "var(--line)")}">current decision: <b>'
             f"{html.escape(DECISION_TEXT.get(dec, dec))}</b></p>"
+            f'<p class="dets">Detectors ({html.escape(d["category"])} box at IoU ≥ 0.5): '
+            f"{''.join(cells)}</p>"
             f'<div class="row"><div class="panel"><div class="t"><b>Zoom</b><i>around the '
             f'candidate</i></div><div class="wrap">{crop}</div></div><div class="panel">'
             f'<div class="t"><b>Whole photo</b><i>{W}×{H}</i></div><div class="wrap">{whole}'
@@ -193,6 +221,10 @@ def review_page(cfg: dict) -> dict:
         f"<title>{html.escape(title)}</title><style>{SITE_CSS}"
         ".wrap svg{position:static;width:100%;height:auto;display:block;border-radius:4px}"
         ".dec{margin:0 0 8px;padding:4px 8px;border-left:4px solid;background:var(--bg)}"
+        ".dets{margin:0 0 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;"
+        "color:var(--muted)}.det{padding:1px 8px;border-radius:10px;border:1px solid var(--line)}"
+        ".det.yes{color:var(--ink);border-color:var(--tp);font-weight:600}"
+        ".det.low{color:var(--ink)}.det.no{opacity:.7}"
         "</style></head><body>"
         f'<header><h1>{html.escape(title)}</h1><label>Show <select id="f">{select}'
         '</select></label><span class="muted" id="n"></span></header><main>'
@@ -212,4 +244,10 @@ def review_page(cfg: dict) -> dict:
     )
     out = wd / "audit_review.html"
     out.write_text(page, encoding="utf-8")
-    return {"review": out.as_posix(), "candidates": len(cards), "decisions": dict(counts)}
+    return {
+        "review": out.as_posix(),
+        "candidates": len(cards),
+        "decisions": dict(counts),
+        # recomputed agreement differs from the stored n_detectors (should be 0)
+        "detector_count_mismatches": n_mismatch,
+    }

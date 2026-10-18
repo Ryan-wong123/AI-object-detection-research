@@ -19,6 +19,11 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   by decision with counts. Read-only; decisions are still edited in the CSV. Shared site style.
   1 new test; 90 pass. Checked in the browser: 107 cards; filter add 77 / ignore 26 / reject 4.
 - Local page (it shows the COCO photos from `data/`), not part of the website.
+- **Added (author request):** each card lists the 4 detectors with their best same-class score at
+  IoU ≥ 0.5 to the candidate (✓ when ≥ 0.7, i.e. agreeing; "below 0.7"; "no box here"), from the
+  saved C0 detections (`data.audit.detector_matches`). Recomputed agreement equals the stored
+  `n_detectors` for all 107 candidates (0 mismatches). New candidates also store the agreeing
+  detector names. 1 new test.
 
 ---
 
