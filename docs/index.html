@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>InlayFake Results</title>
 <!--
-  Landing page of the repo's GitHub Pages site (served from docs/). Each week's page stays a
-  self-contained folder, built by its own stage, and is shown below the tabs:
-    week 1: docs/viewer/task1_real_baseline/   (viewer --share)
-    week 2: docs/preview/task2_insertion/      (preview --share)
-  To add a week, add one entry to WEEKS below.
+  Landing page of the repo's GitHub Pages site (served from docs/). Each week's page is a
+  self-contained folder docs/results/week<N>_<topic>/, built by its stage with --share in the
+  shared site style (src/inlayfake/site.py), and is shown below the tabs:
+    week 1: results/week1_real_baseline/   (viewer --share, configs/real_baseline.yaml)
+    week 2: results/week2_ai_insertion/    (preview --share, configs/insertion_inphoto.yaml)
+  To add a week, add one entry to WEEKS below. The colour tokens are a copy of SITE_CSS.
 -->
 <style>
 :root {
@@ -47,8 +48,7 @@ nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accen
 nav a small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
 .open { margin-left: auto; font-size: 13px; color: var(--muted); }
 .open a { color: var(--accent); }
-/* white behind the week pages: the week-2 preview has no background of its own (black text) */
-iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+iframe { flex: 1; width: 100%; border: 0; background: var(--bg); }
 @media (max-width: 600px) { .open { display: none; } nav a { padding: 10px 8px 8px; } }
 </style>
 </head>
@@ -61,10 +61,10 @@ iframe { flex: 1; width: 100%; border: 0; background: #fff; }
 <iframe id="page" title="Week results"></iframe>
 <script>
 const WEEKS = [
-  { id: "week1", label: "Week 1", sub: "Real-photo baseline (C0, C1)",
-    src: "viewer/task1_real_baseline/index.html" },
-  { id: "week2", label: "Week 2", sub: "AI insertion (C0–C4)",
-    src: "preview/task2_insertion/index.html" },
+  { id: "week1", label: "Week 1", sub: "Real-photo baseline",
+    src: "results/week1_real_baseline/index.html" },
+  { id: "week2", label: "Week 2", sub: "AI insertion",
+    src: "results/week2_ai_insertion/index.html" },
 ];
 const nav = document.getElementById("tabs");
 const frame = document.getElementById("page");

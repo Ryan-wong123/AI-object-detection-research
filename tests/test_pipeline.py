@@ -163,7 +163,8 @@ def test_viewer_share_is_self_contained(cfg, tmp_path):
         cfg,
         conditions=["C0", "C1"],
         generators_enabled=[],
-        viewer={"share_dir": str(share_dir), "share_max_side": 200, "share_quality": 80},
+        site={"dir": str(share_dir)},
+        viewer={"share_max_side": 200, "share_quality": 80},
     )
     for stage in (sample, plan, generate, detect):
         stage.run(cfg)
