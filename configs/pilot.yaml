@@ -1,5 +1,7 @@
 # 50-source pilot: debug the full pipeline end to end with G1 (SDXL) only.
+#   python -m inlayfake insert --config configs/pilot.yaml   (generate + verify, ~1 h)
 inherit: default.yaml
+run_name: task2_pilot
 sampling:
   n_sources: 50
 generators_enabled: [G1]

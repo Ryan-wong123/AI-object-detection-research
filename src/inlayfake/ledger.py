@@ -70,6 +70,12 @@ class EditInfo:
     donor: dict | None = None  # C3: {"image_id": ..., "ann_id": ...}
     attempts: int = 1
     verifier_score: float | None = None
+    plan_version: int = 0  # 0 = the original plan box; n = n-th re-plan after failed attempts
+    class_in_photo: bool = True  # False: last-resort class that is not in the source photo
+    placement_rule: str = "standard"  # "anywhere": box placed with no overlap rule
+    # merged AI condition (placement.merged): where the photo's AI edit came from: "free" (free
+    # space), "occluding" (covers 20-50% of one real object) or "anywhere" (merged-mode box)
+    merged_source: str | None = None
 
 
 @dataclass
@@ -85,7 +91,7 @@ class ImageRecord:
     sha256: str | None = None
     edit: EditInfo | None = None
     instances: list[Instance] = field(default_factory=list)
-    ignore_regions: list[list[float]] = field(default_factory=list)
+    ignore_regions: list[dict] = field(default_factory=list)  # {"category", "bbox"}
     postproc: dict | None = None
     source_dataset: str = "coco"
 

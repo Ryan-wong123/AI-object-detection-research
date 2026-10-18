@@ -17,13 +17,29 @@ STAGES = {
     "preview": "write an HTML contact sheet of generated conditions",
     "audit": "flag candidate missing labels on C0 for manual review",
     "verify": "verify insertions (OWLv2), SAM masks, actual-change masks, write ledger",
+    "insert": "generate + verify in rounds until every edit passed or ran out of attempts",
     "detect": "run the four detector families",
     "forensics": "run hand-crafted and learned forensic methods",
     "compose": "pair detections with origin scores; abstention",
     "postproc": "derive robustness variants of test images",
     "evaluate": "compute metrics with grouped bootstrap CIs",
+    "report": "per-image table of the photos used and what each detector found",
+    "viewer": "web page comparing COCO labels with every detector's boxes",
 }
-IMPLEMENTED = {"sample", "plan", "generate", "preview"}
+IMPLEMENTED = {
+    "sample",
+    "plan",
+    "generate",
+    "preview",
+    "detect",
+    "forensics",
+    "audit",
+    "evaluate",
+    "report",
+    "viewer",
+    "verify",
+    "insert",
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -32,8 +48,26 @@ def main(argv: list[str] | None = None) -> int:
     for name, desc in STAGES.items():
         p = sub.add_parser(name, help=desc + ("" if name in IMPLEMENTED else " [not yet]"))
         p.add_argument("--config", default="configs/default.yaml")
-        if name in ("generate", "preview"):
+        if name in ("generate", "preview", "insert"):
             p.add_argument("--limit", type=int, default=None, help="only the first N sources")
+        if name == "preview":
+            p.add_argument(
+                "--all-attempts",
+                action="store_true",
+                help="also show rejected and unchecked attempts (default: benchmark images only)",
+            )
+        if name == "viewer":
+            p.add_argument(
+                "--share",
+                action="store_true",
+                help="self-contained copy in docs/viewer/<run>/ to commit or share",
+            )
+        if name == "preview":
+            p.add_argument(
+                "--share",
+                action="store_true",
+                help="self-contained copy of all photos in docs/preview/<run>/ to commit or share",
+            )
     args = parser.parse_args(argv)
     if args.stage is None:
         parser.print_help()
@@ -43,6 +77,10 @@ def main(argv: list[str] | None = None) -> int:
     cfg = load_config(args.config)
     module = importlib.import_module(f"inlayfake.stages.{args.stage}")
     kwargs = {"limit": args.limit} if getattr(args, "limit", None) is not None else {}
+    if getattr(args, "share", False):
+        kwargs["share"] = True
+    if getattr(args, "all_attempts", False):
+        kwargs["all_attempts"] = True
     result = module.run(cfg, **kwargs)
     print(json.dumps(result, indent=2))
     return 0

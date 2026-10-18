@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detector Results</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1f24; --muted: #5f6470; --line: #d9dbe0;
+  --gt: #1f7a4d; --audit: #2463c2; --tp: #1f9d55; --fp: #e0662b; --ign: #8a8f98; --miss: #c2185b;
+  --ins: #8e44ad;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c; --panel: #1e2128; --ink: #e8e9ec; --muted: #a3a8b3; --line: #343842;
+    --gt: #3fbf7f; --audit: #5b9bf0; --tp: #3ccf7a; --fp: #ff8a4c; --ign: #9aa0aa;
+    --miss: #ff5c9a; --ins: #c084fc;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg);
+  border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex;
+  flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+header h1 { font-size: 16px; margin: 0 8px 0 0; }
+label { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+select, input[type=text], button { font: inherit; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+button { cursor: pointer; }
+main { padding: 8px 16px 40px; max-width: 1600px; }
+details.results { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  margin: 12px 0; padding: 10px 14px; }
+details.results summary { cursor: pointer; font-weight: 600; }
+.md { overflow-x: auto; }
+.md h2 { font-size: 16px; margin: 14px 0 6px; }
+.md h3, .md h4 { font-size: 14px; margin: 14px 0 6px; }
+.md table { border-collapse: collapse; margin: 6px 0 12px; font-size: 13px; }
+.md th, .md td { border: 1px solid var(--line); padding: 3px 8px; text-align: left; }
+.md th { background: var(--bg); }
+.md code { font-size: 12px; }
+.md a { color: var(--audit); }
+.rule { color: var(--muted); padding: 4px 0 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 6px 0; color: var(--muted);
+  font-size: 13px; }
+.sw { display: inline-block; width: 14px; height: 10px; border: 2px solid; margin-right: 5px;
+  vertical-align: -1px; }
+.item { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  margin: 12px 0; padding: 10px 12px; }
+.item h2 { font-size: 14px; margin: 0 0 8px; font-weight: 600; }
+.item h2 span { color: var(--muted); font-weight: 400; }
+.row { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.panel { cursor: zoom-in; }
+.panel .t { font-size: 12px; margin-bottom: 3px; display: flex; justify-content: space-between;
+  gap: 6px; }
+.panel .t b { font-weight: 600; }
+.panel .t i { font-style: normal; color: var(--muted); }
+.wrap { position: relative; width: 100%; line-height: 0; }
+.wrap img { width: 100%; height: auto; display: block; border-radius: 4px; }
+.wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 14px 0;
+  flex-wrap: wrap; }
+#modal { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: none; z-index: 10;
+  align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
+#modal .panel { width: min(1200px, 96vw); cursor: zoom-out; background: var(--panel);
+  padding: 10px; border-radius: 8px; }
+.empty { color: var(--muted); padding: 30px; text-align: center; }
+@media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Detector results <span id="runname" style="color:var(--muted);font-weight:400"></span></h1>
+  <label>Image <select id="cond"></select></label>
+  <label>Find COCO id <input id="find" type="text" size="8" placeholder="e.g. 785"></label>
+  <span id="count" style="color:var(--muted)"></span>
+</header>
+<main>
+  <details class="results" open>
+    <summary>Run results (summary.md)</summary>
+    <div class="md" id="results"></div>
+  </details>
+  <div class="rule" id="rule"></div>
+  <div class="legend">
+    <span><i class="sw" style="border-color:var(--gt)"></i>COCO label</span>
+    <span><i class="sw" style="border-color:var(--audit)"></i>label added in audit</span>
+    <span><i class="sw" style="border-color:var(--ins)"></i>inserted / pasted object</span>
+    <span><i class="sw" style="border-color:var(--ign);border-style:dashed"></i>ignore / crowd region</span>
+    <span><i class="sw" style="border-color:var(--tp)"></i>detection matching a label</span>
+    <span><i class="sw" style="border-color:var(--fp)"></i>detection matching no label</span>
+    <span><i class="sw" style="border-color:var(--miss);border-style:dashed"></i>label not found</span>
+  </div>
+  <div id="list"></div>
+  <div class="pager"><button id="prev">← Previous</button><span id="pageinfo"></span>
+    <button id="next">Next →</button></div>
+</main>
+<div id="modal"></div>
+<script src="data.js"></script>
+<script>
+(function () {
+  const D = window.VIEWER_DATA;
+  if (!D) { document.getElementById("list").innerHTML = '<p class="empty">data.js not found.</p>'; return; }
+  const $ = (id) => document.getElementById(id);
+  const PER_PAGE = 10;
+  const NAMES = { faster_rcnn: "Faster R-CNN", yolo: "YOLO11-m", rtdetr: "RT-DETR",
+                  grounding_dino: "Grounding DINO" };
+  const CONDS = { C0: "C0 original", C1: "C1 resave" };
+  const state = { cond: D.conditions.includes("C0") ? "C0" : D.conditions[0], page: 0 };
+
+  $("runname").textContent = D.run ? "· " + D.run : "";
+  $("results").innerHTML = D.results_html;
+  $("rule").textContent = `Boxes are shown at the evaluation operating point: score ≥ ${D.score_threshold}. ` +
+    `An object counts as found when a box of the same class overlaps it with IoU ≥ ${D.iou_threshold}; ` +
+    `"found X/N" matches images_used.md.`;
+  for (const c of D.conditions) $("cond").add(new Option(CONDS[c] || c, c));
+  $("cond").value = state.cond;
+
+  const esc = (s) => String(s).replace(/[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const GT_COLOR = { coco: "var(--gt)", audit: "var(--audit)", inserted: "var(--ins)",
+                     pasted: "var(--ins)", crowd: "var(--ign)", ignore: "var(--ign)" };
+  const BOX_COLOR = { 1: "var(--tp)", 0: "var(--fp)", 2: "var(--ign)" };
+  const unscored = (g) => g[5] === "crowd" || g[5] === "ignore";
+
+  function box(b, color, label, W, dashed) {
+    const [x, y, w, h] = b, fs = Math.max(10, W / 45), sw = Math.max(1.5, W / 320);
+    const tw = label ? label.length * fs * 0.56 + 6 : 0;
+    const ty = y - fs - 4 >= 0 ? y - fs - 4 : y;
+    const dash = dashed ? ` stroke-dasharray="${sw * 3},${sw * 2}"` : "";
+    let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${color}"` +
+            ` stroke-width="${sw}"${dash}/>`;
+    if (label) {
+      s += `<rect x="${x}" y="${ty}" width="${tw}" height="${fs + 4}" fill="${color}" opacity=".85"/>` +
+           `<text x="${x + 3}" y="${ty + fs}" font-size="${fs}" fill="#fff"` +
+           ` font-family="system-ui,sans-serif">${esc(label)}</text>`;
+    }
+    return s;
+  }
+  function panel(im, view, name) {
+    let svg = "", title, info;
+    if (name === null) {
+      for (const g of view.gt) svg += box(g, GT_COLOR[g[5]], g[4], im.w, unscored(g));
+      title = "Ground truth"; info = `${view.gt.filter((g) => !unscored(g)).length} labels`;
+    } else {
+      const p = view.det[name], found = new Set(p.found);
+      view.gt.forEach((g, i) => {
+        if (!unscored(g) && !found.has(i)) svg += box(g, "var(--miss)", "", im.w, true);
+      });
+      for (const b of p.boxes) svg += box(b, BOX_COLOR[b[6]], `${b[4]} ${b[5].toFixed(2)}`, im.w, false);
+      const unmatched = p.boxes.filter((b) => b[6] === 0).length;
+      title = NAMES[name] || name; info = `found ${p.found.length}/${p.n} · ${unmatched} unmatched`;
+    }
+    return `<div class="panel" data-sid="${esc(im.sid)}" data-name="${name === null ? "" : name}">
+      <div class="t"><b>${esc(title)}</b><i>${info}</i></div>
+      <div class="wrap"><img loading="lazy" src="${view.src}" alt="photo ${esc(im.sid)}">
+      <svg viewBox="0 0 ${im.w} ${im.h}" preserveAspectRatio="none">${svg}</svg></div></div>`;
+  }
+  function render() {
+    const find = $("find").value.trim();
+    const items = D.images.filter((im) => im.cond[state.cond] && (!find || String(im.sid).includes(find)));
+    const pages = Math.max(1, Math.ceil(items.length / PER_PAGE));
+    state.page = Math.min(state.page, pages - 1);
+    const slice = items.slice(state.page * PER_PAGE, (state.page + 1) * PER_PAGE);
+    $("count").textContent = `${items.length} photos`;
+    $("pageinfo").textContent = `page ${state.page + 1} / ${pages}`;
+    $("prev").disabled = state.page === 0; $("next").disabled = state.page >= pages - 1;
+    $("list").innerHTML = slice.length ? slice.map((im) => {
+      const view = im.cond[state.cond];
+      const plan = im.plan ? ` · planned insert: ${esc(im.plan)}` : "";
+      return `<section class="item"><h2>COCO ${esc(im.sid)} <span>· ${esc(im.split)} · ` +
+        `${im.w}×${im.h}${plan}</span></h2><div class="row">${panel(im, view, null)}` +
+        `${D.detectors.map((n) => panel(im, view, n)).join("")}</div></section>`;
+    }).join("") : '<p class="empty">No photos match.</p>';
+  }
+  $("cond").onchange = (e) => { state.cond = e.target.value; render(); };
+  $("find").oninput = () => { state.page = 0; render(); };
+  $("prev").onclick = () => { state.page--; render(); $("list").scrollIntoView(); };
+  $("next").onclick = () => { state.page++; render(); $("list").scrollIntoView(); };
+  $("list").onclick = (e) => {
+    const p = e.target.closest(".panel"); if (!p) return;
+    const im = D.images.find((x) => String(x.sid) === p.dataset.sid);
+    $("modal").innerHTML = panel(im, im.cond[state.cond], p.dataset.name || null);
+    $("modal").style.display = "flex";
+  };
+  $("modal").onclick = () => { $("modal").style.display = "none"; };
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("modal").style.display = "none"; });
+  render();
+})();
+</script>
+</body>
+</html>

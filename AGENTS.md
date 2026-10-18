@@ -6,8 +6,7 @@ changing code.
 
 ## Project in one paragraph
 
-**InlayFake** is a research project targeting **CVPR 2027** (paper deadline 16 Nov 2026 AoE; confirm
-on the official site). We insert AI-generated objects into real COCO photographs under matched control
+**InlayFake** is a research project targeting **CVPR 2027** (paper deadline 16 Nov 2026 AoE.) We insert AI-generated objects into real COCO photographs under matched control
 conditions. We then measure (1) how off-the-shelf object detectors behave on inserted and on untouched
 real objects, and (2) whether hand-crafted and learned image-forensic methods can tell, **per object**,
 whether it was photographed or AI-inserted. The output is a benchmark, a baseline study and a paper
@@ -30,7 +29,9 @@ whether it was photographed or AI-inserted. The output is a benchmark, a baselin
 7. **Reproducibility.** Every run records the git commit, config, seeds, model checkpoint IDs and
    package versions (handled by `inlayfake.runlog`). Do not hard-code paths; use the config.
 8. **No data or weights in git.** `data/`, `runs/` and model weights are git-ignored. Small result
-   tables (CSV/JSON < 1 MB) that the paper cites are copied into `paper/results/`.
+   tables (CSV/JSON < 1 MB) that the paper cites are copied into `paper/results/`. To share a run
+   visually, commit the self-contained `docs/viewer/<run>/` from `viewer --share` (week-2
+   benchmark: `docs/preview/<run>/` from `preview --share`), not `runs/` or `data/`.
 9. **Do not overclaim novelty.** Never write "first" in the paper (see PDF §2 and `PRD.md` §Novelty).
 10. **Ethics.** No identifiable people are used as insertion targets. Do not generate humans by
     default. Treat false "AI" accusations against real objects as a first-class harm metric.
@@ -45,6 +46,7 @@ paper/PAPER.md           the CVPR paper draft (kept up to date by agents)
 paper/results/           small result tables the paper cites (tracked)
 paper/figures/           figures the paper uses (tracked)
 docs/RESEARCH_LOG.md     dated log of every experiment, decision and finding
+docs/briefings/weekN/    weekly briefing for supervisors (see "Weekly briefing protocol")
 configs/                 YAML configs (default.yaml, pilot.yaml, ...)
 src/inlayfake/           Python package (see ARCHITECTURE.md for module list)
 tests/                   pytest tests; must run on CPU without model weights
@@ -93,7 +95,8 @@ python -m inlayfake <stage> --config configs/pilot.yaml
 4. Add an entry to `docs/RESEARCH_LOG.md`: date, run ID, what was run, key numbers, interpretation,
    surprises, next step.
 5. Update `paper/PAPER.md` (see below).
-6. Commit code, configs, log, paper and small tables together.
+6. Update the current week's briefing in `docs/briefings/weekN/` (see "Weekly briefing protocol").
+7. Commit code, configs, log, paper, briefing and small tables together.
 
 ## Paper update protocol
 
@@ -110,7 +113,27 @@ appears:
 - Citations: only cite papers in the reference list; mark any unverified entry `[verify]`.
 - CVPR limit: 8 pages excluding references. Track an approximate word budget in the Status box.
 
+## Weekly briefing protocol
+
+Each plan week has a folder `docs/briefings/weekN/` (N = week number in `PRD.md` §Timeline) holding
+a progress briefing for supervisors. Keep it current **every time** a run finishes, a result or
+finding arrives, a decision is made or code for the week's task lands:
+
+- If the folder does not exist yet (first piece of work in a new week), create it with the same
+  files as the previous week: `briefing_full.md` (full briefing), `one_page.md` (one-page summary)
+  and `slides.html` (short slide deck). Copy the structure of the previous week, not its content.
+- Update all three files together so they never disagree. `briefing_full.md` is the reference; the
+  one-pager and slides summarise it.
+- The same rules as the paper apply: every number comes from a run in `runs/` and names its run ID,
+  missing results are `[[TBD: ...]]`, negative findings are reported, and nothing says "first".
+  Numbers must match `paper/PAPER.md` and `paper/results/`.
+- Supporting tables the briefing links to (e.g. `images_used.md`) go in the same folder.
+- When a week has a shareable results page under `docs/`, add it as a tab in `docs/index.html`
+  (the `WEEKS` list), the repo's GitHub Pages site.
+- Header: week number, date range from `PRD.md` §Timeline, last-updated date and author.
+
 ## Git
 
-- Work on the branch the session specifies. Commit small, descriptive messages.
+- One branch per week of the plan (`week-1-coco-dataset`, then e.g. `week-2-ai-insertion`).
+  Commit small, descriptive messages.
 - Never commit `data/`, `runs/`, weights, or COCO images.

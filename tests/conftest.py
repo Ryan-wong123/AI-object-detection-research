@@ -85,6 +85,7 @@ def cfg(coco_dir, tmp_path):
                 "coco_annotations": str(coco_dir / "annotations" / "instances_val2017.json"),
                 "coco_images": str(coco_dir / "val2017"),
                 "work": str(tmp_path / "work"),
+                "runs": str(tmp_path / "runs"),
             },
         },
     )
