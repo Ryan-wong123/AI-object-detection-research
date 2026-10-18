@@ -7,6 +7,21 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Label-audit review page (`audit --review`)
+
+- **Author request:** a clear page to re-check the week-1 label-audit decisions. The old
+  `audit.html` (9 Oct) shows only small crops, without the decision or COCO's own labels; the
+  review page used on 11 Oct was not kept.
+- **What:** `python -m inlayfake audit --config configs/real_baseline.yaml --review` writes
+  `data/inlayfake/audit_review.html` from the current decisions file (`common.decisions_path`):
+  card k = row k of `audit_decisions.csv`, current decision (colour-coded), a zoom around the
+  candidate (orange) with COCO's labels and classes (green), the whole photo, and a Show dropdown
+  by decision with counts. Read-only; decisions are still edited in the CSV. Shared site style.
+  1 new test; 90 pass. Checked in the browser: 107 cards; filter add 77 / ignore 26 / reject 4.
+- Local page (it shows the COCO photos from `data/`), not part of the website.
+
+---
+
 ## 2026-10-18: Finding: the 77 audit-added objects have no per-object forensic scores (week 1)
 
 - **What:** `runs/task1_real_baseline/forensics/*.jsonl` has per-object rows only for COCO labels:

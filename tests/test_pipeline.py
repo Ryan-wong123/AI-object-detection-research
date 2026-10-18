@@ -224,3 +224,40 @@ def test_scoring_uses_the_configured_audit_decisions(cfg, tmp_path):
     )
     with pytest.raises(SystemExit):
         load_records(deep_merge(cfg, {"audit": {"decisions": str(tmp_path / "missing.csv")}}))
+
+
+def test_audit_review_page(cfg, tmp_path):
+    """audit --review: one card per decision row, in CSV order, showing the current decision."""
+    import csv
+
+    from inlayfake.stages import audit
+    from inlayfake.stages.common import load_records
+
+    cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
+    for stage in (sample, plan, generate):
+        stage.run(cfg)
+    sids = sorted({r.source_id for r in load_records(cfg)})[:2]
+    with (tmp_path / "work" / "audit_decisions.csv").open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(
+            [
+                "candidate_id",
+                "source_id",
+                "category",
+                "x",
+                "y",
+                "w",
+                "h",
+                "n_detectors",
+                "max_score",
+                "decision",
+            ]
+        )
+        w.writerow([f"{sids[1]}-0", sids[1], "cup", 5, 5, 20, 20, 2, 0.9, "reject"])
+        w.writerow([f"{sids[0]}-0", sids[0], "dog", 1, 1, 30, 30, 3, 0.8, "add"])
+    out = audit.run(cfg, review=True)
+    page = (tmp_path / "work" / "audit_review.html").read_text(encoding="utf-8")
+    assert out["candidates"] == 2 and out["decisions"] == {"reject": 1, "add": 1}
+    assert page.index(f"1. {sids[1]}-0") < page.index(f"2. {sids[0]}-0")  # CSV order
+    assert "reject: detector mistake" in page and "add: a real object COCO missed" in page
+    assert page.count('<section class="card"') == 2
