@@ -23,6 +23,41 @@ pytest -q
 python -m inlayfake --help
 ```
 
+## Results website (GitHub Pages)
+
+`docs/index.html` joins the weekly result pages into one site with a tab per week at the top:
+
+| Tab | Page shown | Built by |
+|---|---|---|
+| Week 1 | `docs/viewer/task1_real_baseline/` | `python -m inlayfake viewer --config configs/real_baseline.yaml --share` |
+| Week 2 | `docs/preview/task2_insertion/` | `python -m inlayfake preview --config configs/insertion_inphoto.yaml --share` |
+
+Each week's page stays self-contained; the tab bar only shows it below. The address remembers the
+tab (`index.html#week1`, `#week2`), and "open in a new tab" opens the week's page on its own.
+
+**Look at it locally** (a small web server, so it works exactly as on GitHub):
+
+```powershell
+python -m http.server 8765 --directory docs
+start http://localhost:8765
+```
+
+Stop the server with Ctrl+C.
+
+**Publish it as the repo's GitHub Pages site** (once, in the browser): on GitHub open the repo,
+then **Settings → Pages → Build and deployment → Source: Deploy from a branch**, choose the branch
+(`week-2-ai-insertion` now, `main` once the weeks are merged) and the folder **`/docs`**, and click
+**Save**. After a minute or two the site is at
+`https://ryan-wong123.github.io/AI-object-detection-research/`. Every push to that branch updates
+it. `docs/.nojekyll` tells GitHub to serve the files as they are.
+
+**The site is public** even if the repo is private (on the free plan, Pages needs a public repo).
+It shows downscaled COCO photos and names the repo owner, so go through
+`docs/PUBLISHING_CHECKLIST.md` (photo licences, double-blind review) before switching it on.
+
+**Add a week:** build that week's self-contained page under `docs/`, then add one entry to the
+`WEEKS` list in `docs/index.html` (id, label, short description, path).
+
 ## Week 2: AI insertion run
 
 Inserts an SDXL-generated object into each of the 544 week-1 baseline photos (conditions C2–C4)
