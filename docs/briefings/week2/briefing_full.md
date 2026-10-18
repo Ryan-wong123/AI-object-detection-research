@@ -175,7 +175,7 @@ cloud sandbox, so their first real run is the pilot.
 - **Final:** 544 of 544 photos complete; AI edits from the free-space rule 464, the occlusion rule
   38, placed anywhere 42; 1,088 edited images.
 - Audit sheet rebuilt from the final ledger, then extended on the author's decision: **every C4
-  edit (544)** plus the random 10% sample (57 C2, 52 C4; column `in_random_sample`), 601 rows.
+  edit (544)**; C2 shams are not audited (author). 52 rows are flagged `in_random_sample`.
   The CSV and the HTML show the same edits in the same order. To be filled by the author.
 
 ### 22. Last 2 AI edits and 4 shams re-run (18 Oct)
@@ -304,7 +304,7 @@ cloud sandbox, so their first real run is the pilot.
 | Merged run (boxes 1–6): photos with a verified AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
 | After the re-run of the 7 (boxes 7–12): photos with an AI edit / all of C0–C4 / dropped | 542 / 538 / 2 <!-- run:task2_insertion (11:17), file:paper/results/task2_insertion_merged_round_final.json and log --> |
 | **Final (all re-runs): photos with all of C0–C4 / AI edits free-space / occluding / anywhere / edited images** | **544 / 464 / 38 / 42 / 1,088** <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
-| Human audit (601 edits: all 544 C4 + 57 C2 of the random 10% sample) | [[TBD]] |
+| Human audit (all 544 C4 edits; 52 of them a random subset) | [[TBD]] |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
 | Human audit (10%): object present / realistic / other change | [[TBD]] |
 | GPU time per image on the RTX 4070 laptop | SDXL 21.6 s (pilot, 122 images in 43:57) <!-- run:task2_pilot, file:paper/results/task2_pilot_round1_generate.json -->; full run round 1: 1,355 images in 6 h 53 min (18.3 s each) <!-- run:task2_insertion, insert_progress.log --> |
@@ -316,7 +316,7 @@ cloud sandbox, so their first real run is the pilot.
 2. Re-plan the full 600 sources with the same-class rule (the week-1 plan used fixed classes).
 3. Only when the pilot reaches a usable success rate, start the full run.
 4. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.
-5. Human audit of every C4 edit plus the random 10% sample (601 rows), then record the results here, in the paper and in the log.
+5. Human audit of every C4 edit (544 rows), then record the results here, in the paper and in the log.
 6. Start the Open Images download for the week-4 held-out domain.
 
 ## To discuss

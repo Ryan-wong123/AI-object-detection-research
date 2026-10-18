@@ -254,3 +254,45 @@ def test_audit_sheet_all_c4_plus_random_sample(tmp_path):
     assert audit_sheet(tmp_path, recs, 0.5, 99, vcfg) == n
     page2 = (tmp_path / "audit_edits.html").read_text(encoding="utf-8")
     assert page2 == page
+
+
+def test_audit_sheet_c4_only(tmp_path):
+    """verify.audit_only_conditions: [C4] leaves C2 off the sheet; the C4 rows of the random draw
+    keep their in_random_sample flag."""
+    import numpy as np
+    from PIL import Image
+
+    from inlayfake.ledger import EditInfo, ImageRecord, Instance
+    from inlayfake.stages.verify import audit_sheet
+
+    img = tmp_path / "x.jpg"
+    Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(img)
+    recs = []
+    for sid in range(20):
+        recs.append(ImageRecord(f"{sid}__C1", sid, "test", "C1", str(img), 64, 64))
+        for cond in ("C2", "C4"):
+            inst = [Instance(f"ins:{sid}", "cup", [10, 10, 20, 20], Origin.AI_INSERTED)]
+            recs.append(
+                ImageRecord(
+                    f"{sid}__{cond}",
+                    sid,
+                    "test",
+                    cond,
+                    str(img),
+                    64,
+                    64,
+                    "G1",
+                    edit=EditInfo("cup", 0, [10, 10, 20, 20]),
+                    instances=inst if cond == "C4" else [],
+                )
+            )
+    base = {"window_scale": 2.5, "window_min_px": 32, "audit_all_conditions": ["C4"]}
+    (tmp_path / "a").mkdir()
+    audit_sheet(tmp_path / "a", recs, 0.25, 7, base)
+    both = list(csv.DictReader((tmp_path / "a" / "audit_edits.csv").open(encoding="utf-8")))
+    (tmp_path / "b").mkdir()
+    audit_sheet(tmp_path / "b", recs, 0.25, 7, base | {"audit_only_conditions": ["C4"]})
+    only = list(csv.DictReader((tmp_path / "b" / "audit_edits.csv").open(encoding="utf-8")))
+    assert {r["condition"] for r in only} == {"C4"} and len(only) == 20
+    flagged = lambda rows: {r["image_id"] for r in rows if r["in_random_sample"] == "y"}  # noqa: E731
+    assert flagged(only) == {i for i in flagged(both) if "__C4" in i}

@@ -169,10 +169,10 @@ that version shows the final benchmark and is the one to use for the human audit
 
 ### When it's done
 
-Build the preview as above, then do the **human audit**: every C4 edit (544) plus a random 10% of
-all edits (57 C2 shams, 52 of the C4s), 601 rows in total. Column `in_random_sample` (`y`/`n`) marks
-the random 10% (do not edit it); the paper uses it for an unbiased error rate, and the full C4
-check to remove every wrong AI label. C4 rows come first, then the C2 rows.
+Build the preview as above, then do the **human audit of every C4 AI insertion** (544 rows, one
+per photo). Column `in_random_sample` (`y` for 52 rows) marks a random subset (do not edit it);
+the paper uses it for an unbiased error rate of the automatic verifier, and the full check to
+remove every wrong AI label. C2 shams are not audited (author, 2026-10-18).
 
 ```powershell
 start data\inlayfake_v2\audit_edits.html
@@ -182,12 +182,12 @@ start excel data\inlayfake_v2\audit_edits.csv
 Card *k* in the HTML page is row *k* of the CSV (after the header). Each card shows the region the
 verifier looked at, before (C1) and after the edit. Fill each row with `y` or `n`:
 
-| Column | C4 (AI insertion) | C2 (sham) |
-|---|---|---|
-| `object_ok` | one object of the target class is clearly there | no new object appeared |
-| `realistic` | the object blends into the photo | the repainted area blends in |
-| `other_change` | something outside the edited box changed | same |
-| `notes` | anything else (e.g. "half a bed", "blurry blob") | same |
+| Column | Fill with `y` / `n` |
+|---|---|
+| `object_ok` | one object of the target class is clearly there |
+| `realistic` | the object blends into the photo |
+| `other_change` | something outside the edited box changed |
+| `notes` | anything else (e.g. "half a bed", "blurry blob") |
 
 Save as CSV (keep the file name and columns). The audit sheet is rebuilt only if the CSV is
 missing, so a filled sheet is never overwritten.

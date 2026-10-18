@@ -5,7 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-18 |
-> | Insertion run done | 2026-10-18 15:02: all 544 photos complete C0–C4 (AI edits: 464 free-space, 38 occluding, 42 anywhere; the bed and train close-ups pass only in the bottom-left corner at threshold scores, flagged), 1,088 edited images (paper/results/task2_insertion_final.json). Human audit (all 544 C4 + random 10% sample: 601 rows) and Table 1 counts pending |
+> | Insertion run done | 2026-10-18 15:02: all 544 photos complete C0–C4 (AI edits: 464 free-space, 38 occluding, 42 anywhere; the bed and train close-ups pass only in the bottom-left corner at threshold scores, flagged), 1,088 edited images (paper/results/task2_insertion_final.json). Human audit (all 544 C4 edits; C2 not audited) and Table 1 counts pending |
 > | Merged run | 2026-10-18: 537 of 544 photos with a verified AI edit (464 free-space, 38 occluding, 35 anywhere), 7 dropped and re-run with 6 more boxes off the real same-class object (paper/results/task2_insertion_merged_round_final.json) |
 > | Scope change 2 | 2026-10-18 (author): the two AI placement rules (free space, occlusion) merged into one condition C4 (a class already in the photo, placed anywhere; verified free-space edit kept, else verified occluding edit, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
 > | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
@@ -362,10 +362,10 @@ verifier's box and clipped to the edit mask, provides the inserted object's mask
 objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
 become ignore regions. We record the actual changed region separately from the intended mask, and
 we mark original objects overlapped by more than 10% as *mixed/modified*. A person audits
-every AI insertion (544) and a random 10% of all edits (57 sham edits, 52 insertions), the
-latter giving an unbiased estimate of the verifier's error rate; each edit is judged for
-object presence, realism and changes outside the box [[TBD: audit results]]. Insertions the
-auditor rejects are removed from the benchmark.
+every AI insertion (544), judging object presence, realism and changes outside the box; a
+random subset of 52 gives an unbiased estimate of the verifier's error rate
+[[TBD: audit results]]. Insertions the auditor rejects are removed from the benchmark. Sham
+edits are checked by the verifier only.
 
 **Table 1.** Conditions and statistics. [[TBD: images, instances per origin, per condition]]
 

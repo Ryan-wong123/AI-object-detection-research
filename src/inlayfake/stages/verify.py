@@ -303,6 +303,8 @@ def audit_sheet(
     A random ``fraction`` of the edits (C2, C4) is drawn with ``seed`` (``in_random_sample: y``,
     the unbiased estimate of the verifier's error rate). Conditions in
     ``verify.audit_all_conditions`` are added in full (author, 2026-10-18: every C4 is checked).
+    ``verify.audit_only_conditions`` keeps only those conditions on the sheet (author,
+    2026-10-18: C4 only; the random draw is unchanged, so its C4 rows stay a random sample).
     If the CSV exists, the HTML is built from its rows, so page and sheet always list the same
     edits in the same order (before, the page was redrawn with a new sample at every verify).
     """
@@ -325,6 +327,9 @@ def audit_sheet(
         in_random = {r.image_id: True for r in drawn}
         full = set((vcfg or {}).get("audit_all_conditions") or [])
         extra = [r for r in edits if r.condition.value in full and r.image_id not in in_random]
+        only = (vcfg or {}).get("audit_only_conditions")
+        if only:
+            drawn = [r for r in drawn if r.condition.value in only]
         order = ["C4", "C5", "C2"]  # AI insertions first
         sample = sorted(drawn + extra, key=lambda r: (order.index(r.condition.value), r.source_id))
         with csv_path.open("w", newline="", encoding="utf-8") as f:

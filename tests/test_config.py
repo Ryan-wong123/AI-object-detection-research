@@ -21,7 +21,7 @@ def test_full_run_uses_the_pilot_settings():
     for key in ("edit", "generators_enabled", "encoding", "generation"):
         assert full[key] == pilot[key], key
     # verify: identical except the sham rule and full C4 audit added to the full run (2026-10-18)
-    added = ("sham_original_overlap", "audit_all_conditions")
+    added = ("sham_original_overlap", "audit_all_conditions", "audit_only_conditions")
     full_v = {k: v for k, v in full["verify"].items() if k not in added}
     assert full_v == {k: v for k, v in pilot["verify"].items() if k not in added}
     # placement: identical except the C5 fill added to the full run on 2026-10-18
