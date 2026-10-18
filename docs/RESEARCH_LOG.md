@@ -16,9 +16,14 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   scores the labels present at run time and skips photos already done, so the later "add" labels
   were never scored.
 - **Effect:** Table 2b's per-object contrast on real objects covers 3,882 objects, not 3,959 (2% left
-  out); image-level forensic scores and all detector numbers are unaffected. Not yet fixed.
-- **Fix if wanted:** remove the 70 audited photos' rows from the forensic files, re-run `forensics`
-  (those photos only) and `evaluate`; or state n = 3,882 in Table 2b.
+  out); image-level forensic scores and all detector numbers are unaffected.
+- **Fixed (author approved, same day):** the forensic files were backed up
+  (`runs/task1_real_baseline/forensics_before_audit_rescore/`), the 70 audited photos' rows removed,
+  and `forensics` re-run for those 140 images (57 s, CPU). Now 9,006 rows per method: 154 new rows
+  (77 added objects × C0/C1; scored with their box as mask, since audit labels have no COCO
+  outline), every other row identical to the backup (0 changed scores).
+- **Pending:** `evaluate` (and `report`) on the author's laptop, then Table 2b's per-object contrast
+  (n 3,882 → 3,959 objects per condition) in the paper and `paper/results/`.
 
 ---
 
