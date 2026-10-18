@@ -160,6 +160,22 @@ git add docs/preview/task2_insertion
 On GitHub, open `docs/preview/task2_insertion/index.html` after downloading or cloning the repo
 (GitHub shows HTML files as source, not as a page).
 
+**Update the shared copy after the benchmark changes** (for example, after the human audit removes
+some C4 edits, or after a re-run adds edits). The copy is a snapshot and does not update itself.
+Rebuild it, check the counts it prints, then commit and push:
+
+```powershell
+python -m inlayfake preview --config configs/insertion_inphoto.yaml --share
+git add docs/preview/task2_insertion
+git commit -m "Update shared week-2 preview"
+git push
+```
+
+Images of edits that left the benchmark stay in `docs/preview/task2_insertion/images/` but are no
+longer linked from the page; delete that folder before rebuilding if you want only the current
+images in the repo. Before making the repo or the previews public, see
+`docs/PUBLISHING_CHECKLIST.md` (licences of the COCO photos in these copies).
+
 To see every attempt, including the rejected ones (greyed, with the reason), add
 `--all-attempts`:
 
