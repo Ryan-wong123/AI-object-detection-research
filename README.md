@@ -6,6 +6,11 @@ Research code for **InlayFake: A Benchmark for Mixed-Origin Object Understanding
 image-forensic methods tell, *per object*, whether an object in a real photograph was photographed or
 inserted by an AI image editor?
 
+**View the results:** [ryan-wong123.github.io/AI-object-detection-research](https://ryan-wong123.github.io/AI-object-detection-research/)
+(one page per week, chosen with the tabs at the top: week 1 real-photo baseline, week 2 AI
+insertion). The link works once GitHub Pages is switched on for this repo (see
+[Results website](#results-website-github-pages)).
+
 - `PRD.md`: goals, hypotheses, scope, timeline
 - `ARCHITECTURE.md`: pipeline and data contracts
 - `paper/PAPER.md`: living paper draft
@@ -49,7 +54,8 @@ then **Settings → Pages → Build and deployment → Source: Deploy from a bra
 (`week-2-ai-insertion` now, `main` once the weeks are merged) and the folder **`/docs`**, and click
 **Save**. After a minute or two the site is at
 `https://ryan-wong123.github.io/AI-object-detection-research/`. Every push to that branch updates
-it. `docs/.nojekyll` tells GitHub to serve the files as they are.
+it. `docs/.nojekyll` tells GitHub to serve the files as they are. The same link is at the top of
+this README.
 
 **The site is public** even if the repo is private (on the free plan, Pages needs a public repo).
 It shows downscaled COCO photos and names the repo owner, so go through
