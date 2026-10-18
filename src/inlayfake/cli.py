@@ -62,6 +62,17 @@ def main(argv: list[str] | None = None) -> int:
                 action="store_true",
                 help="self-contained copy in docs/results/<week folder>/ to commit or share",
             )
+        if name == "audit":
+            p.add_argument(
+                "--review",
+                action="store_true",
+                help="only build <work>/audit_review.html from the current decisions",
+            )
+            p.add_argument(
+                "--share",
+                action="store_true",
+                help="with --review: write the page into the week's website folder (docs/results/)",
+            )
         if name == "preview":
             p.add_argument(
                 "--share",
@@ -79,6 +90,8 @@ def main(argv: list[str] | None = None) -> int:
     kwargs = {"limit": args.limit} if getattr(args, "limit", None) is not None else {}
     if getattr(args, "share", False):
         kwargs["share"] = True
+    if getattr(args, "review", False):
+        kwargs["review"] = True
     if getattr(args, "all_attempts", False):
         kwargs["all_attempts"] = True
     result = module.run(cfg, **kwargs)

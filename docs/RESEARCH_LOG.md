@@ -7,6 +7,80 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Label-audit review on the results website
+
+- **Author request:** show the week-1 label-audit review on GitHub Pages, and keep it updatable
+  when a decision changes.
+- **What:** `audit --review --share` writes the review page as
+  `docs/results/week1_real_baseline/audit.html` (the week's website folder) and uses the photo
+  copies the week-1 viewer already put there (`images/<C0 id>.jpg`; any missing one is copied), so
+  only the page file is added (0.9 MB). New website tab *Week 1 · Label audit* in `docs/index.html`.
+- **Checked** through a local server: 3 tabs, 107 cards, all 70 photos load. Test extended (shared
+  page, every image link exists); 91 pass.
+- **Updating:** after a decision change, the same command rebuilds the page; commit
+  `docs/results/week1_real_baseline` (README steps).
+
+---
+
+## 2026-10-18: Label-audit review page (`audit --review`)
+
+- **Author request:** a clear page to re-check the week-1 label-audit decisions. The old
+  `audit.html` (9 Oct) shows only small crops, without the decision or COCO's own labels; the
+  review page used on 11 Oct was not kept.
+- **What:** `python -m inlayfake audit --config configs/real_baseline.yaml --review` writes
+  `data/inlayfake/audit_review.html` from the current decisions file (`common.decisions_path`):
+  card k = row k of `audit_decisions.csv`, current decision (colour-coded), a zoom around the
+  candidate (orange) with COCO's labels and classes (green), the whole photo, and a Show dropdown
+  by decision with counts. Read-only; decisions are still edited in the CSV. Shared site style.
+  1 new test; 90 pass. Checked in the browser: 107 cards; filter add 77 / ignore 26 / reject 4.
+- Local page (it shows the COCO photos from `data/`), not part of the website.
+- **Added (author request):** each card lists the 4 detectors with their best same-class score at
+  IoU ≥ 0.5 to the candidate (✓ when ≥ 0.7, i.e. agreeing; "below 0.7"; "no box here"), from the
+  saved C0 detections (`data.audit.detector_matches`). Recomputed agreement equals the stored
+  `n_detectors` for all 107 candidates (0 mismatches). New candidates also store the agreeing
+  detector names. 1 new test.
+
+---
+
+## 2026-10-18: Finding: the 77 audit-added objects have no per-object forensic scores (week 1)
+
+- **What:** `runs/task1_real_baseline/forensics/*.jsonl` has per-object rows only for COCO labels:
+  7,764 instance rows = 3,882 objects × 2 conditions, and none for the 77 audit "add" labels
+  (checked in `ela.jsonl`). The detector metrics use 3,959 objects (3,882 + 77).
+- **Why:** `forensics` ran (9 Oct 02:52 local) before the audit decisions were saved (03:42); it
+  scores the labels present at run time and skips photos already done, so the later "add" labels
+  were never scored.
+- **Effect:** Table 2b's per-object contrast on real objects covers 3,882 objects, not 3,959 (2% left
+  out); image-level forensic scores and all detector numbers are unaffected.
+- **Fixed (author approved, same day):** the forensic files were backed up
+  (`runs/task1_real_baseline/forensics_before_audit_rescore/`), the 70 audited photos' rows removed,
+  and `forensics` re-run for those 140 images (57 s, CPU). Now 9,006 rows per method: 154 new rows
+  (77 added objects × C0/C1; scored with their box as mask, since audit labels have no COCO
+  outline), every other row identical to the backup (0 changed scores).
+- **Pending:** `evaluate` (and `report`) on the author's laptop, then Table 2b's per-object contrast
+  (n 3,882 → 3,959 objects per condition) in the paper and `paper/results/`.
+
+---
+
+## 2026-10-18: One label-audit file for all weeks (scoring fix before week 3)
+
+- **Found:** scoring stages (`detect`, `forensics`, `evaluate`, `report`, `viewer`) read
+  `audit_decisions.csv` from the run's own work dir. Week 2's work dir (`data/inlayfake_v2`) has
+  none, so scoring the week-2 images in week 3 would silently have dropped the 77 added labels
+  and 26 ignore regions of the week-1 label audit (week-1 and week-3 numbers not comparable).
+  Nothing was scored with the wrong labels: week 2 has not been scored yet.
+- **Fix (author approved):** `common.decisions_path`: `audit.decisions`, else
+  `placement.audit_decisions`, else `<work>/audit_decisions.csv`. `configs/insertion_inphoto.yaml`
+  names `data/inlayfake/audit_decisions.csv`; a named file that is missing stops the run. 1 new
+  test.
+- **Checked:** week 1 and week 2 both resolve to that file and apply 77 adds and 26 ignore regions
+  over 544 photos. Week 1 used the same file before, so its results are unchanged.
+- **Effect of changing a decision later:** week 1 needs `evaluate` + `report` again (and the
+  viewer); week 2 picks it up when scored. Three week-2 AI edits rely on an "add" for their
+  "class in the photo" (196442 kite, 315257 bowl, 358525 bed).
+
+---
+
 ## 2026-10-18: Results website: week folders renamed, one shared design
 
 - **Author request:** the folder names `docs/viewer/` and `docs/preview/` did not say which week

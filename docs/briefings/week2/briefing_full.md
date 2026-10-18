@@ -316,13 +316,15 @@ cloud sandbox, so their first real run is the pilot.
 
 ## Next steps
 
-0. Let the merged run finish (42 photos placed anywhere, then C2/C3 at 80 boxes); check it in the preview (dropdown: AI source, missing C2/C3).
-1. Author's visual check of the same-class pilot and its 12-row audit sheet.
-2. Re-plan the full 600 sources with the same-class rule (the week-1 plan used fixed classes).
-3. Only when the pilot reaches a usable success rate, start the full run.
-4. Full run overnight: `python -m inlayfake insert --config configs/insertion.yaml`.
-5. Human audit of every C4 edit (544 rows), then record the results here, in the paper and in the log.
-6. Start the Open Images download for the week-4 held-out domain.
+Done this week: SDXL pilots and the design changes they led to; verification with OWLv2 + SAM;
+the full run (all 544 photos have C0–C4); the shared preview and the results website.
+
+1. **Human audit of every C4 edit** (544 rows, `audit_edits.csv`; 0 filled so far), by the author.
+2. Remove the C4 edits the audit rejects, finalise the ledger, and rebuild the shared preview.
+3. Paper: audit results (§4), Table 1 counts (images and instances per origin and condition,
+   `mixed_modified` count) and Figure 1 (example photo with C1–C4).
+4. Merge `week-2-ai-insertion` into `main` (a pull request), after the audit.
+5. Optional, for week 4: start the Open Images download for the held-out domain.
 
 ## To discuss
 

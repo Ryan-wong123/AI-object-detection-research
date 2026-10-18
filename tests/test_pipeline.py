@@ -1,5 +1,7 @@
 """End-to-end CPU dry run: sample → plan → generate → preview with the fake inpainter."""
 
+from pathlib import Path
+
 import numpy as np
 from PIL import Image
 from PIL.JpegImagePlugin import get_sampling
@@ -178,3 +180,118 @@ def test_viewer_share_is_self_contained(cfg, tmp_path):
             with Image.open(vdir / view["src"]) as p:
                 assert max(p.size) <= 200
         assert im["w"] == 400  # boxes stay in original pixel coordinates
+
+
+def test_scoring_uses_the_configured_audit_decisions(cfg, tmp_path):
+    """audit.decisions: a run in another work dir is scored with the same decisions file (no
+    copy in its own work dir); a named file that is missing stops the run."""
+    import csv
+
+    import pytest
+
+    from inlayfake.config import deep_merge
+    from inlayfake.stages.common import decisions_path, load_records
+
+    cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
+    for stage in (sample, plan, generate):
+        stage.run(cfg)
+    sid = load_records(cfg)[0].source_id
+    shared = tmp_path / "week1" / "audit_decisions.csv"
+    shared.parent.mkdir()
+    with shared.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(
+            [
+                "candidate_id",
+                "source_id",
+                "category",
+                "x",
+                "y",
+                "w",
+                "h",
+                "n_detectors",
+                "max_score",
+                "decision",
+            ]
+        )
+        w.writerow([f"{sid}-0", sid, "cup", 1, 2, 30, 40, 2, 0.9, "add"])
+    assert decisions_path(cfg) == (tmp_path / "work" / "audit_decisions.csv", False)
+    assert not any(
+        i.instance_id.startswith("audit:") for r in load_records(cfg) for i in r.instances
+    )
+    scored = deep_merge(cfg, {"audit": {"decisions": str(shared)}})
+    recs = [r for r in load_records(scored) if r.source_id == sid]
+    assert recs and all(  # the added label is on every condition of that photo
+        any(i.instance_id == f"audit:{sid}-0" for i in r.instances) for r in recs
+    )
+    with pytest.raises(SystemExit):
+        load_records(deep_merge(cfg, {"audit": {"decisions": str(tmp_path / "missing.csv")}}))
+
+
+def test_audit_review_page(cfg, tmp_path):
+    """audit --review: one card per decision row, in CSV order, showing the current decision."""
+    import csv
+
+    from inlayfake.stages import audit
+    from inlayfake.stages.common import load_records
+
+    cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
+    for stage in (sample, plan, generate):
+        stage.run(cfg)
+    sids = sorted({r.source_id for r in load_records(cfg)})[:2]
+    with (tmp_path / "work" / "audit_decisions.csv").open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(
+            [
+                "candidate_id",
+                "source_id",
+                "category",
+                "x",
+                "y",
+                "w",
+                "h",
+                "n_detectors",
+                "max_score",
+                "decision",
+            ]
+        )
+        w.writerow([f"{sids[1]}-0", sids[1], "cup", 5, 5, 20, 20, 2, 0.9, "reject"])
+        w.writerow([f"{sids[0]}-0", sids[0], "dog", 1, 1, 30, 30, 3, 0.8, "add"])
+    out = audit.run(cfg, review=True)
+    page = (tmp_path / "work" / "audit_review.html").read_text(encoding="utf-8")
+    assert out["candidates"] == 2 and out["decisions"] == {"reject": 1, "add": 1}
+    assert page.index(f"1. {sids[1]}-0") < page.index(f"2. {sids[0]}-0")  # CSV order
+    assert "reject: detector mistake" in page and "add: a real object COCO missed" in page
+    assert page.count('<section class="card"') == 2
+    # --share: the same page in the week's website folder, photos copied next to it
+    import re
+
+    from inlayfake.config import deep_merge
+
+    shared = audit.run(
+        deep_merge(cfg, {"site": {"dir": str(tmp_path / "site")}}), review=True, share=True
+    )
+    page = Path(shared["review"]).read_text(encoding="utf-8")
+    assert Path(shared["review"]).name == "audit.html"
+    for href in re.findall(r'<image href="([^"]+)"', page):
+        assert href.startswith("images/") and (Path(shared["review"]).parent / href).exists()
+
+
+def test_detector_matches_hand_example():
+    """Per detector: best same-class score at IoU >= 0.5 with the candidate box, else None."""
+    from inlayfake.data.audit import detector_matches
+
+    box = [10, 10, 100, 100]
+    dets = {
+        "a": [
+            {"category": "cup", "bbox": [12, 12, 100, 100], "score": 0.9},
+            {"category": "cup", "bbox": [10, 10, 98, 98], "score": 0.95},
+        ],
+        "b": [
+            {"category": "cup", "bbox": [200, 200, 50, 50], "score": 0.99},  # elsewhere
+            {"category": "dog", "bbox": [10, 10, 100, 100], "score": 0.99},
+        ],  # other class
+        "c": [{"category": "cup", "bbox": [10, 10, 100, 100], "score": 0.4}],  # below 0.7
+        "d": [],
+    }
+    assert detector_matches(box, "cup", dets) == {"a": 0.95, "b": None, "c": 0.4, "d": None}
