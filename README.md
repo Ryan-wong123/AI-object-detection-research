@@ -180,7 +180,9 @@ start excel data\inlayfake_v2\audit_edits.csv
 ```
 
 Card *k* in the HTML page is row *k* of the CSV (after the header). Each card shows the region the
-verifier looked at, before (C1) and after the edit. Fill each row with `y` or `n`:
+verifier looked at, before (C1) and after the edit. A dashed yellow box marks the planned box (where the
+object was to be drawn); on the *after* image a red box marks the AI object as the verifier
+found it. Fill each row with `y` or `n`:
 
 | Column | Fill with `y` / `n` |
 |---|---|
