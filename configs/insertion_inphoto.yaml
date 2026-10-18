@@ -17,6 +17,10 @@
 #   python -m inlayfake preview --config configs/insertion_inphoto.yaml
 inherit: default.yaml
 run_name: task2_insertion
+site:                       # results website tab and folder (docs/results/week2_ai_insertion/)
+  week: 2
+  title: AI insertion
+  folder: week2_ai_insertion
 generators_enabled: [G1]
 sampling:
   # author, 2026-10-17: only the 544 photos of the week-1 baseline (task1_real_baseline), so

@@ -11,7 +11,8 @@ rendered at the top of the page.
 
 Two output modes:
   local (default): runs/<run>/viewer/. Images are referenced in place from data/ (fast, private).
-  --share: docs/viewer/<run>/. Self-contained page + data.js + downscaled JPEG copies
+  --share: docs/results/week<N>_<topic>/ (site block of the config). Self-contained page,
+    data.js and downscaled JPEG copies
     (viewer.share_max_side / share_quality), so the folder can be committed, zipped or served
     with GitHub Pages.
 
@@ -35,6 +36,7 @@ from inlayfake.edit.encode import load_rgb
 from inlayfake.edit.placement import iou
 from inlayfake.ledger import ImageRecord
 from inlayfake.runlog import write_run_info
+from inlayfake.site import CONDITION_NAMES, SITE_CSS, page_title, share_dir
 from inlayfake.stages.common import load_records, read_jsonl, run_dir, work_dir
 from inlayfake.stages.detect import load_detections
 
@@ -261,9 +263,7 @@ def build_data(cfg: dict, out_dir: Path, share: bool = False) -> dict:
 
 def run(cfg: dict, share: bool = False) -> dict:
     if share:
-        out = Path(cfg.get("viewer", {}).get("share_dir", "docs/viewer")) / cfg.get(
-            "run_name", "run"
-        )
+        out = share_dir(cfg)  # docs/results/week<N>_<topic>/ (inlayfake.site)
     else:
         out = run_dir(cfg) / "viewer"
     out.mkdir(parents=True, exist_ok=True)
@@ -272,6 +272,12 @@ def run(cfg: dict, share: bool = False) -> dict:
         "window.VIEWER_DATA = " + json.dumps(data, separators=(",", ":")) + ";\n", encoding="utf-8"
     )
     page = (Path(__file__).parent / "viewer_page.html").read_text(encoding="utf-8")
+    title = page_title(cfg, "Detector results")
+    page = (
+        page.replace("/*SITE_CSS*/", SITE_CSS)
+        .replace("__TITLE__", html.escape(title))
+        .replace("__CONDITION_NAMES__", json.dumps(CONDITION_NAMES))
+    )
     (out / "index.html").write_text(page, encoding="utf-8")
     summary = {
         "viewer": (out / "index.html").as_posix(),
