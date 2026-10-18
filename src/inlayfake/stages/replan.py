@@ -642,13 +642,14 @@ def ensure_versions(cfg, index, sources, plans, state, wd: Path) -> dict:
 
 
 def merged_source(cfg: dict, state: dict, sid: int, versions: dict | None = None) -> str | None:
-    """Merged condition: "C4", "C5" or "anywhere" for a photo with a verified AI edit, else None."""
+    """Merged condition: where a photo's verified AI edit came from, else None: "free" (free-space
+    rule), "occluding" (covers 20-50% of one real object) or "anywhere" (merged-mode box)."""
     v = merged_version(cfg, state, sid, versions)
     if v == ADOPT:
-        return "C5"
+        return "occluding"
     if not leader_passed(cfg, state, sid, v):
         return None
-    return "anywhere" if v > ADOPT else "C4"
+    return "anywhere" if v > ADOPT else "free"
 
 
 def gen_of(cfg: dict, cond: str) -> str | None:

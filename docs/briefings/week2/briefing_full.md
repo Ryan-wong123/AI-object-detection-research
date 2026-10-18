@@ -1,5 +1,7 @@
 # InlayFake: Week 2 progress (15â€“21 Oct 2026)
 
+> Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
+
 Last updated 18 Oct 2026 Â· Ryan Wong
 
 Briefing for the project professor. Branch `week-2-ai-insertion`. Generation runs on the RTX 4070
@@ -31,8 +33,8 @@ covering 20â€“50% of one real object.
 | C0 / C1 | original / matched resave (week 1) | none |
 | C2 sham | same window and mask, prompt "empty background, nothing": the editor runs but adds nothing | SDXL |
 | C3 real paste | a real COCO object of the same class, cut from another photo and pasted in the same box | none |
-| C4 AI insert | **one AI object of a class already in the photo, placed anywhere** (C4 and C5 merged 18 Oct, see Done §20) | SDXL (SD2 and FLUX dropped 17 Oct, see Done §14) |
-| ~~C5~~ | ~~AI object covering 20–50% of one real object~~: merged into C4 | – |
+| C4 AI insert | **one AI object of a class already in the photo, placed anywhere** (C4 and C4-occ merged 18 Oct, see Done §20) | SDXL (SD2 and FLUX dropped 17 Oct, see Done §14) |
+| ~~C4-occ~~ | ~~AI object covering 20–50% of one real object~~: merged into C4 | – |
 
 ## Done
 
@@ -47,17 +49,17 @@ covering 20â€“50% of one real object.
 - **Exact object outline.** SAM, prompted with the OWLv2 box and clipped to the edit mask, gives the
   inserted object's mask and tight box for the ground truth.
 - **What actually changed.** |edited âˆ’ C1| > 4 grey levels (after a 3Ã—3 opening) is saved per image.
-- **Occlusion (C5).** Real objects covered by the insertion get their visible mask, box and visible
+- **Occlusion (C4-occ).** Real objects covered by the insertion get their visible mask, box and visible
   fraction updated; below 10% visible they become ignore regions.
 - **Altered real objects.** A real object whose area overlaps the changed region by > 10% is
   re-labelled `mixed_modified` and reported separately.
 - **Human audit.** A random 10% of passed edits go on `audit_edits.html` (before/after crops) with
   `audit_edits.csv` to mark y/n: object present, realistic, anything else changed.
 - **Final ledger.** `ledger.jsonl` keeps C0/C1 exactly as in week 1 (test-checked, so week-1
-  results are unchanged), adds C3 with its pasted mask, and one passed record per C2/C4/C5 job.
+  results are unchanged), adds C3 with its pasted mask, and one passed record per C2/C4/C4-occ job.
 
 ### 2. Viewer
-The detector viewer now lists C2â€“C5 per generator, outlines inserted/pasted objects (purple) and
+The detector viewer now lists C2â€“C4-occ per generator, outlines inserted/pasted objects (purple) and
 real objects altered by the editor (amber), and shows "not run on this image yet" for detectors not
 yet run on the edited images (week 3).
 
@@ -71,7 +73,7 @@ cloud sandbox, so their first real run is the pilot.
 ### 4. SDXL pilot (16 Oct, run `task2_pilot`)
 - 50 sampled photos, 46 with a plan (38 with an occlusion box): 130 SDXL edits and 46 real pastes.
 - **Most insertions failed.** On the first attempt, OWLv2 confirmed the object in 4 of 46 C4
-  edits and 1 of 38 C5 edits. A visual check agrees: in the failed edits SDXL filled the box with
+  edits and 1 of 38 C4-occ edits. A visual check agrees: in the failed edits SDXL filled the box with
   matching background (grass, sky, road) instead of the object. The verifier is not the problem.
 - **Not a code bug.** The compositing and mask handling were checked. A diagnostic on 12 failed
   edits passed 2/12 at the current setting and 3/12 at full denoising strength; full strength
@@ -88,7 +90,7 @@ cloud sandbox, so their first real run is the pilot.
   from the COCO-Stuff human labels (clocks may hang on a wall). Off by default, so week-1 plans
   are unchanged; 5 new unit tests, 53 pass.
 - Same 50 photos: 35 get a plan (was 46) and 19 an occlusion box (was 38).
-- **Result: no better.** C4 0/35, C5 4/19 (7%). SDXL again filled boxes with background, now
+- **Result: no better.** C4 0/35, C4-occ 4/19 (7%). SDXL again filled boxes with background, now
   in plausible places (a bench box on a lawn became lawn). Placement was not the main cause.
 - **The cause is the edit window.** The generator sees a square of 2.5Ã— the box, so the object is
   only 40% of its canvas side. On 12 failed edits, a tighter window gave many more insertions:
@@ -119,7 +121,7 @@ cloud sandbox, so their first real run is the pilot.
   that lies mostly inside the box even if it is much smaller than the box. Why: 14 of 58
   rejections had a confident detection inside the box (e.g. a frisbee at score 0.74) that failed
   only the overlap rule. A detection on the photo's own same-class object never counts.
-- **Result:** a verified AI object in **27 of 41 C4** edits (66%) and **17 of 34 C5** edits (50%),
+- **Result:** a verified AI object in **27 of 41 C4** edits (66%) and **17 of 34 C4-occ** edits (50%),
   up from 6% in the first pilot; all 41 sham edits stay clean. 59 tests pass.
 - **What is left:** below the 85% target; several objects float in implausible places (a bus
   in the sky, a car in the trees), and very large classes (train, bed) usually fail.
@@ -130,29 +132,29 @@ cloud sandbox, so their first real run is the pilot.
 - **Instead:** when all 3 seeds fail on a box, the edit gets a **new box** resting on a ground
   or table surface and sized like the photo's own object of that class, up to 3 new boxes. The
   sham and paste controls move with the C4 box, so they stay matched.
-- **Result:** a verified AI object in **38 of 41 C4** edits (93%) and **25 of 34 C5** edits
+- **Result:** a verified AI object in **38 of 41 C4** edits (93%) and **25 of 34 C4-occ** edits
   (74%); 39 of 41 shams clean. Most of the 19 objects gained on new boxes are clear (dog,
   elephant, train, horse, airplane); 3 are weak and a few still sit in odd places.
-- **Remaining:** 3 C4 and 9 C5 edits without an object (4 crowded photos had no room for a new
+- **Remaining:** 3 C4 and 9 C4-occ edits without an object (4 crowded photos had no room for a new
   box); human audit pending. 62 tests pass.
 
 ### 9. Another class as a last resort (17 Oct, run `task2_pilot_inphoto`)
 - **Change:** if the new boxes also fail, the edit switches to another class already in the
   photo, smallest first (sham and paste switch with it). Photos with no free space at all may
-  still get a C5 edit (an object partly covering a real one). Week-1 and earlier pilot plans are
+  still get a C4-occ edit (an object partly covering a real one). Week-1 and earlier pilot plans are
   unchanged (checked). 65 tests pass.
 - **Result:** **46 of the 50 photos** now have at least one verified AI object (was 39);
-  C4 39/41, C5 35/41. The new objects include a toilet, motorcycles, a giraffe, a handbag and a
+  C4 39/41, C4-occ 35/41. The new objects include a toilet, motorcycles, a giraffe, a handbag and a
   spoon; 2 are very small.
 - **Still without one (4):** a single train, a single zebra, and two crowded street scenes where
   no box fits for any class.
 
 ### 10. The last four photos (17 Oct)
-- **Fix:** the C5 box was sized like a typical object of the class, far too small to cover a
+- **Fix:** the C4-occ box was sized like a typical object of the class, far too small to cover a
   train or zebra that fills most of the frame. It is now sized from the object it covers (same
   occlusion rules). The zebra photo gained an AI zebra head; the motorcycle photo a small AI
   motorcycle. 66 tests pass; earlier plans unchanged.
-- **Result: 48 of 50 photos** have a verified AI object; C4 39/41, C5 37/42.
+- **Result: 48 of 50 photos** have a verified AI object; C4 39/41, C4-occ 37/42.
 - **Left out (2):** an AI train painted over the real train merges with it and cannot be told
   apart, and a car-interior shot has no valid box. Both would need a rule change.
 
@@ -173,7 +175,7 @@ cloud sandbox, so their first real run is the pilot.
   Running since 13:34; result [[TBD]].
 
 ### 21. Merged run done: 537 of 544; re-run of the 7 dropped photos (18 Oct)
-- **Result:** 537 photos have a verified AI edit (from C4 464, from C5 38, placed anywhere 35);
+- **Result:** 537 photos have a verified AI edit (from C4 464, from C4-occ 38, placed anywhere 35);
   533 have every condition C0–C4 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json -->.
 - **7 dropped**, after 6 boxes × 3 seeds. OWLv2 re-run on their 210 failed attempts: in close-ups
   of one big object (bed, train, toilet) the box lands on the real object, which never counts;
@@ -183,26 +185,26 @@ cloud sandbox, so their first real run is the pilot.
   train close-ups stay without an AI edit. **Final: 542 of 544 photos have an AI edit, 538 have
   every condition** <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json -->.
 
-### 20. Decision: C4 and C5 merged into one AI condition (18 Oct)
+### 20. Decision: the two AI placement rules (C4, C4-occ) merged into one condition C4 (18 Oct)
 - **Why:** after seven rounds, 44 of 544 photos still had no AI object under the separate rules
-  (C4: touch no real object; C5: cover 20–50% of one). 284 photos had both, 175 only C4, 41
-  only C5 <!-- file:paper/results/task2_insertion_merge_decision.json -->.
+  (C4: touch no real object; C4-occ: cover 20–50% of one). 284 photos had both, 175 only C4, 41
+  only C4-occ <!-- file:paper/results/task2_insertion_merge_decision.json -->.
 - **New rule (author):** one AI condition (C4): an AI object of a class already in the photo,
   **placed anywhere**. Verified edits are kept: the C4 if the photo has one (its C2 and C3
-  already exist), else the C5, else a new box anywhere (up to 6 boxes × 3 seeds; OWLv2 must
+  already exist), else the C4-occ, else a new box anywhere (up to 6 boxes × 3 seeds; OWLv2 must
   still confirm the object). C2 and C3 always sit at the chosen AI box, so 38 photos that use
-  their C5 get a new C2 and C3 there.
-- **Status:** run restarted with the merged rule (Sun 03:46): AI edit from C4 464, from C5 38,
+  their C4-occ get a new C2 and C3 there.
+- **Status:** run restarted with the merged rule (Sun 03:46): AI edit from C4 464, from C4-occ 38,
   42 still to place anywhere <!-- run:task2_insertion, run_verify_2026-10-17T194502Z -->.
 - **Cost:** H2 loses its controlled occlusion condition: occlusion effects are now measured on
-  the AI edits that happen to cover a real object (observational). 298 verified C5 edits leave
+  the AI edits that happen to cover a real object (observational). 298 verified C4-occ edits leave
   the benchmark because their photos use the C4. The paper (§4) states this.
 
 ### 19. Round-7 results; verified edits are always kept (18 Oct)
-- The fills' first attempts: 35 of 57 new C4 and 34 of 128 new C5 edits passed. Totals now C4
-  459, C5 325 verified.
-- 13 C4 edits with a class not in the photo had stopped counting when the C5 fill later gave
-  their photos an in-photo C5. On the author's decision, a verified edit is now always kept;
+- The fills' first attempts: 35 of 57 new C4 and 34 of 128 new C4-occ edits passed. Totals now C4
+  459, C4-occ 325 verified.
+- 13 C4 edits with a class not in the photo had stopped counting when the C4-occ fill later gave
+  their photos an in-photo C4-occ. On the author's decision, a verified edit is now always kept;
   they are back (with their C2 and C3), with no regeneration.
 
 ### 18. Seven dropped C4 edits brought back (18 Oct)
@@ -211,25 +213,25 @@ cloud sandbox, so their first real run is the pilot.
   with the C4 rules unchanged. The run was restarted once more (Sun 02:22); nothing was lost.
 
 ### 17. More photos get a C4 edit (18 Oct)
-- 70 photos had no C4 box. As with C5, a check showed the cause was the box search (one size
+- 70 photos had no C4 box. As with C4-occ, a check showed the cause was the box search (one size
   tried), not the rules: the 8 px margin barely matters.
 - With several box sizes and unchanged rules, **57 more photos get a C4 box (531 of 544)**, each
   with its C2 sham and C3 paste. No other plan changed; the run was restarted again (Sun 01:28),
   adding an estimated 1.5–2 h.
 
-### 16. More photos get a C5 edit (18 Oct)
-- 137 of the 544 photos had no C5 box. A check showed this was mostly the box search (one size
+### 16. More photos get a C4-occ edit (18 Oct)
+- 137 of the 544 photos had no C4-occ box. A check showed this was mostly the box search (one size
   tried), not the overlap rule. On the author's decision, covered objects may now be as small as
   32 px (was 64), and several box sizes are tried.
-- **Result: 128 more photos get a C5 box (535 of 544).** No existing plan changed; the run was
-  briefly stopped and restarted (Sun 00:40) and continues with these new C5 edits, adding an
+- **Result: 128 more photos get a C4-occ box (535 of 544).** No existing plan changed; the run was
+  briefly stopped and restarted (Sun 00:40) and continues with these new C4-occ edits, adding an
   estimated 2–4 h.
 
 ### 15. Decision: keep the sham edit C2 (17 Oct)
 - C2 is the "placebo": SDXL repaints the same box with "empty background", so no object is
   added. It is not counted as an AI object; it shows whether a method detects AI objects or just
   any AI-repainted area, and whether repainting alone disturbs nearby real objects.
-- The reasons for every condition (C1–C5), and why C5 has its own box, are now written into
+- The reasons for every condition (C1–C4), and why C4-occ has its own box, are now written into
   the paper (§4, §6, §7.6).
 - Some shams come out as flat grey patches; these will be marked in the human audit.
 
@@ -242,7 +244,7 @@ cloud sandbox, so their first real run is the pilot.
 - **What stays:** robustness to JPEG / resize / blur and the held-out Open Images photos (the rest
   of H4), and every other hypothesis.
 - Full run status: round 1 done (1,355 images in 6 h 53 min); on the first attempt 269 of 474 C4
-  and 123 of 407 C5 edits passed and 472 of 474 shams stayed clean; 491 edits are in round 2.
+  and 123 of 407 C4-occ edits passed and 472 of 474 shams stayed clean; 491 edits are in round 2.
 
 ### 13. Full run set up (17 Oct, run `task2_insertion`)
 - `configs/insertion_inphoto.yaml`: the pilot's settings on **the same 544 photos as the week-1
@@ -254,7 +256,7 @@ cloud sandbox, so their first real run is the pilot.
   about two nights; the run can be stopped and resumed.
 
 ### 12. Decision: a box anywhere as the very last resort (17 Oct)
-- **Rule:** if no box satisfies the placement rules, an occluding (C5) edit may be placed
+- **Rule:** if no box satisfies the placement rules, an occluding (C4-occ) edit may be placed
   anywhere in the image, flagged `placement_rule: anywhere`. C4 always keeps its no-occlusion
   rule. Earlier plans unchanged; 71 tests pass.
 - **Result: 50 of 50 photos** have a verified AI object.
@@ -265,24 +267,24 @@ cloud sandbox, so their first real run is the pilot.
 
 | Item | Value |
 |---|---|
-| Pilot (46 photos, SDXL, attempt 1): insertion confirmed by verifier | C4 4/46, C5 1/38 (5/84 = 6%) <!-- run:task2_pilot, file:paper/results/task2_pilot_round1_verify.json --> |
+| Pilot (46 photos, SDXL, attempt 1): insertion confirmed by verifier | C4 4/46, C4-occ 1/38 (5/84 = 6%) <!-- run:task2_pilot, file:paper/results/task2_pilot_round1_verify.json --> |
 | Pilot: sham edits in which the verifier found the target class | 0/46 (one sham produced a non-target object, a bird) <!-- run:task2_pilot --> |
-| Surface pilot (35 photos, SDXL, attempt 1): insertion confirmed | C4 0/35, C5 4/19 (4/54 = 7%) <!-- run:task2_pilot_surface, file:paper/results/task2_pilot_surface_round1_verify.json --> |
+| Surface pilot (35 photos, SDXL, attempt 1): insertion confirmed | C4 0/35, C4-occ 4/19 (4/54 = 7%) <!-- run:task2_pilot_surface, file:paper/results/task2_pilot_surface_round1_verify.json --> |
 | Window-size diagnostic (12 failed edits): confirmed at 2.5Ã— / 1.5Ã— / 1.2Ã— | 1 / 5 / 7 of 12 <!-- file:paper/results/task2_window_scale_diagnostic.txt (scratch diagnostic, not a run) --> |
 | Same-class plan (50 photos): planned / with occlusion / classes | 41 / 34 / 31 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_plan.json --> |
 | Week-1 plan: photos containing any of the 10 fixed classes | 196 of 544 <!-- run:task1_real_baseline plans + COCO val2017 annotations --> |
-| Same-class pilot (window 1.2Ã—, looser check, â‰¤ 3 attempts): verified C4 / C5 / clean C2 | 27/41 (66%) / 17/34 (50%) / 41/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_final_verify.json --> |
-| Same-class pilot, attempt 1, old rule: C4 / C5 | 10/41 / 7/34 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_round1_oldrule_verify.json --> |
-| Same-class pilot with re-plan (â‰¤ 4 boxes Ã— 3 seeds): verified C4 / C5 / clean C2 | 38/41 (93%) / 25/34 (74%) / 39/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_replan_verify.json --> |
-| Plus class switch and C5-only plans: verified C4 / C5; photos with an AI object | 39/41 / 35/41; 46 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_classswitch_verify.json --> |
-| Plus C5 boxes sized from the covered object: C4 / C5; photos with an AI object | 39/41 / 37/42; 48 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_targetsize_verify.json --> |
-| Plus a class not in the photo as last resort: C4 / C5; photos with an AI object | 39/41 / 38/42; 49 of 50 (1 out-of-photo edit) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_outside_verify.json --> |
-| Plus a C5 box anywhere as very last resort: C4 / C5; photos with an AI object | 39/41 / 39/43; **50 of 50** (1 doubtful) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_anywhere_verify.json --> |
+| Same-class pilot (window 1.2Ã—, looser check, â‰¤ 3 attempts): verified C4 / C4-occ / clean C2 | 27/41 (66%) / 17/34 (50%) / 41/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_final_verify.json --> |
+| Same-class pilot, attempt 1, old rule: C4 / C4-occ | 10/41 / 7/34 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_round1_oldrule_verify.json --> |
+| Same-class pilot with re-plan (â‰¤ 4 boxes Ã— 3 seeds): verified C4 / C4-occ / clean C2 | 38/41 (93%) / 25/34 (74%) / 39/41 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_replan_verify.json --> |
+| Plus class switch and C4-occ-only plans: verified C4 / C4-occ; photos with an AI object | 39/41 / 35/41; 46 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_classswitch_verify.json --> |
+| Plus C4-occ boxes sized from the covered object: C4 / C4-occ; photos with an AI object | 39/41 / 37/42; 48 of 50 <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_targetsize_verify.json --> |
+| Plus a class not in the photo as last resort: C4 / C4-occ; photos with an AI object | 39/41 / 38/42; 49 of 50 (1 out-of-photo edit) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_outside_verify.json --> |
+| Plus a C4-occ box anywhere as very last resort: C4 / C4-occ; photos with an AI object | 39/41 / 39/43; **50 of 50** (1 doubtful) <!-- run:task2_pilot_inphoto, file:paper/results/task2_pilot_inphoto_anywhere_verify.json --> |
 | Full run plan (week-1 photo set): photos planned / first-round images / expected GPU time | 544 of 544 / 1,355 / ~28 h (estimate) <!-- run:task2_insertion (plan only), file:paper/results/task2_insertion_plan.json --> |
-| Full run: C2 / C3 / C4 / C5 images in the final ledger | [[TBD]] |
-| Merge decision (18 Oct): photos with C4 and C5 / only C4 / only C5 / neither (after round 7) | 284 / 175 / 41 / 44 <!-- file:paper/results/task2_insertion_merge_decision.json --> |
-| Merged AI condition at restart 5: AI edit from C4 / from C5 / still to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z, file:paper/results/task2_insertion_merge_decision.json --> |
-| Full run, round 1 (attempt 1): passed C2 / C4 / C5 | 472/474 / 269/474 / 123/407; 491 to round 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_round1_verify.json (interim) --> |
+| Full run: C2 / C3 / C4 / C4-occ images in the final ledger | [[TBD]] |
+| Merge decision (18 Oct): photos with C4 and C4-occ / only C4 / only C4-occ / neither (after round 7) | 284 / 175 / 41 / 44 <!-- file:paper/results/task2_insertion_merge_decision.json --> |
+| Merged AI condition at restart 5: AI edit from C4 / from C4-occ / still to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z, file:paper/results/task2_insertion_merge_decision.json --> |
+| Full run, round 1 (attempt 1): passed C2 / C4 / C4-occ | 472/474 / 269/474 / 123/407; 491 to round 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_round1_verify.json (interim) --> |
 | Merged run (boxes 1–6): photos with a verified AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
 | After the re-run of the 7 (boxes 7–12): photos with an AI edit / all of C0–C4 / dropped | 542 / 538 / 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
 | Real objects re-labelled `mixed_modified` | [[TBD]] |
@@ -306,7 +308,7 @@ cloud sandbox, so their first real run is the pilot.
   venues from search snippets, to verify).** Closest: COinCO (CVPR 2026: COCO, one object
   *replaced* by SD inpainting, a detector used only as a filter). Gaps no work found covers: origin
   of every object with a real-object false-accusation rate; a real-paste control (C3) and occlusion
-  arm (C5); same-class pairs in one photo; frozen detectors on inserted vs real objects; object-level
+  arm (C4-occ); same-class pairs in one photo; frozen detectors on inserted vs real objects; object-level
   abstention. With SDXL only, a held-out generator is no longer one of our edges.
 - **Held-out generator: decided 17 Oct, dropped** (SDXL only, Done Â§14). The laptop has 32 GB of
   RAM (`systeminfo`: 32,471 MB), at the FLUX threshold; this no longer matters for this paper.
@@ -314,7 +316,7 @@ cloud sandbox, so their first real run is the pilot.
   editors; the paper states this as a limitation.
 - **How to fix the insertion rate.** Surface placement was tried and did not help (7%). The
   evidence points to a tighter edit window (1.2â€“1.5Ã— instead of 2.5Ã—; 7/12 at 1.2Ã—). To decide:
-  which window size, whether to keep surface placement (it costs 11 of 46 plans and half of C5),
+  which window size, whether to keep surface placement (it costs 11 of 46 plans and half of C4-occ),
   then a third pilot before the full run.
 - Whether OWLv2's misses need a closer look (it rejected some clearly visible objects).
 - Same-class insertion: combine with surface placement, and size the box like the photo's own

@@ -1,5 +1,7 @@
 # InlayFake
 
+> Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
+
 Research code for **InlayFake: A Benchmark for Mixed-Origin Object Understanding**: can detectors and
 image-forensic methods tell, *per object*, whether an object in a real photograph was photographed or
 inserted by an AI image editor?
@@ -25,8 +27,8 @@ python -m inlayfake --help
 
 Inserts an SDXL-generated object into each of the 544 week-1 baseline photos (conditions C2–C4)
 and keeps only edits in which the verifier (OWLv2) finds the object. **Since 18 Oct 2026, C4 and
-C5 are one AI condition (C4):** an AI object of a class already in the photo, placed anywhere.
-A photo keeps its verified C4, else its verified C5, else gets new boxes anywhere; C2 and C3 sit
+C4-occ are one AI condition (C4):** an AI object of a class already in the photo, placed anywhere.
+A photo keeps its verified C4, else its verified C4-occ, else gets new boxes anywhere; C2 and C3 sit
 at the same box (`placement.merged` in the config; `docs/RESEARCH_LOG.md`, 18 Oct). The settings come from the
 same-class pilot; see `configs/insertion_inphoto.yaml` and `docs/RESEARCH_LOG.md` (17 Oct 2026).
 Output goes to `data\inlayfake_v2` (git-ignored); the week-1 data in `data\inlayfake` is untouched.
@@ -129,28 +131,19 @@ start data\inlayfake_v2\preview.html
 ```
 
 The page shows **only images that are in the benchmark** (`ledger.jsonl`): per photo the C0
-original, the C1 resave, the C2 sham, the C3 paste and the **one AI edit (C4)** that passed the
-check. The AI panel says where the AI edit came from: `from C4: free space`, `from C5: covers a
-real object` or `new: placed anywhere`. Yellow box = planned box, red box = inserted or pasted
-object (its verified box). A photo's heading names what it lacks and why, e.g.
-`AI edit (C4): still retrying · C2, C3: waits for the AI edit to be verified`.
+original, the C1 resave, the C2 sham, the C3 paste and the C4 AI insertion that passed the check.
+Yellow box = planned box, red box = inserted or pasted object (its verified box). A photo's
+heading names what it lacks and why, e.g. `C4: still retrying · C2, C3: waits for the AI edit to
+be verified`.
 
-At the top, a summary counts complete photos and where the AI edits came from, and a **Show**
-dropdown filters the page instantly (no rebuild). Each option shows its count, and the number of
-photos shown appears next to it:
+At the top, a summary counts complete photos, and a **Show** dropdown filters the page instantly
+(no rebuild). Each option shows its count, and the number of photos shown appears next to it:
 
 | Option | Shows photos where |
 |---|---|
 | all photos | everything |
-| all conditions C0–C4 in the benchmark | C0, C1, C2, C3 and the AI edit are all there |
-| any missing C | the AI edit, C2 or C3 is missing |
-| AI edit from the verified C4 | the AI object sits in free space (touches no real object) |
-| AI edit from the verified C5 | the AI object covers 20–50% of one real object; C2/C3 made at its box |
-| AI edit newly placed anywhere | the AI object was placed with the merged rule (class only) |
-| AI edit still retrying | no AI attempt has passed yet (more boxes or seeds to try) |
-| AI edit dropped | every allowed attempt failed (6 boxes × 3 seeds) |
-| C2 sham missing | C2 is retrying, waiting for the AI edit, or dropped |
-| C3 paste missing | C3 is waiting for the AI edit or has no donor |
+| all conditions C0–C4 in the benchmark | C0, C1, C2, C3 and C4 are all there |
+| any missing C (C2, C3 or C4) | C2, C3 or C4 is missing |
 
 "Still retrying" and "waits" exist only while the run is going.
 

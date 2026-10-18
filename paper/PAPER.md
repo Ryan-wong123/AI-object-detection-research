@@ -5,16 +5,18 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-18 |
-> | Insertion run done | 2026-10-18: 542 of 544 photos with a verified AI edit (464 C4, 38 C5, 40 anywhere), 538 complete C0–C4, 2 dropped (bed, train close-ups), 4 without C2 (paper/results/task2_insertion_final.json). Human audit and Table 1 counts pending |
-> | Merged run | 2026-10-18: 537 of 544 photos with a verified AI edit (464 C4, 38 C5, 35 anywhere), 7 dropped and re-run with 6 more boxes off the real same-class object (paper/results/task2_insertion_merged_round_final.json) |
-> | Scope change 2 | 2026-10-18 (author): C4 and C5 merged into one AI condition (C4: a class already in the photo, placed anywhere; verified C4 kept, else verified C5, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
+> | Insertion run done | 2026-10-18: 542 of 544 photos with a verified AI edit (464 free-space, 38 occluding, 40 anywhere), 538 complete C0–C4, 2 dropped (bed, train close-ups), 4 without C2 (paper/results/task2_insertion_final.json). Human audit and Table 1 counts pending |
+> | Merged run | 2026-10-18: 537 of 544 photos with a verified AI edit (464 free-space, 38 occluding, 35 anywhere), 7 dropped and re-run with 6 more boxes off the real same-class object (paper/results/task2_insertion_merged_round_final.json) |
+> | Scope change 2 | 2026-10-18 (author): the two AI placement rules (free space, occlusion) merged into one condition C4 (a class already in the photo, placed anywhere; verified free-space edit kept, else verified occluding edit, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
 > | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
-> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C5, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C5 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C5, 31 classes). Same-class pilot generated at window 1.2× with the looser verifier (IoU ≥ 0.3 or ≥ 80% inside the box): C4 27/41, C5 17/34 verified after ≤ 3 attempts, C2 41/41 (paper/results/task2_pilot_inphoto_final_verify.json); §4 verification text updated. With re-plan on failure (up to 3 new boxes): C4 38/41, C5 25/34 verified, C2 39/41 (paper/results/task2_pilot_inphoto_replan_verify.json). With class switch and C5-only plans (2026-10-17): C4 39/41, C5 35/41; 46 of 50 photos have a verified AI object (paper/results/task2_pilot_inphoto_classswitch_verify.json). With C5 boxes sized from the covered object: C5 37/42, 48 of 50 photos (paper/results/task2_pilot_inphoto_targetsize_verify.json). With a class not in the photo as last resort: 49 of 50 photos, one such edit (paper/results/task2_pilot_inphoto_outside_verify.json). With a C5 box anywhere as very last resort: 50 of 50 photos (one doubtful tiny object; paper/results/task2_pilot_inphoto_anywhere_verify.json). Full run task2_insertion planned on the 544 week-1 photos (544 of 544, configs/insertion_inphoto.yaml), generation pending; success rate stays TBD until it finishes |
+> | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C4-occ, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C4-occ 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C4-occ, 31 classes). Same-class pilot generated at window 1.2× with the looser verifier (IoU ≥ 0.3 or ≥ 80% inside the box): C4 27/41, C4-occ 17/34 verified after ≤ 3 attempts, C2 41/41 (paper/results/task2_pilot_inphoto_final_verify.json); §4 verification text updated. With re-plan on failure (up to 3 new boxes): C4 38/41, C4-occ 25/34 verified, C2 39/41 (paper/results/task2_pilot_inphoto_replan_verify.json). With class switch and C4-occ-only plans (2026-10-17): C4 39/41, C4-occ 35/41; 46 of 50 photos have a verified AI object (paper/results/task2_pilot_inphoto_classswitch_verify.json). With C4-occ boxes sized from the covered object: C4-occ 37/42, 48 of 50 photos (paper/results/task2_pilot_inphoto_targetsize_verify.json). With a class not in the photo as last resort: 49 of 50 photos, one such edit (paper/results/task2_pilot_inphoto_outside_verify.json). With a C4-occ box anywhere as very last resort: 50 of 50 photos (one doubtful tiny object; paper/results/task2_pilot_inphoto_anywhere_verify.json). Full run task2_insertion planned on the 544 week-1 photos (544 of 544, configs/insertion_inphoto.yaml), generation pending; success rate stays TBD until it finishes |
 > | Approx. length | ~3,800 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures); §4 condition rationale added 2026-10-17 (~450 words, may need shortening for the page limit) |
 > | Design decision | 2026-10-17 (author): C2 sham edit kept as a control; its justification and scoring (never an AI object; separate edited-background flag rate) written into §4, §6, §7.6 |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
+>
+> Terminology (status box only): C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
 >
 > Conventions: `[[TBD: ...]]` = result not yet available. Every number carries
 > `<!-- run:<run_id> -->`. Nothing in this draft is a measured result unless it is tagged.
@@ -186,7 +188,7 @@ condition. They are close-ups rather than crowded scenes: they have the same med
 objects as the kept photographs (4), but their object boxes cover a median 97% of the frame (kept: 32%),
 and in 52 of the 56 a single object covers more than half the image <!-- run:task1_real_baseline (plan failed_sources, seed 20261008; COCO val2017 annotations), see docs/RESEARCH_LOG.md 2026-10-11 -->.
 The benchmark therefore under-represents close-up, frame-filling shots (§8). Of the 544, 363 also
-admitted a controlled-occlusion box for C5 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
+admitted a controlled-occlusion box <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
 These 544 photographs are the benchmark's photograph set: the real-only baseline and the
 insertion run use exactly the same photographs, so results on unedited and edited images are
 comparable. For the insertion run they are planned again with the rules below.
@@ -211,11 +213,11 @@ gives 57 of them one, for 531 of 544 with C2–C4 and 13 occlusion-only photogra
 <!-- run:task2_insertion (plan with occlusion_fill and free_fill, 2026-10-18), file:paper/results/task2_insertion_plan_fills.json -->.
 
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
-insertion of a class already in the photograph. The design originally had two AI conditions, C4
-(free space, touching no real object) and C5 (covering 20–50% of one real object). Under those
+insertion of a class already in the photograph. The design originally placed AI objects under two separate
+rules, free space (touching no real object) and occlusion (covering 20–50% of one real object). Under those
 separate placement rules, 44 of 544 photographs still had no verified AI object after seven
 checked generation rounds <!-- run:task2_insertion (state after the round-7 check, 2026-10-18), file:paper/results/task2_insertion_merge_decision.json -->,
-so the two were merged into one AI condition <!-- file:paper/results/task2_insertion_merge_decision.json --> whose only placement rule is the class (see
+so the two were merged into one AI condition whose only placement rule is the class (see
 "Merged AI condition" below).
 
 *Why each condition.* The conditions form a ladder in which neighbouring rungs differ in roughly
@@ -246,8 +248,8 @@ C2, C3 and C4 share **one box** per photograph, so they differ only in what fill
 new box, C2 and C3 are regenerated at the new box to keep the triple matched.
 
 *Merged AI condition.* Each photograph has exactly one AI edit, chosen in this order: its
-verified free-space insertion (former C4); otherwise its verified insertion covering 20–50% of
-one real object (former C5); otherwise a new insertion of one of the photograph's own classes
+verified free-space insertion; otherwise its verified insertion covering 20–50% of
+one real object; otherwise a new insertion of one of the photograph's own classes
 placed anywhere in the image, with no overlap rule (up to six boxes with three seeds each, and
 the verifier must still confirm the object). When a photograph had both a free-space and an
 occluding insertion, the free-space one is used because its matched C2 and C3 already exist; the
@@ -255,7 +257,7 @@ occluding one leaves the benchmark. C2 and C3 are always generated at the box of
 edit, so the triple stays matched. The ledger records the origin of every AI edit (free space,
 occluding, or anywhere) [[TBD: counts per origin after the merged run]].
 
-This merge has a cost that we state openly. The original C5 isolated occlusion as a controlled
+This merge has a cost that we state openly. The separate occlusion rule isolated occlusion as a controlled
 factor: H2 asked whether insertions disturb untouched real objects beyond resaving, sham
 editing, real pasting *and* occlusion. With one AI condition, AI edits that cover a real object
 and those that do not are no longer assigned by design. We therefore evaluate H2 on original
@@ -276,7 +278,7 @@ repaints part of that object, which is then marked *mixed/modified*.
 | C1 | re-encoding with the benchmark pipeline | C1 vs C0 | effect of re-encoding alone | reference for all edits |
 | C2 | AI repainting of the box, no object | C2 vs C1 | effect of AI editing without a new object; false "AI" flags on edited background | H2, H3 (control) |
 | C3 | a real object composited into the box | C3 vs C2, C4 | compositing a photographed object; real-object negatives in the same box as C4 | H1, H3 (control) |
-| C4 | an AI object of a class in the photo, anywhere (merged; former C4 and C5) | C4 vs C1, C2, C3; covered vs not covered | origin of an AI object; occlusion effects (observational) | H1, H2, H3, H4 |
+| C4 | an AI object of a class in the photo, anywhere (free-space, occluding or anywhere placement) | C4 vs C1, C2, C3; covered vs not covered | origin of an AI object; occlusion effects (observational) | H1, H2, H3, H4 |
 
 **Generator.** All insertions use SDXL-Inpainting [Podell et al. 2024]. A second seen generator and
 a held-out generator were planned but are left to future work (§8). Inpainting operates on a square
@@ -335,7 +337,7 @@ we mark original objects overlapped by more than 10% as *mixed/modified*. A huma
 | C1 | matched resave | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
 | C2 | sham edit | [[TBD]] | [[TBD]] | – | – |
 | C3 | real paste | [[TBD]] | [[TBD]] | – | [[TBD]] |
-| C4 | AI insert (merged; former C4 and C5) | [[TBD]] | [[TBD]] | [[TBD]] | – |
+| C4 | AI insert | [[TBD]] | [[TBD]] | [[TBD]] | – |
 
 **Figure 1.** [[TBD: example source with C1–C4 panels and instance origin overlays]]
 

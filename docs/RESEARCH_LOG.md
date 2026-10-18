@@ -3,6 +3,8 @@
 Dated record of every experiment, decision and finding. Newest entries at the top.
 Format: date · run ID (if any) · what · key numbers · interpretation · next step.
 
+> Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
+
 ---
 
 ## 2026-10-18: Last 2 AI edits and 4 C2 shams re-run (restart 7)
@@ -19,7 +21,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   `placement.merged.c2_attempts: 6`: C2 at a merged box gets 3 more seeds, checked with that
   rule (the 12 failed attempts stay failed). `placement.merged.versions` 12 → 24: the bed and
   train photos get up to 12 more anywhere boxes (not on the real object, as boxes 7–12). C4 and
-  C5 checks are unchanged. 2 new tests; 82 pass. Scratch dry run: exactly these 6 jobs.
+  C4-occ checks are unchanged. 2 new tests; 82 pass. Scratch dry run: exactly these 6 jobs.
 - **Restart 7** at 13:34, PID 16592. Result [[TBD]].
 
 ---
@@ -30,7 +32,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   dropped photos passed with boxes 7–12: toilet (box 7), tv (box 8), chair (box 9), bed in 65074
   (box 10), surfboard (box 12); their C2 and C3 passed too. Still without an AI edit: 10995
   (bed) and 151857 (train), both close-ups whose only class is the object filling the frame.
-- **Final benchmark:** AI edit for 542 of 544 photos (C4 464, C5 38, anywhere 40); 538 have every
+- **Final benchmark:** AI edit for 542 of 544 photos (C4 464, C4-occ 38, anywhere 40); 538 have every
   condition C0–C4; 4 lack only C2 (sham attempts kept "producing" the target, 108440, 203580,
   259571, 262938); 1,080 edited images in the ledger (`paper/results/task2_insertion_final.json`).
 - **Next:** human audit of 10% (`audit_edits.csv`), Table 1 counts, then week 3.
@@ -40,13 +42,13 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 ## 2026-10-18: Merged run done (537 of 544); re-run of the 7 dropped photos (restart 6)
 
 - **Merged run result** (run_verify_2026-10-17T222301Z, 06:23 local; 10 rounds after restart 5):
-  AI edit for 537 of 544 photos: from C4 464, from C5 38, newly placed anywhere 35; 7 dropped
+  AI edit for 537 of 544 photos: from C4 464, from C4-occ 38, newly placed anywhere 35; 7 dropped
   after 6 boxes × 3 seeds. 533 photos have every condition C0–C4; 4 more lack only C2: in all 3 sham
-  attempts OWLv2 found the target class at the box (108440 at an adopted C5 box, 203580, 259571,
+  attempts OWLv2 found the target class at the box (108440 at an adopted C4-occ box, 203580, 259571,
   262938 at anywhere boxes; probably the real object partly inside the box, not yet checked)
   (`paper/results/task2_insertion_merged_round_final.json`). Anywhere boxes passed 35 of the 42
   photos; per round the pass rate fell from 7/42 to 0–4 per round.
-- **Why the 7 were dropped** (OWLv2 re-run, read-only, on all 210 failed C4/C5/anywhere attempts
+- **Why the 7 were dropped** (OWLv2 re-run, read-only, on all 210 failed C4/C4-occ/anywhere attempts
   of the 7): 59 found only the photo's real object of that class (never accepted), 93 a confident
   detection outside the box (mostly the real object as well), 32 only weak detections
   (score < 0.2, best 0.16–0.19), 26 nothing. Two groups: close-ups of one large object (bed,
@@ -62,36 +64,36 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
-## 2026-10-18: Scope change: C4 and C5 merged into one AI condition (restart 5)
+## 2026-10-18: Scope change: the two AI placement rules (C4, C4-occ) merged into one condition C4 (restart 5)
 
 - **Why:** after the round-7 check, 44 of 544 photos still had no verified AI object under the
-  separate C4 (free space) and C5 (covers 20–50% of one object) rules; 284 had both, 175 only C4,
-  41 only C5 (`paper/results/task2_insertion_merge_decision.json`, read-only recomputation from
+  separate C4 (free space) and C4-occ (covers 20–50% of one object) rules; 284 had both, 175 only C4,
+  41 only C4-occ (`paper/results/task2_insertion_merge_decision.json`, read-only recomputation from
   the verify state before the merge).
 - **Decision (author):** one AI condition, kept under the code C4: "an AI object of a class
   already in the photo, placed anywhere"; that class rule is the only placement rule. Verified C4
-  and C5 edits are kept. Photos with both use the C4 (author's choice over a random pick: their
+  and C4-occ edits are kept. Photos with both use the C4 (author's choice over a random pick: their
   C2/C3 already exist, no extra GPU time). C2 and C3 sit at the chosen AI box.
 - **Code:** `placement.merged` (on in `configs/insertion_inphoto.yaml`). `replan.merged_version`:
-  verified C4 → kept; else verified C5 adopted as free version 100 (box/class copied,
+  verified C4 → kept; else verified C4-occ adopted as free version 100 (box/class copied,
   `placement_rule: adopted_c5`); else versions 101–106 place a box anywhere (photo's classes,
   free-track class first; size alternates own instance and typical COCO size), 3 seeds each,
-  OWLv2 still has to confirm the object. C5 is no longer generated; C2/C3 at a merged box wait
+  OWLv2 still has to confirm the object. C4-occ is no longer generated; C2/C3 at a merged box wait
   for its verified AI edit. The final ledger has one AI record per photo, relabelled C4, with
-  `EditInfo.merged_source` (C4 / C5 / anywhere). Preview has a merged view (dropdown: AI source,
+  `EditInfo.merged_source` (C4 / C4-occ / anywhere). Preview has a merged view (dropdown: AI source,
   retrying/dropped, C2/C3 missing, with counts). 3 new tests (hand example, end-to-end switch
   from separate to merged, preview); 79 tests pass. Dry run on a scratch copy: 459 C4 kept,
-  41 C5 adopted, 44 anywhere boxes, 86 jobs.
+  41 C4-occ adopted, 44 anywhere boxes, 86 jobs.
 - **Restart 5:** run stopped in round 8 (75 of 242 images made). Those attempts were verified
   first with the merged config (run_verify_2026-10-17T194502Z, 114 rows): AI edit from C4 464,
-  from C5 38, none yet 42 (`merge_decision.json`). Merged `insert` started 03:46, PID 31272,
-  round 1: 81 jobs (42 AI anywhere, 38 C2 at adopted C5 boxes, 1 C2 retry). Backups:
+  from C4-occ 38, none yet 42 (`merge_decision.json`). Merged `insert` started 03:46, PID 31272,
+  round 1: 81 jobs (42 AI anywhere, 38 C2 at adopted C4-occ boxes, 1 C2 retry). Backups:
   `replans_before_merge.jsonl`, `verify_before_merge.jsonl`, `ledger_before_merge.jsonl`,
   `insert_progress_part5.log`, `insert_part5.log`.
 - **Consequences (paper §4, PRD):** H2 loses its controlled occlusion condition; H2 is evaluated
   on originals the AI object does not cover, covered objects separately by visible fraction
-  (observational). 298 verified C5 edits (336 photos have one, 38 adopted) leave the benchmark because their photos use the C4. C2 at an
-  adopted C5 box repaints part of the covered real object, which verify marks mixed/modified.
+  (observational). 298 verified C4-occ edits (336 photos have one, 38 adopted) leave the benchmark because their photos use the C4. C2 at an
+  adopted C4-occ box repaints part of the covered real object, which verify marks mixed/modified.
 - **Next:** let the merged run finish (anywhere boxes up to 6 × 3 seeds, then C2/C3), check
   success, fill §4 counts and Table 1.
 
@@ -108,7 +110,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   detector used only as a regeneration filter, in/out-of-context labels). Also TGIF (spliced vs
   regenerated), INP-X (detectors rely on global VAE artefacts), COCO-Inpaint, FragFake, OpenSDI.
 - **Gaps not covered by anything found:** origin label for every object and a real-object
-  false-accusation rate; a real-object paste control (C3) and occlusion arm (C5); same-class
+  false-accusation rate; a real-object paste control (C3) and occlusion arm (C4-occ); same-class
   same-photo pairs; frozen COCO detectors on inserted vs photographed objects; calibrated
   abstention at object level; hand-crafted + learned forensics under matched encoding;
   origin-aware captions scored on false accusations.
@@ -122,16 +124,16 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 ## 2026-10-18: Round-7 check; verified edits are now always kept (restart 4)
 
 - **Round-7 check** (run_verify_2026-10-17T190409Z.json; 495 images made across restarts 1–3):
-  new C4 (fill) passed 35 of 57 on the first try, new C5 (fill) 34 of 128; older C4 on a new
-  box 13 passed / 48 failed; older C5 on a new box 15 / 116. Totals C4 446, C5 325, C2 515 clean;
-  281 edits into round 8 (210 C5, 70 C4, 1 C2).
+  new C4 (fill) passed 35 of 57 on the first try, new C4-occ (fill) 34 of 128; older C4 on a new
+  box 13 passed / 48 failed; older C4-occ on a new box 15 / 116. Totals C4 446, C4-occ 325, C2 515 clean;
+  281 edits into round 8 (210 C4-occ, 70 C4, 1 C2).
 - **Found:** 13 C4 edits that had passed with a class not in the photo stopped counting. The
   rule "outside classes only if the photo has no in-photo AI object" was re-evaluated at every
-  step, and the C5 fill had given all 13 photos an in-photo C5 (3 passed, 10 retrying).
+  step, and the C4-occ fill had given all 13 photos an in-photo C4-occ (3 passed, 10 retrying).
 - **Decision (author):** keep them. `replan.track_version` now returns the version of the first
   passing attempt before applying the outside-class restriction, so the rule decides what to
   try, never withdraws a verified edit. Test updated; re-plan and verify tests pass (20).
-- **Read-only check:** under the new rule C4 459 (+13), C2 528 (+13), C5 unchanged, no edit
+- **Read-only check:** under the new rule C4 459 (+13), C2 528 (+13), C4-occ unchanged, no edit
   removed; their C3 pastes follow the same box. The images were never deleted, so nothing is
   regenerated.
 - **Restart:** stopped Sun 03:16 (round 8 at 39/281, kept), restarted 03:17 (process 25208);
@@ -145,11 +147,11 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   569700 vase, 230008 motorcycle, 529105 horse) were dropped: their original box failed 3 seeds,
   and no new box fit at steps 1–6. Re-plans sized boxes only like the photo's own instance
   (×0.8–1.2); in these crowded photos those instances are large. Outside classes were not allowed
-  (5 photos already have a C5; 2 have C5 still retrying).
+  (5 photos already have a C4-occ; 2 have C4-occ still retrying).
 - **Read-only test:** with a typical COCO size (the size the original planner used), 6 of 7 get
   a new box under unchanged C4 rules; the own-instance size gives none.
 - **Fix (author approved):** re-plans now alternate the own-instance size and a typical COCO size
-  (6 sizes instead of 5 own-instance sizes); C4/C5 rules unchanged. Re-plan and plan tests pass.
+  (6 sizes instead of 5 own-instance sizes); C4/C4-occ rules unchanged. Re-plan and plan tests pass.
 - **Scratch check:** with the 7 edits' empty free-track rows removed (42 rows), recomputing adds
   9 rows, all for these 7: every one now gets a new box (toilet on step 3, on the ground).
 - **Restart:** stopped Sun 02:21 (that round at 174/271, saved, not checked yet), removed the 42
@@ -172,13 +174,13 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   `placement.free_fill` (off by default; on in `configs/insertion_inphoto.yaml`): plans without a
   C4 box get one, the plan class first, then the photo's other classes; 6 sizes per class; C4
   rules unchanged; own seeded generator per photo. A different class is stored as
-  `free_category` and used by C2/C3/C4 (and their re-plans), while C5 keeps the plan class.
+  `free_category` and used by C2/C3/C4 (and their re-plans), while C4-occ keeps the plan class.
   2 new tests; plan/config/re-plan/verify tests pass (31).
 - **Check before applying:** re-planned in a scratch copy and compared with the live plan
-  (which holds the C5 fill): 487 plans byte-identical, 57 gained a C4 box (5 with another class),
-  nothing else changed in them, C5 fill reproduced (128). 13 photos stay C5-only.
+  (which holds the C4-occ fill): 487 plans byte-identical, 57 gained a C4 box (5 with another class),
+  nothing else changed in them, C4-occ fill reproduced (128). 13 photos stay C4-occ-only.
 - **Restart:** stopped at Sun 01:27 (that round at 145/302) and restarted at 01:28 (process
-  13064). Plans now: 531 of 544 with a C4 box, 535 with a C5 box
+  13064). Plans now: 531 of 544 with a C4 box, 535 with a C4-occ box
   (run_plan_2026-10-17T172754Z.json, paper/results/task2_insertion_plan_fills.json). Kept:
   `plans_before_free_fill.jsonl`, `insert_progress_part2.log`, `insert_part2.log`.
 - **Expected cost (estimate):** 57 new C4 jobs, each with its C2 (and C3, no GPU): roughly
@@ -186,46 +188,46 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
-## 2026-10-18: C5 fill: 128 more photos get a C5 box (run `task2_insertion` restarted)
+## 2026-10-18: C4-occ fill: 128 more photos get a C4-occ box (run `task2_insertion` restarted)
 
-- **Question (author):** why do 137 of the 544 photos have no C5 box? A read-only test re-ran
-  the C5 box search on them with one rule relaxed at a time: with the same rules but three box
+- **Question (author):** why do 137 of the 544 photos have no C4-occ box? A read-only test re-ran
+  the C4-occ box search on them with one rule relaxed at a time: with the same rules but three box
   sizes, 84 fit; box sized from the covered object 103; other objects covered up to 20% (not 5%)
   95; no limit 96; cover 10–50% of the target 102; covered objects down to 32 px (not 64) 114.
-  So the main cause was the search (the plan tries one C5 box size when the photo also has a C4
+  So the main cause was the search (the plan tries one C4-occ box size when the photo also has a C4
   box), not the 5% rule, which I had wrongly named as the cause before checking.
 - **Decision (author):** allow covered objects down to 32 px. Implemented as
   `placement.occlusion_fill` (off by default; on in `configs/insertion_inphoto.yaml`): after the
-  main search, plans without a C5 box get one, trying 6 sizes (typical COCO size, then the photo's
+  main search, plans without a C4-occ box get one, trying 6 sizes (typical COCO size, then the photo's
   own instance size) and finally a box sized from the covered object; covered object ≥ 32 px; the
-  other C5 rules unchanged (20–50% of one object, ≤ 5% of any other). Own seeded generator per
-  photo. C5 re-plans now use the same 32 px minimum. The main search keeps the original 64 px
+  other C4-occ rules unchanged (20–50% of one object, ≤ 5% of any other). Own seeded generator per
+  photo. C4-occ re-plans now use the same 32 px minimum. The main search keeps the original 64 px
   rule so that re-running `plan` reproduces earlier plans. New test; plan/config/re-plan tests
   pass.
 - **Check before applying:** re-planned in a scratch copy and compared with the live plan: 416
-  plans byte-identical, 128 gained a C5 box, 0 other changes, every C2/C3/C4 box and class
-  identical; 9 photos still without C5.
+  plans byte-identical, 128 gained a C4-occ box, 0 other changes, every C2/C3/C4 box and class
+  identical; 9 photos still without C4-occ.
 - **Restart:** the run (process 14000, round 7 at 65/239) was stopped on Sun 00:39 and restarted
-  at 00:40 (process 13792) with the new plan (535 of 544 with a C5 box). Kept:
+  at 00:40 (process 13792) with the new plan (535 of 544 with a C4-occ box). Kept:
   `plans_before_occlusion_fill.jsonl`, `insert_progress_part1.log`, `insert_part1.log`. All
-  finished images and checks are kept; the new C5 jobs start at their first seed.
-- **Expected cost (estimate):** 128 new C5 jobs at C5's retry rates so far, roughly 2–4 h more.
+  finished images and checks are kept; the new C4-occ jobs start at their first seed.
+- **Expected cost (estimate):** 128 new C4-occ jobs at C4-occ's retry rates so far, roughly 2–4 h more.
 
 ---
 
 ## 2026-10-17: Decision: keep C2; condition rationale written into the paper
 
 - **Question (author):** is C2 useful, since its box holds no object and is AI-repainted like
-  C4? Could C3/C4/C5 alone test real vs AI objects?
-- **Answer recorded:** the core real-vs-AI object test needs only objects (C1/C3 real, C4/C5 AI),
+  C4? Could C3/C4/C4-occ alone test real vs AI objects?
+- **Answer recorded:** the core real-vs-AI object test needs only objects (C1/C3 real, C4/C4-occ AI),
   but C2 is the placebo-like control: same generator, box and pipeline, no object. It shows
   whether a forensic method detects AI *objects* or any *regenerated region* (H3), and whether
   repainting alone disturbs nearby real objects (H2). It is never scored as an AI object.
 - **Decision (author):** keep C2. Remaining cost about 1 h of the run (re-done shams at moved
   C4 boxes).
 - **Paper:** §4 now explains why each condition exists, why C2/C3/C4 share one box (and move
-  together on re-plan) while C5 has its own (no box can avoid all objects and cover 20–50% of one),
-  and why C5 matters (realistic overlap, hardest case, occlusion control for H2). §6 states that
+  together on re-plan) while C4-occ has its own (no box can avoid all objects and cover 20–50% of one),
+  and why C4-occ matters (realistic overlap, hardest case, occlusion control for H2). §6 states that
   origin metrics are over objects only and that C2 gives a separate edited-background flag rate;
   §7.6 lists the planned control analyses. About 450 words added; may need shortening later.
 - **Seen in the preview:** some C2 shams are flat grey patches (e.g. source 42296), an obvious
@@ -248,7 +250,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 - **Also fixed in the paper:** §4 said the generator sees a 2.5× window; since the pilots it is
   1.2× (verification still uses 2.5×).
 - **Round-1 result of the full run** (run_verify_2026-10-17T012532Z.json, interim): C2 472/474
-  clean, C4 269/474, C5 123/407 passed on attempt 1; 491 edits went into round 2. Round 1: 1,355
+  clean, C4 269/474, C4-occ 123/407 passed on attempt 1; 491 edits went into round 2. Round 1: 1,355
   images in 6 h 53 min.
 
 ---
@@ -263,8 +265,8 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   plans). Test added; `pytest -q`: 73 passed.
 - **Re-plan** (run_plan_2026-10-16T180641Z.json, paper/results/task2_insertion_plan.json;
   nothing had been generated yet): 544 of 544 planned, all inside the week-1 set; 474 with a
-  free box, 407 with an occlusion box, 70 C5-only, 2 with a class not in the photo, 1 anywhere.
-  First round: 474 C2 + 474 C4 + 407 C5 = 1,355 images (~7.5 h); total at the pilot's rates
+  free box, 407 with an occlusion box, 70 C4-occ-only, 2 with a class not in the photo, 1 anywhere.
+  First round: 474 C2 + 474 C4 + 407 C4-occ = 1,355 images (~7.5 h); total at the pilot's rates
   ~5,100 images, **~28 h** (estimate).
 - **Resolved:** the caveat about 56 unaudited close-ups no longer applies (they are out).
 
@@ -279,11 +281,11 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   The old `configs/insertion.yaml` (week-1 plans, fixed classes) is kept but superseded.
 - **sample:** 600 sources, identical to week 1 (362 train / 114 val / 124 test).
 - **plan** (run_plan_2026-10-16T171841Z.json, paper/results/task2_insertion_plan.json): 600 of
-  600 planned; 474 with a free box (C2/C3/C4), 465 with an occlusion box, 126 C5-only, 4 with a
-  class not in the photo, 7 placed anywhere. First-attempt jobs: 474 C2 + 474 C4 + 465 C5 =
+  600 planned; 474 with a free box (C2/C3/C4), 465 with an occlusion box, 126 C4-occ-only, 4 with a
+  class not in the photo, 7 placed anywhere. First-attempt jobs: 474 C2 + 474 C4 + 465 C4-occ =
   1,413 SDXL images.
 - **Time estimate (from the same-class pilot, not measured on this run):** the pilot generated
-  469 images for 125 first-attempt jobs (3.75×; C2 1.6, C4 3.6, C5 6.0 — includes some images
+  469 images for 125 first-attempt jobs (3.75×; C2 1.6, C4 3.6, C4-occ 6.0 — includes some images
   wasted by the rule changes mid-pilot), at ~19–20 s per image in large rounds. Applied here:
   ~5,200 images, **~28–30 h** of GPU time (±20%); round 1 alone ~8 h. Not a single night;
   the run is resumable.
@@ -299,17 +301,17 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 - **Decision (author):** relax the rule so every photo always has a valid box: the AI object
   may be placed anywhere in the image.
 - **Implemented as the last fallback only** (`placement.allow_anywhere`, false by default, true
-  in `pilot_inphoto.yaml`): when no box satisfies the rules after every other fallback, a C5 box
+  in `pilot_inphoto.yaml`): when no box satisfies the rules after every other fallback, a C4-occ box
   is placed anywhere inside the image with no overlap rule (`placement.place_anywhere`). Class:
   the photo's smallest insertable class, else an outside class. Used by the plan stage (own
   generator; earlier plans byte-identical: week 1 544/544, pilot 1 46/46, same-class 49/49) and
-  by C5 re-plans whose box cannot be placed. C4 stays rule-abiding (no occlusion), because H2
+  by C4-occ re-plans whose box cannot be placed. C4 stays rule-abiding (no occlusion), because H2
   relies on it. New ledger field `EditInfo.placement_rule` = "anywhere" so week-3 analyses can
   include or exclude these. `verify` already recomputes the visible part of every covered real
   object. 2 new tests; `pytest -q`: 71 passed.
 - **Result** (run_plan_2026-10-16T170747Z.json, run_verify_2026-10-16T171152Z.json,
   paper/results/task2_pilot_inphoto_anywhere_verify.json): all 50 photos planned; 421455 (car
-  interior) got an anywhere C5 truck that passed on box 2 (OWLv2 0.34). C4 39/41, C5 39/43,
+  interior) got an anywhere C4-occ truck that passed on box 2 (OWLv2 0.34). C4 39/41, C4-occ 39/43,
   C2 39/41; final ledger 256, audit sample 12. **50 of 50 photos have a verified AI object.**
 - **Doubtful:** by eye the 421455 "truck" is a 21×13-px dark blob in the window reflection, sized
   like the photo's own tiny truck; it passes the verifier but is not a convincing object and will
@@ -333,50 +335,50 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   switch to an outside class. That added out-of-photo objects to 6 photos that already had an
   in-photo AI object (bottle in the elephant photo, chair in an airport window, clock on a bed,
   bench on a ski slope, bottle in a dark room, vase above a bus), beyond the author's request.
-  Now an edit may use an outside class only if the photo has no in-photo pass in C4 or C5 and the
+  Now an edit may use an outside class only if the photo has no in-photo pass in C4 or C4-occ and the
   other edit is exhausted too; a pass at an outside version stops counting otherwise. Test added;
   `pytest -q`: 69 passed.
 - **Result** (run_verify_2026-10-16T165640Z.json,
-  paper/results/task2_pilot_inphoto_outside_verify.json): C4 39/41, C5 38/42, C2 39/41; final
+  paper/results/task2_pilot_inphoto_outside_verify.json): C4 39/41, C4-occ 38/42, C2 39/41; final
   ledger 253 records, audit sample 12. **49 of 50 photos have a verified AI object.** Only one
   edit uses a class not in the photo: 151857, a **clock** (OWLv2 0.64) painted over the train's
   windscreen — clearly there and tonally matched, but implausible; flagged for the audit.
 - **Still without one (1):** 421455 (car interior): the "car" box covers 88% of the frame, so no
-  box satisfies the C5 rule (≤ 5% of any other object); the class is not the problem.
+  box satisfies the C4-occ rule (≤ 5% of any other object); the class is not the problem.
 
 ---
 
-## 2026-10-17: C5 boxes sized from the covered object: 48 of 50 photos have an AI object
+## 2026-10-17: C4-occ boxes sized from the covered object: 48 of 50 photos have an AI object
 
 - **Question (author):** how to give the 4 remaining photos a box. Diagnosis per photo (COCO
   boxes): 151857 one train covering 67% of the frame; 562443 one zebra box 61%; 457848 three
   overlapping motorcycles (61%, 52%, 22%) and 5 people, boxes cover 83%; 421455 a car-interior
   shot whose "car" box covers 88% with dog, phone and person inside. None has free space for C4.
-- **Bug found:** C5 boxes were sized from the class's usual COCO size (often ~2% of an image),
+- **Bug found:** C4-occ boxes were sized from the class's usual COCO size (often ~2% of an image),
   which can never cover 20% of an object filling most of the frame. Fix:
-  `placement.occluding_sized_to_target` sizes the C5 box from the object it must cover (30–60%
+  `placement.occluding_sized_to_target` sizes the C4-occ box from the object it must cover (30–60%
   of its box area, the class's aspect ratio, ≤ `max_area_frac`), used when the usual size fails,
-  in the C5-only plan fallback and in C5 re-plans. The C5 rules (20–50% of one object, ≤ 5% of
+  in the C4-occ-only plan fallback and in C4-occ re-plans. The C4-occ rules (20–50% of one object, ≤ 5% of
   any other) are unchanged. Test with a frame-filling train; `pytest -q`: 66 passed. Plans
   re-checked: week 1 544/544, pilot 1 46/46, same-class pilot 48/48 identical; 562443 gained a
   plan (run_plan_2026-10-16T162944Z.json).
-- **Correction:** 151857 and 457848 already had C5-only plans; their objects failed. The 6
+- **Correction:** 151857 and 457848 already had C4-occ-only plans; their objects failed. The 6
   re-plan rows of 457848 were empty because they were computed with the old sizing; they were
   removed (backup `data/inlayfake_pilot_inphoto/replans_before_targetsize.jsonl`) and
   recomputed.
 - **Run** (run_verify_2026-10-16T163304Z.json,
   paper/results/task2_pilot_inphoto_targetsize_verify.json; 3 min): 562443 zebra passed on
   attempt 2 (an AI zebra head covering the grazing zebra's head, convincing); 457848 passed on
-  box 2 (a small AI motorcycle, real but small for the scene). Totals: C4 39/41, **C5 37/42**,
+  box 2 (a small AI motorcycle, real but small for the scene). Totals: C4 39/41, **C4-occ 37/42**,
   C2 39/41; final ledger 252, audit sample 12. **48 of 50 photos have a verified AI object.**
 - **Still without one (2):** 151857, 12 attempts at a train over the real train: SDXL extends
   the real train, which the original-object guard correctly refuses, and there is no other class
-  in the photo; 421455, no box satisfies the C5 rules. Fixing these would need a rule change
+  in the photo; 421455, no box satisfies the C4-occ rules. Fixing these would need a rule change
   (another class not in the photo, or a different occlusion rule), so they are left out.
 
 ---
 
-## 2026-10-17: Class switch and C5-only plans (run `task2_pilot_inphoto`): 46 of 50 photos have an AI object
+## 2026-10-17: Class switch and C4-occ-only plans (run `task2_pilot_inphoto`): 46 of 50 photos have an AI object
 
 - **Author's request:** as many photos as possible must get an AI-inserted object.
 - **Class switch** (`edit.max_class_switches`, 0 by default, 3 in `pilot_inphoto.yaml`): after the
@@ -384,22 +386,22 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   photo (same rules: audited GT, never person), smallest median instance area in the photo
   first, one class per version. Versions where no box fits are skipped instead of ending the
   job. The class is stored per version (`category` in `replans.jsonl`); C2/C3 follow the C4
-  class and box, C5 uses its own track's class.
-- **C5-only plans:** in `in_photo` mode a photo with no free space for any class may still get
+  class and box, C4-occ uses its own track's class.
+- **C4-occ-only plans:** in `in_photo` mode a photo with no free space for any class may still get
   an occluding box (no C2/C3/C4). That search uses its own seeded generator, so the other plans
   are unchanged: checked byte for byte — week 1 544/544, pilot 1 46/46, same-class pilot 41/41
-  identical; 7 photos gained a C5-only plan (48 of 50 planned; run_plan_2026-10-16T155841Z.json).
-- **Tests:** 3 new (version skipping, class switch with matched C2/C3, C5-only plan leaves the
+  identical; 7 photos gained a C4-occ-only plan (48 of 50 planned; run_plan_2026-10-16T155841Z.json).
+- **Tests:** 3 new (version skipping, class switch with matched C2/C3, C4-occ-only plan leaves the
   shared generator untouched); `pytest -q`: 65 passed.
 - **Run** (run_verify_2026-10-16T162120Z.json,
-  paper/results/task2_pilot_inphoto_classswitch_verify.json; 22 min): **C4 39/41**, **C5 35/41**
+  paper/results/task2_pilot_inphoto_classswitch_verify.json; 22 min): **C4 39/41**, **C4-occ 35/41**
   (6 of them after a class switch: motorcycle ×2, bus, surfboard, dining table, handbag),
   **C2 39/41** clean, final ledger 248 records, audit sample 11.
 - **Per photo:** **46 of 50** sampled photos now have at least one verified AI object (C4 or
-  C5); 39 have a C4. Before the change: 39. The 4 without one: a photo with a single train, one
+  C4-occ); 39 have a C4. Before the change: 39. The 4 without one: a photo with a single train, one
   with a single zebra, and two crowded street scenes (dog, phone, car, truck; 3 motorcycles among
   5 people) where no box fits for any class.
-- **Visual check of the 10 new C5 objects:** 8 clear (toilet, motorcycles, giraffe, handbag,
+- **Visual check of the 10 new C4-occ objects:** 8 clear (toilet, motorcycles, giraffe, handbag,
   spoon, dining table), 2 weak (a tiny surfboard on the sand, a very small bus).
 - **Next:** author audit (11 rows); full-run configuration (re-plan of all 600 sources).
 
@@ -409,12 +411,12 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 - **Author's request:** the photos must get an AI-inserted object. Loosening the verifier
   further was advised against and not done: all 31 dropped jobs were checked by eye and their last
-  attempts contain background (or, under C5 boxes, the photo's own object), so passing them would
+  attempts contain background (or, under C4-occ boxes, the photo's own object), so passing them would
   put empty `ai_inserted` boxes into the ground truth. Instead, failed jobs get new boxes.
 - **Implemented** (`stages/replan.py`, `edit.max_replans`, default 0 = unchanged): when all
   `max_attempts` seeds fail on a box, the job gets box version n+1 (up to `max_replans`). Two
   tracks per source: *free* (C4; C2 sham and C3 paste follow it, so controls stay matched to the
-  C4 box) and *occ* (C5). A new box rests on a surface of the class (COCO-Stuff; free space if
+  C4 box) and *occ* (C4-occ). A new box rests on a surface of the class (COCO-Stuff; free space if
   none fits) and is sized like one of the photo's own instances of that class (×0.8–1.2).
   Version 0 keeps the original seeds, so existing images are reused; versions are stored in
   `replans.jsonl`; `EditInfo.plan_version` records the box. `verify` and the final ledger count
@@ -424,7 +426,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   run_verify_2026-10-16T130208Z.json, paper/results/task2_pilot_inphoto_replan_verify.json;
   boxes in paper/results/task2_pilot_inphoto_replans.jsonl; 65 min wall time):
   31 re-plans created (13 on a surface, 14 free space, 4 with no box that fits).
-  **C4 38/41 (93%)** — box 0: 27, box 1: 4, box 2: 7, 3 dropped; **C5 25/34 (74%)** — box 0: 17,
+  **C4 38/41 (93%)** — box 0: 27, box 1: 4, box 2: 7, 3 dropped; **C4-occ 25/34 (74%)** — box 0: 17,
   box 1: 4, box 2: 1, box 3: 3, 9 dropped; **C2 39/41** clean (the 2 missing are sources where no
   new box fit, which also have no C4). Final ledger 223 records, audit sample 10.
 - **Visual check of the 19 edits that passed on a new box:** about 16 clearly show the object
@@ -432,7 +434,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   airplane, surfboard on the beach); 3 are weak (a tiny boat, a blurred car, a tiny surfboard);
   a few are still implausible (umbrella above the sea, bed in a hedge).
 - **Limits:** when no new box fits (4 crowded photos) the source loses its C2/C3 at the old box
-  as well; 85% target met for C4 (93%), not yet for C5 (74%); human audit pending.
+  as well; 85% target met for C4 (93%), not yet for C4-occ (74%); human audit pending.
 - **Next:** author audit (`audit_edits.csv`, 10 rows); then decide whether to run the full
   benchmark with this configuration (re-plan of all 600 sources with the same-class rule).
 
@@ -450,7 +452,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   2. **Looser verifier rule (author decision):** a target-class detection with score ≥ 0.2
      passes if IoU ≥ 0.3 with the box **or ≥ 80% of it lies inside the box**
      (`verify.min_inside: 0.8`, now the default); a detection with IoU ≥ 0.5 to a same-class
-     original object never counts (`verify.original_iou`), so the occluded real object in C5
+     original object never counts (`verify.original_iou`), so the occluded real object in C4-occ
      is not mistaken for the insertion. Why: a CPU re-scoring of the 58 round-1 rejections
      (paper/results/task2_verifier_iou_diagnostic.{py,txt}) found 14 with a confident
      (≥ 0.2) detection inside the box and IoU < 0.3 (frisbee 0.74 at IoU 0.01, bus 0.77 at
@@ -462,23 +464,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
      job; the final ledger keeps one passed record per job; rows are flushed as written.
   Tests: 59 passed, ruff clean.
 - **Round 1 under the old rule** (run_verify_2026-10-16T104526Z.json): C2 41/41, C4 10/41,
-  C5 7/34 (17/75 = 23%; pilot 1 at 2.5×: 6%). SDXL 116 images in 50:07 (25.9 s each). Round 2
+  C4-occ 7/34 (17/75 = 23%; pilot 1 at 2.5×: 6%). SDXL 116 images in 50:07 (25.9 s each). Round 2
   (58 images, 38:31, slowed by a CPU diagnostic running at the same time) was generated and
   then the run was stopped for the rule change; the old-rule results are kept in
   `data/inlayfake_pilot_inphoto/verify_oldrule/`.
 - **Final, new rule, up to 3 attempts** (run_verify_2026-10-16T114020Z.json,
   paper/results/task2_pilot_inphoto_final_verify.json): **C4 27/41 (66%)** — 20 on attempt 1,
-  6 on 2, 1 on 3, 14 dropped; **C5 17/34 (50%)** — 8 / 9 / 0, 17 dropped; **C2 41/41**; final
+  6 on 2, 1 on 3, 14 dropped; **C4-occ 17/34 (50%)** — 8 / 9 / 0, 17 dropped; **C2 41/41**; final
   ledger 208 records; audit sample 8. Round 3: 33 + 2 images (19.0 and 22.0 s each).
-- **Visual check of all 44 passed C4/C5:** nearly all show a real object of the class (dogs,
+- **Visual check of all 44 passed C4/C4-occ:** nearly all show a real object of the class (dogs,
   sheep, horse, giraffe, book, broccoli, cups, cat, traffic lights, backpacks, handbag, train).
   Weak: a dark laptop (0.34), a faint umbrella (0.30), a thin surfboard line, a tiny baseball
   glove (0.28). Realism is now the main problem: several float in implausible places (bus in the
   sky, car in the trees, handbag under a hangar roof, tiny giraffe on a hilltop). The dropped
   jobs are mostly such placements and very large classes (train, bed, dining table, surfboard).
-- **Interpretation:** the verified-object rate rose from 6% (pilot 1) to 66% C4 / 50% C5,
+- **Interpretation:** the verified-object rate rose from 6% (pilot 1) to 66% C4 / 50% C4-occ,
   through the tighter window, the looser rule and 3 attempts together; the 85% PRD target is not
-  met yet. Photos without a verified C4/C5 simply have none in the benchmark.
+  met yet. Photos without a verified C4/C4-occ simply have none in the benchmark.
 - **Next:** author's look at `preview.html` and the 8-row `audit_edits.csv`; options for the
   rest: surface placement with the same-class rule (against floating objects), box size from the
   photo's own instance, more attempts.
@@ -508,7 +510,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   again (handbag at a hangar ceiling, elephant, car, surfboard); box size comes from COCO-wide
   statistics, not from the same-class object already in the photo. Not changed.
 - **Implications:** classes are no longer balanced and include large or non-rigid ones (bus,
-  giraffe); the week-1 counts in PAPER §4 (544 planned, 363 with C5) come from the old plan and
+  giraffe); the week-1 counts in PAPER §4 (544 planned, 363 with C4-occ) come from the old plan and
   must be recomputed before the full run (`insertion.yaml` still reuses the week-1 plans).
 - **Not run yet:** generation. Open: window size (1.2× / 1.5×), surface placement, size from the
   photo's own instance.
@@ -528,9 +530,9 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   end-to-end plan); `pytest -q`: 53 passed.
 - **Plan** (same 50 sources as `task2_pilot`; paper/results/task2_pilot_surface_plan.json):
   35 planned (pilot 1: 46), 15 failed, 19 with an occlusion box (pilot 1: 38). Surfaces: ground
-  28, wall 4, tabletop 3. Cost of the rule: fewer plannable photos, C5 halved, cup only 1.
+  28, wall 4, tabletop 3. Cost of the rule: fewer plannable photos, C4-occ halved, cup only 1.
 - **Round-1 verify** (run_verify_2026-10-16T085229Z.json; code was uncommitted at run time and is
-  committed unchanged with this entry): `C2 passed 35/35` · `C4 passed 0/35` · `C5 passed 4/19`
+  committed unchanged with this entry): `C2 passed 35/35` · `C4 passed 0/35` · `C4-occ passed 4/19`
   → **4/54 (7%)**, no better than pilot 1 (5/84). SDXL: 89 images in 38:07, 25.7 s each.
   Retries stopped after round 1 again (state clean).
 - **Visual check:** the same failure in plausible places: a bench box on a lawn becomes lawn, a
@@ -549,7 +551,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   verifier under-counts in places and is not a perfect label; the human audit matters. Tighter
   windows give less context: one dog is large for its spot, one umbrella floats.
 - **Open for the author:** change `edit.window_scale` (and the 256-px minimum) to 1.2–1.5, keep
-  or drop surface placement (it costs 11 of 46 plans and half of C5), and whether to look at the
+  or drop surface placement (it costs 11 of 46 plans and half of C4-occ), and whether to look at the
   OWLv2 misses (threshold 0.2, query "a photo of a {category}").
 - **Next:** author decision, then a third pilot before the full run.
 
@@ -561,13 +563,13 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   torch 2.6.0+cu124, diffusers 0.41.0, transformers 5.19.0. `pytest -q`: 48 passed. Work dir
   `data/inlayfake_pilot`, git 0261677 (dirty only by the `ram_gb` config line).
 - **sample / plan:** 50 sources (33 train / 10 val / 7 test); 46 planned, 4 failed, 38 with an
-  occlusion box. Jobs: 46 C2 + 46 C4 + 38 C5 = 130 SDXL edits; 46 C3 pastes.
+  occlusion box. Jobs: 46 C2 + 46 C4 + 38 C4-occ = 130 SDXL edits; 46 C3 pastes.
 - **Speed:** smoke test `generate --limit 3`: images 2–8 took 190 s (≈27 s each; the first
   included the 7 GB download). Round 1 of `insert`: 122 SDXL images in 43:57, **21.6 s per
   image** including model load (run_generate_2026-10-16T074120Z.json). OWLv2 + SAM verify: 130
   images in 42 s.
 - **Round-1 verify** (run_verify_2026-10-16T074553Z.json, attempt 1 only):
-  `C2: passed 46/46` · `C4: passed 4/46, needs_retry 42` · `C5: passed 1/38, needs_retry 37` ·
+  `C2: passed 46/46` · `C4: passed 4/46, needs_retry 42` · `C4-occ: passed 1/38, needs_retry 37` ·
   final ledger 189 records · audit sample 5. Insertion success on attempt 1 is therefore
   **5/84 (6%)**, far below the PRD target of ≥ 85%.
 - **Retries stopped on purpose:** `insert` was stopped at the start of round 2 (no round-2 image
@@ -575,7 +577,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   the target, and retries would use up the attempt budget before the author decides what to change.
 - **Bug hunt, no bug found:** the verifier agrees with a visual check on all 8 smoke-test edits
   (the 2 visible insertions passed, the 6 empty boxes failed), and a 20-tile contact sheet of
-  failed C4/C5 edits shows plausible background in every box, no missed object. `compose.py`
+  failed C4/C4-occ edits shows plausible background in every box, no missed object. `compose.py`
   (mask white = inpaint, image and mask both resized to 1024, mask-only composite) is correct.
   So the failure is SDXL behaviour under the current settings, not a code error.
 - **Diagnostic (scratch only, not in `data/`):** 12 random failed jobs re-run with a new seed
@@ -602,7 +604,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
-## 2026-10-15: Week 2 started: verification stage, insert loop, viewer for C2–C5
+## 2026-10-15: Week 2 started: verification stage, insert loop, viewer for C2–C4
 
 - **Branch:** `week-2-ai-insertion` (from `week-1-coco-dataset`). Briefing folder
   `docs/briefings/week2/` created (full, one-page, slides; results all TBD).
@@ -616,11 +618,11 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 - **Retries:** failed edits are regenerated with a new seed (attempt n+1, max 3); `insert` loops
   generate → verify. `generate` no longer loads a 7 GB model when no job is pending.
 - **Final ledger** `ledger.jsonl`: C0/C1 unchanged (tested, so week-1 results are unaffected), C3
-  with its pasted mask, one passed record per C2/C4/C5 job.
+  with its pasted mask, one passed record per C2/C4/C4-occ job.
 - **Bug caught before the GPU run:** transformers 5.x removed `Owlv2Processor.post_process_object_
   detection` (now `post_process_grounded_object_detection`); the wrapper supports both. The SAM wrapper
   was run with random weights on CPU; real OWLv2/SAM weights cannot be downloaded in the sandbox.
-- **Viewer:** lists C2–C5 per generator; inserted objects purple, `mixed_modified` amber; detectors
+- **Viewer:** lists C2–C4 per generator; inserted objects purple, `mixed_modified` amber; detectors
   not yet run on an image show "not run on this image yet" instead of zero detections.
 - **Tests:** 48 pass (end-to-end insert; forced verifier failure regenerated with a new seed).
 - **Open:** laptop system RAM (FLUX needs about 32 GB on an 8 GB GPU, else Kandinsky 2.2).
@@ -913,14 +915,14 @@ Source: author's `summary.md`, saved as `paper/results/task1_real_baseline_summa
 - **Ran (author, RTX 4070 laptop):** `sample`, `plan` and `generate` with `configs/real_baseline.yaml`.
 - **Numbers (as printed by the CLI):**
   - sample: 600 sources; train 362 / val 114 / test 124 (60.3 / 19.0 / 20.7%).
-  - plan: 544 planned, **56 failed (9.3%)**, 363 of 544 with a C5 occlusion box (66.7%).
+  - plan: 544 planned, **56 failed (9.3%)**, 363 of 544 with a C4-occ occlusion box (66.7%).
     Categories: chair 62, bottle 56, potted plant 49, vase 50, clock 57, bench 51, backpack 65,
     dog 44, cup 59, umbrella 51.
   - generate: 1,088 records = 544 × (C0 + C1), real only; 27 s.
 - **Interpretation:** The splits match the 60/20/20 target. The failed plans are photos with no free
   region for a new object (crowded scenes). All later conditions use the same 544 sources, so the
   benchmark under-represents very cluttered scenes; this has been added to the paper's limitations.
-  C5 will cover only about 2/3 of sources; acceptable, but report C5 counts separately.
+  C4-occ will cover only about 2/3 of sources; acceptable, but report C4-occ counts separately.
 - **Next:** `detect` (GPU; first run downloads the four detectors' weights), then `forensics`,
   `audit`, `evaluate`.
 
@@ -1028,7 +1030,7 @@ Source: author's `summary.md`, saved as `paper/results/task1_real_baseline_summa
   - Source pool = COCO val2017 (unseen by COCO-trained detectors).
   - Generators: SDXL-Inpainting, SD-2-Inpainting (seen); FLUX.1-Fill-dev (held out).
   - Verifier for insertions = OWLv2, excluded from the evaluated detectors to avoid selection bias.
-  - Identical JPEG q=95 encoding for C1–C5 to remove format shortcuts.
+  - Identical JPEG q=95 encoding for C1–C4 to remove format shortcuts.
 - **Created:** AGENTS.md, CLAUDE.md, PRD.md, ARCHITECTURE.md, paper/PAPER.md, config and ledger
   schema.
 - **Open:** laptop GPU model and VRAM; professor sign-off on the scope.

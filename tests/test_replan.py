@@ -403,19 +403,19 @@ def test_merged_condition_end_to_end(cfg, tmp_path):
         assert ai[0].edit.plan_box == c2[0].edit.plan_box == c3[0].edit.plan_box
         assert c2[0].edit.plan_version == c3[0].edit.plan_version
     ai = {s: next(r for r in recs if r.condition.value == "C4") for s, recs in by.items()}
-    assert ai[a].edit.merged_source == "C5" and "|C5|" not in ai[a].image_id
+    assert ai[a].edit.merged_source == "occluding" and "|C5|" not in ai[a].image_id
     assert "C5" in ai[a].image_id and ai[a].edit.plan_box == both[0]["box_occ"]
     assert ai[b].edit.merged_source == "anywhere" and ai[b].edit.plan_version == ADOPT + 2
     assert ai[b].edit.placement_rule == "anywhere"
     index = CocoIndex.load(cfg["paths"]["coco_annotations"], cfg["paths"]["coco_images"])
     own = {index.cat_name[x["category_id"]] for x in index.image_anns(b)}
     assert ai[b].edit.target_category in own
-    assert ai[c].edit.merged_source == "C4" and ai[c].edit.plan_version == 0
-    assert out["final"]["merged_ai_source"].get("C5", 0) >= 1
+    assert ai[c].edit.merged_source == "free" and ai[c].edit.plan_version == 0
+    assert out["final"]["merged_ai_source"].get("occluding", 0) >= 1
 
 
 def test_merged_preview(cfg, tmp_path):
-    """The merged preview shows one AI edit (C4) per photo with its source, and no C5."""
+    """The merged preview shows one AI edit (C4) per photo and never mentions C5."""
     from inlayfake.stages import preview
 
     cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
@@ -428,10 +428,10 @@ def test_merged_preview(cfg, tmp_path):
     out = preview.run(mcfg, limit=None)
     page = (tmp_path / "work" / "preview.html").read_text(encoding="utf-8")
     assert out["sources_complete"] == out["sources"]
-    assert out["ai_source"]["C4"] + out["ai_source"]["anywhere"] == out["sources"]
-    # a fresh run has no verified C4/C5, so every AI edit is placed anywhere
-    assert "C5 G1" not in page and "new: placed anywhere" in page
-    assert 'value="ai-C5"' in page
+    assert out["ai_source"]["free"] + out["ai_source"]["anywhere"] == out["sources"]
+    # author, 2026-10-18: the page names only C0-C4, with three Show options
+    assert "C5" not in page and "C4 G1" in page
+    assert page.count("<option") == 3 and 'value="missing"' in page
 
 
 def test_merged_box_avoids_real_same_class_object(monkeypatch):

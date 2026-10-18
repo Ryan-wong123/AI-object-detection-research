@@ -272,7 +272,7 @@ def build_final_ledger(
             rec = ImageRecord(**json.loads(p.read_text(encoding="utf-8")))
             if is_merged and rec.condition.value in ("C4", "C5"):
                 v = rec.edit.plan_version
-                src = "C5" if image_id in adopted else ("anywhere" if v > ADOPT else "C4")
+                src = "occluding" if image_id in adopted else ("anywhere" if v > ADOPT else "free")
                 rec = replace(
                     rec, condition=Condition.C4, edit=replace(rec.edit, merged_source=src)
                 )

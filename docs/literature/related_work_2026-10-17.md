@@ -1,5 +1,7 @@
 # Related work scan and positioning (2026-10-17)
 
+> Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
+
 Three web searches on 2026-10-17: (1) CVPR 2026, (2) local/partial AI-edit datasets and methods
 2022–2026, (3) adjacent areas (detectors on inserted objects, MLLM forensics, calibration,
 matched comparisons, provenance).
@@ -59,7 +61,7 @@ degradations applied to both sides); **DiffSeg30k**, **Impostor** (LVIS), **Loca
 2. **Real-object paste control (C3)** against AI insertion (C4) through one encoding pipeline:
    separates "spliced" evidence from "AI-generated" evidence. Not found anywhere. Fragments: TGIF
    (splice vs regenerate), INP-X (pixel exchange), B-Free (aligned training).
-3. **Full matched ladder** C1 resave, C2 sham regeneration, C3 real paste, C4 insert, C5 insert with
+3. **Full matched ladder** C1 resave, C2 sham regeneration, C3 real paste, C4 insert, C4-occ insert with
    occlusion. No benchmark has C3 or an occlusion arm.
 4. **Same-class, same-photo pairs**: a photographed dog and an AI dog in the same image (lighting,
    camera, class held fixed). Not found.
