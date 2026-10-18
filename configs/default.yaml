@@ -144,13 +144,16 @@ verify:
 detect:
   detectors: [faster_rcnn, yolo, rtdetr, grounding_dino]
 
+site:                                  # results website (docs/index.html, GitHub Pages)
+  dir: docs/results                    # `viewer --share` / `preview --share` write to
+  week: null                           # <dir>/<folder>/; a config that is a week of the site
+  title: null                          # sets week, title ("Week 2 · AI insertion") and
+  folder: null                         # folder (week<N>_<topic>); null: <dir>/<run_name>/
 viewer:                                # `viewer --share`: self-contained copy to commit / publish
-  share_dir: docs/viewer               # -> docs/viewer/<run_name>/
   share_max_side: 640                  # downscaled photo copies (boxes are rescaled by the page)
   share_quality: 80
-preview:
-  share_dir: docs/preview               # preview --share -> docs/preview/<run_name>/
-  share_max_side: 480                  # downscaled copies (shown at 240 px wide)
+preview:                               # `preview --share`: same, for the benchmark preview
+  share_max_side: 480                  # downscaled copies
   share_quality: 80
 
 audit:                                 # candidate missing COCO labels (on C0)

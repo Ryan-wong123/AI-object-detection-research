@@ -34,10 +34,12 @@ python -m inlayfake --help
 
 | Tab | Page shown | Built by |
 |---|---|---|
-| Week 1 | `docs/viewer/task1_real_baseline/` | `python -m inlayfake viewer --config configs/real_baseline.yaml --share` |
-| Week 2 | `docs/preview/task2_insertion/` | `python -m inlayfake preview --config configs/insertion_inphoto.yaml --share` |
+| Week 1 | `docs/results/week1_real_baseline/` | `python -m inlayfake viewer --config configs/real_baseline.yaml --share` |
+| Week 2 | `docs/results/week2_ai_insertion/` | `python -m inlayfake preview --config configs/insertion_inphoto.yaml --share` |
 
-Each week's page stays self-contained; the tab bar only shows it below. The address remembers the
+Each week's page stays self-contained; the tab bar only shows it below. All week pages share
+one design (header, photo cards, image grid, box colours, light/dark), defined once in
+`src/inlayfake/site.py`. The address remembers the
 tab (`index.html#week1`, `#week2`), and "open in a new tab" opens the week's page on its own.
 
 **Look at it locally** (a small web server, so it works exactly as on GitHub):
@@ -61,8 +63,15 @@ this README.
 It shows downscaled COCO photos and names the repo owner, so go through
 `docs/PUBLISHING_CHECKLIST.md` (photo licences, double-blind review) before switching it on.
 
-**Add a week:** build that week's self-contained page under `docs/`, then add one entry to the
-`WEEKS` list in `docs/index.html` (id, label, short description, path).
+**Add a week** (e.g. week 3):
+
+1. In the week's config, add a `site` block: `week: 3`, `title: <short topic>`,
+   `folder: week3_<topic>`. Its `--share` output then goes to `docs/results/week3_<topic>/`.
+2. Build the week's page with the shared style: `SITE_CSS`, `page_title(cfg)` and
+   `share_dir(cfg)` from `src/inlayfake/site.py` (as `viewer.py` and `preview.py` do), so it
+   looks like the other weeks.
+3. Add one entry to the `WEEKS` list in `docs/index.html` (id, label, short description,
+   path `results/week3_<topic>/index.html`).
 
 ## Week 2: AI insertion run
 
@@ -189,16 +198,16 @@ At the top, a summary counts complete photos, and a **Show** dropdown filters th
 "Still retrying" and "waits" exist only while the run is going.
 
 **Share it on GitHub.** `--share` writes a self-contained copy of the whole page (all 544
-photos) to `docs/preview/task2_insertion/` (index.html + downscaled 480 px JPEG copies, about
-95 MB), like the week-1 viewer in `docs/viewer/`. Rebuild it after the benchmark changes, then
+photos) to `docs/results/week2_ai_insertion/` (index.html + downscaled 480 px JPEG copies, about
+95 MB), next to the week-1 viewer in `docs/results/week1_real_baseline/`. Rebuild it after the benchmark changes, then
 commit the folder:
 
 ```powershell
 python -m inlayfake preview --config configs/insertion_inphoto.yaml --share
-git add docs/preview/task2_insertion
+git add docs/results/week2_ai_insertion
 ```
 
-On GitHub, open `docs/preview/task2_insertion/index.html` after downloading or cloning the repo
+On GitHub, open `docs/results/week2_ai_insertion/index.html` after downloading or cloning the repo
 (GitHub shows HTML files as source, not as a page).
 
 **Update the shared copy after the benchmark changes** (for example, after the human audit removes
@@ -207,12 +216,12 @@ Rebuild it, check the counts it prints, then commit and push:
 
 ```powershell
 python -m inlayfake preview --config configs/insertion_inphoto.yaml --share
-git add docs/preview/task2_insertion
+git add docs/results/week2_ai_insertion
 git commit -m "Update shared week-2 preview"
 git push
 ```
 
-Images of edits that left the benchmark stay in `docs/preview/task2_insertion/images/` but are no
+Images of edits that left the benchmark stay in `docs/results/week2_ai_insertion/images/` but are no
 longer linked from the page; delete that folder before rebuilding if you want only the current
 images in the repo. Before making the repo or the previews public, see
 `docs/PUBLISHING_CHECKLIST.md` (licences of the COCO photos in these copies).
@@ -288,9 +297,9 @@ The week-1 run is committed as a self-contained copy (page + data + downscaled p
 ```powershell
 git clone https://github.com/Ryan-wong123/AI-object-detection-research.git
 cd AI-object-detection-research
-git checkout week-1-coco-dataset
-start docs\viewer\task1_real_baseline\index.html      # Windows
-# xdg-open docs/viewer/task1_real_baseline/index.html  # Linux
+git checkout week-2-ai-insertion
+start docs\results\week1_real_baseline\index.html      # Windows
+# xdg-open docs/results/week1_real_baseline/index.html  # Linux
 ```
 
 ### Re-run the viewer from your own results
@@ -310,12 +319,13 @@ The page in step 2 loads the photos from `data/`, so it only works on the machin
 
 ```powershell
 python -m inlayfake viewer --config configs/real_baseline.yaml --share
-git add docs/viewer/task1_real_baseline
+git add docs/results/week1_real_baseline
 git commit -m "Update shared detector viewer"
 git push
 ```
 
-`--share` writes `docs/viewer/<run>/` with the page, its data and downscaled copies of the photos
+`--share` writes the week's folder `docs/results/week1_real_baseline/` (from the `site` block of
+the config) with the page, its data and downscaled copies of the photos
 (longest side 640 px; the week-1 folder is about 70 MB), so the folder works anywhere: after a
 clone, zipped, or through GitHub Pages (Settings → Pages → deploy from the branch, folder `/docs`).
 Do not commit `runs/` or `data/` themselves; see `AGENTS.md` rule 8.

@@ -430,7 +430,7 @@ def test_merged_preview(cfg, tmp_path):
     assert out["sources_complete"] == out["sources"]
     assert out["ai_source"]["free"] + out["ai_source"]["anywhere"] == out["sources"]
     # author, 2026-10-18: the page names only C0-C4, with three Show options
-    assert "C5" not in page and "C4 G1" in page
+    assert "C5" not in page and "C4 AI insert" in page
     assert page.count("<option") == 3 and 'value="missing"' in page
 
 
@@ -610,7 +610,8 @@ def test_preview_share_is_self_contained(cfg, tmp_path):
         {
             "generators_enabled": ["G1"],
             "placement": {"merged": {"enabled": True}},
-            "preview": {"share_dir": str(tmp_path / "share"), "share_max_side": 64},
+            "site": {"dir": str(tmp_path / "share")},
+            "preview": {"share_max_side": 64},
         },
     )
     insert.run(mcfg)

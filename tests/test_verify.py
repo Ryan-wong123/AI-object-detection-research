@@ -153,12 +153,12 @@ def test_failed_edit_is_regenerated_with_new_seed(cfg, tmp_path):
     # --all-attempts: every attempt, the rejected one greyed and labelled
     preview.run(cfg, all_attempts=True)
     page = (wd / "preview.html").read_text(encoding="utf-8")
-    fig = page.split(f"{first_c4.image_id}.jpg")[0].rsplit("<figure", 1)[1]
-    assert 'class="rej"' in fig
-    after = page.split(f"{first_c4.image_id}.jpg")[1].split("</figure>")[0]
-    assert "rejected" in after and "not in benchmark" in after
-    ok = page.split(f"{mine[1]['image_id']}.jpg")[1].split("</figure>")[0]
-    assert "in benchmark" in ok and "rejected" not in ok
+    # shared site markup: <div class="panel <status>"><div class="t">caption, note</div> ... img
+    rej = page.split(f"{first_c4.image_id}.jpg")[0].rsplit('<div class="panel', 1)[1]
+    assert rej.startswith(' rej"')
+    assert "rejected" in rej and "not in benchmark" in rej
+    ok = page.split(f"{mine[1]['image_id']}.jpg")[0].rsplit('<div class="panel', 1)[1]
+    assert ok.startswith(' ok"') and "in benchmark" in ok and "rejected" not in ok
 
 
 def test_tight_window_changes_generation_not_verification(cfg, tmp_path):

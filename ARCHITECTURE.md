@@ -307,7 +307,8 @@ corresponding `images_used.md` cell; a test enforces this. Colours: green = box 
 box on no label (false positive or unlabelled object), grey = box on an ignore region, dashed = label
 not found. Controls: condition (C0/C1, later C2–C4 per generator), COCO id search, pages,
 click-to-enlarge.
-`viewer --share` writes a self-contained copy to `docs/viewer/<run>/` instead: the same page and
+`viewer --share` writes a self-contained copy to the week's folder `docs/results/week<N>_<topic>/`
+(config `site` block; `inlayfake.site.share_dir`) instead: the same page and
 data plus downscaled JPEG copies of the photos (max side 640, quality 80), so it can be committed,
 zipped or served with GitHub Pages without the full `data/` and `runs/` folders.
 

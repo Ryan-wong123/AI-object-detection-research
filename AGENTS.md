@@ -30,8 +30,9 @@ whether it was photographed or AI-inserted. The output is a benchmark, a baselin
    package versions (handled by `inlayfake.runlog`). Do not hard-code paths; use the config.
 8. **No data or weights in git.** `data/`, `runs/` and model weights are git-ignored. Small result
    tables (CSV/JSON < 1 MB) that the paper cites are copied into `paper/results/`. To share a run
-   visually, commit the self-contained `docs/viewer/<run>/` from `viewer --share` (week-2
-   benchmark: `docs/preview/<run>/` from `preview --share`), not `runs/` or `data/`.
+   visually, commit the self-contained week folder `docs/results/week<N>_<topic>/` from
+   `viewer --share` / `preview --share` (set by the config's `site` block), not `runs/` or
+   `data/`.
 9. **Do not overclaim novelty.** Never write "first" in the paper (see PDF §2 and `PRD.md` §Novelty).
 10. **Ethics.** No identifiable people are used as insertion targets. Do not generate humans by
     default. Treat false "AI" accusations against real objects as a first-class harm metric.
@@ -128,8 +129,10 @@ finding arrives, a decision is made or code for the week's task lands:
   missing results are `[[TBD: ...]]`, negative findings are reported, and nothing says "first".
   Numbers must match `paper/PAPER.md` and `paper/results/`.
 - Supporting tables the briefing links to (e.g. `images_used.md`) go in the same folder.
-- When a week has a shareable results page under `docs/`, add it as a tab in `docs/index.html`
-  (the `WEEKS` list), the repo's GitHub Pages site.
+- Each week's results page goes to `docs/results/week<N>_<topic>/` (config `site` block: week,
+  title, folder), is built with the shared design in `src/inlayfake/site.py` (`SITE_CSS`,
+  `page_title`, `share_dir`), and gets a tab in `docs/index.html` (`WEEKS`), the repo's
+  GitHub Pages site.
 - Header: week number, date range from `PRD.md` §Timeline, last-updated date and author.
 
 ## Git

@@ -1,7 +1,9 @@
 """Stage `preview`: HTML contact sheet of the conditions per source, for visual checks.
 
-Open <work>/preview.html in a browser. Planned boxes are drawn in yellow, inserted/pasted
-instances in red. Images are referenced by relative path (nothing is copied).
+Open <work>/preview.html in a browser. Planned boxes are drawn dashed yellow, inserted/pasted
+instances purple (shared site style, ``inlayfake.site``, as on every week's results page).
+Images are referenced by relative path (nothing is copied); ``--share`` writes a self-contained
+copy to docs/results/week<N>_<topic>/ for the results website.
 
 Default: only the images that are in the benchmark (``ledger.jsonl``): C0, C1, and the C2-C5
 edits that passed `verify`, with their verified boxes. Each photo's heading names the edits it
@@ -23,6 +25,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
+from inlayfake.site import CONDITION_NAMES, SITE_CSS, page_title, share_dir
 from inlayfake.stages.common import read_jsonl, work_dir
 
 ORDER = ["C0", "C1", "C2", "C3", "C4", "C5"]
@@ -52,36 +55,73 @@ def _status(
 
 
 def _panel(rec: dict, wd: Path, thumb: int, css: str, note: str) -> str:
-    scale = thumb / rec["width"]
+    """One image as on every results page: caption, photo, SVG boxes in image pixels (dashed
+    yellow: planned box; purple: inserted or pasted object)."""
     rel = os.path.relpath(rec["path"], wd).replace(os.sep, "/")
-    boxes = []
+    W, H = rec["width"], rec["height"]
+    sw = max(1.5, W / 320)
+    rects = []
     if rec.get("edit"):
-        boxes.append((rec["edit"]["plan_box"], "#fc0"))
+        x, y, w, h = rec["edit"]["plan_box"]
+        rects.append(
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="none" '
+            f'stroke="var(--plan)" stroke-width="{sw:.1f}" stroke-dasharray="{3 * sw:.1f},'
+            f'{2 * sw:.1f}"/>'
+        )
     for inst in rec["instances"]:
         if inst["origin"] in ("ai_inserted", "real_pasted") and css != "rej":
-            boxes.append((inst["bbox"], "#f33"))
-    divs = "".join(
-        f'<div class="b" style="left:{b[0] * scale:.0f}px;top:{b[1] * scale:.0f}px;'
-        f'width:{b[2] * scale:.0f}px;height:{b[3] * scale:.0f}px;border-color:{c}"></div>'
-        for b, c in boxes
-    )
-    label = f"{rec['condition']} {rec.get('generator') or ''}"
-    extra = f'<br><span class="s">{html.escape(note)}</span>' if note else ""
+            x, y, w, h = inst["bbox"]
+            rects.append(
+                f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="none" '
+                f'stroke="var(--ins)" stroke-width="{sw:.1f}"/>'
+            )
+    label = CONDITION_NAMES.get(rec["condition"], rec["condition"])
     return (
-        f'<figure class="{css}"><div class="w"><img src="{html.escape(rel)}" width="{thumb}" '
-        f'loading="lazy">'
-        f"{divs}</div><figcaption>{html.escape(label)}{extra}</figcaption></figure>"
+        f'<div class="panel {css}"><div class="t"><b>{html.escape(label)}</b>'
+        f"<i>{html.escape(note)}</i></div>"
+        f'<div class="wrap"><img loading="lazy" src="{html.escape(rel)}" '
+        f'alt="{html.escape(label)}, photo {rec["source_id"]}">'
+        f'<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none">{"".join(rects)}</svg></div></div>'
     )
 
 
-STYLE = (
-    "<!doctype html><meta charset=utf-8><title>InlayFake preview</title><style>"
-    "body{font:13px sans-serif;margin:16px}section{display:flex;flex-wrap:wrap;gap:6px;"
-    "margin-bottom:18px}h3{width:100%;margin:4px 0}h3 small{font-weight:400;color:#777}"
-    "figure{margin:0;max-width:240px}"
-    ".w{position:relative}.b{position:absolute;border:2px solid}"
-    "figcaption{text-align:center}.s{font-size:11px}.ok .s{color:#080;font-weight:600}"
-    ".rej img{opacity:.4}.rej .s{color:#777}.pending .s{color:#b60}.flag .s{color:#b60}</style>"
+PREVIEW_CSS = (
+    ".panel.ok .t i{color:var(--tp);font-weight:600}.panel.rej img{opacity:.4}"
+    ".panel.pending .t i,.panel.flag .t i{color:var(--mod)}"
+)
+
+LEGEND = (
+    '<div class="legend"><span><i class="sw" style="border-color:var(--plan);'
+    'border-style:dashed"></i>planned box</span><span><i class="sw" '
+    'style="border-color:var(--ins)"></i>inserted or pasted object (verified box)</span></div>'
+)
+
+
+def _page(cfg: dict, controls: str, body: str) -> str:
+    """Full page in the shared site style: sticky header (title, run, controls) and main."""
+    title = page_title(cfg, "Benchmark preview")
+    run = html.escape(cfg.get("run_name", ""))
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        f"<title>{html.escape(title)}</title><style>{SITE_CSS}{PREVIEW_CSS}</style></head><body>"
+        f"<header><h1>{html.escape(title)} <span>· {run}</span></h1>{controls}</header>"
+        f"<main>{body}</main></body></html>"
+    )
+
+
+def _card(sid, cat: str, miss: str, panels: str, attrs: str = "") -> str:
+    return (
+        f'<section class="card"{attrs}><h2>source {sid} <span>· {html.escape(cat)}{miss}</span>'
+        f'</h2><div class="row">{panels}</div></section>'
+    )
+
+
+FILTER_JS = (
+    "<script>const sel=document.getElementById('f');sel.onchange=()=>{const v=sel.value;"
+    "let k=0;document.querySelectorAll('section.card').forEach(s=>{{TEST}"
+    "s.style.display=show?'':'none';k+=show});"
+    "document.getElementById('n').textContent=k+' photos shown'}</script>"
 )
 
 
@@ -197,7 +237,7 @@ def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
             if status[c] != "passed":
                 groups[status[c]].append(c)
         miss = "".join(
-            f" <small>· {', '.join(groups[s])}: {MERGED_REASON[s]}</small>"
+            f" · {', '.join(groups[s])}: {MERGED_REASON[s]}"
             for s in ("retrying", "waiting", "dropped")
             if groups[s]
         )
@@ -212,10 +252,8 @@ def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         }
         for t, on in tags.items():
             tally[t] += on
-        rows.append(
-            f'<section data-tags="{" ".join(t for t, on in tags.items() if on)}">'
-            f"<h3>source {sid} · {html.escape(cat)}{miss}</h3>{''.join(panels)}</section>"
-        )
+        attrs = f' data-tags="{" ".join(t for t, on in tags.items() if on)}"'
+        rows.append(_card(sid, cat, miss, "".join(panels), attrs))
     tally["all"] = len(rows)
     options = "".join(
         f'<option value="{v}"{" selected" if v == "all" else ""}>'
@@ -223,26 +261,23 @@ def _merged_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         for v, label in MERGED_FILTERS
     )
     controls = (
-        f"<p>{len(rows)} photos: <b>{tally['complete']}</b> have C0–C4 in the benchmark, "
+        f'<label>Show <select id="f">{options}</select></label>'
+        f'<span class="muted" id="n">{len(rows)} photos shown</span>'
+    )
+    body = (
+        '<p class="note">Only images in the benchmark (<code>ledger.jsonl</code>): the original '
+        "(C0), the re-save (C1), the sham edit (C2), the real paste (C3) and the AI insertion (C4) "
+        "of a class already in the photo. C2 and C3 sit at the C4 box. "
+        f"{len(rows)} photos: <b>{tally['complete']}</b> have C0–C4 in the benchmark, "
         f"<b>{tally['missing']}</b> still miss C2, C3 or C4.</p>"
-        f'<p><label>Show: <select id="f">{options}</select></label> '
-        f'<b id="n">{len(rows)} photos shown</b></p>'
-        "<script>const sel=document.getElementById('f');sel.onchange=()=>{const v=sel.value;"
-        "let k=0;document.querySelectorAll('section').forEach(s=>{"
-        "const show=v==='all'||s.dataset.tags.split(' ').includes(v);"
-        "s.style.display=show?'':'none';k+=show});"
-        "document.getElementById('n').textContent=k+' photos shown'}</script>"
-    )
-    page = (
-        STYLE
-        + "<p>Only images in the benchmark (<code>ledger.jsonl</code>): the original (C0), the "
-        "re-save (C1), the sham (C2), the real paste (C3) and the AI insertion (C4) of a class "
-        "already in the photo. C2 and C3 sit at the C4 box. Yellow: planned box. Red: inserted "
-        "or pasted object (verified box).</p>"
-        + ("" if lpath.exists() else "<p><b>No edits checked yet.</b></p>")
-        + controls
+        + ("" if lpath.exists() else '<p class="note"><b>No edits checked yet.</b></p>')
+        + LEGEND
         + "".join(rows)
+        + FILTER_JS.replace(
+            "{TEST}", "const show=v==='all'||s.dataset.tags.split(' ').includes(v);"
+        )
     )
+    page = _page(cfg, controls, body)
     out = wd / "preview.html"
     out.write_text(page, encoding="utf-8")
     return {
@@ -313,7 +348,7 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
             if s != "passed":
                 groups[s].append(c)
         miss = "".join(
-            f" <small>· {', '.join(groups[s])}: {REASON[s]}</small>"
+            f" · {', '.join(groups[s])}: {REASON[s]}"
             for s in ("retrying", "dropped", "unplanned")
             if groups[s]
         )
@@ -328,40 +363,37 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
         }
         for t, on in tags.items():
             tally[t] += on
-        rows.append(
-            f'<section data-missing="{int(bool(missing))}" '
-            f'data-unplanned="{int(bool(not_planned))}" '
-            f'data-tags="{" ".join(t for t, on in tags.items() if on)}">'
-            f"<h3>source {sid} · {html.escape(cat)}{miss}</h3>{''.join(panels)}</section>"
+        attrs = (
+            f' data-missing="{int(bool(missing))}" data-unplanned="{int(bool(not_planned))}" '
+            f'data-tags="{" ".join(t for t, on in tags.items() if on)}"'
         )
+        rows.append(_card(sid, cat, miss, "".join(panels), attrs))
     n_unplanned = tally["unplanned"]
     options = "".join(
         f'<option value="{v}"{" selected" if v == "all" else ""}>{html.escape(label)}</option>'
         for v, label in FILTERS
     )
     controls = (
-        f"<p>{len(rows)} photos: <b>{tally['complete']}</b> have all of C0–C5 in the benchmark, "
+        f'<label>Show <select id="f">{options}</select></label>'
+        f'<span class="muted" id="n">{len(rows)} photos shown</span>'
+    )
+    body = (
+        '<p class="note">Only images in the benchmark (<code>ledger.jsonl</code>): the original '
+        "(C0), the re-save (C1), and the edits that passed the check. Rejected attempts are not "
+        "shown; build with <code>--all-attempts</code> to see them. "
+        f"{len(rows)} photos: <b>{tally['complete']}</b> have all conditions in the benchmark, "
         f"<b>{n_missing}</b> are still missing a planned edit, and {n_unplanned} have a "
         "condition that was never planned (no room for its box).</p>"
-        f'<p><label>Show: <select id="f">{options}</select></label> '
-        f'<b id="n">{len(rows)} photos shown</b></p>'
-        "<script>const sel=document.getElementById('f');sel.onchange=()=>{const v=sel.value;"
-        "let k=0;document.querySelectorAll('section').forEach(s=>{"
-        "const t=s.dataset.tags.split(' '),m=t.includes('missing'),u=t.includes('unplanned');"
-        "const show=v==='all'||(v==='any'&&(m||u))||(v==='planned'&&m)||t.includes(v);"
-        "s.style.display=show?'':'none';k+=show});"
-        "document.getElementById('n').textContent=k+' photos shown'}</script>"
-    )
-    page = (
-        STYLE
-        + "<p>Only images in the benchmark (<code>ledger.jsonl</code>): the original (C0), the "
-        "re-save (C1), and the edits that passed the check. Yellow: planned box. Red: inserted "
-        "or pasted object (verified box). Rejected attempts are not shown; build with "
-        "<code>--all-attempts</code> to see them.</p>"
-        + ("" if lpath.exists() else "<p><b>No edits checked yet.</b></p>")
-        + controls
+        + ("" if lpath.exists() else '<p class="note"><b>No edits checked yet.</b></p>')
+        + LEGEND
         + "".join(rows)
+        + FILTER_JS.replace(
+            "{TEST}",
+            "const t=s.dataset.tags.split(' '),m=t.includes('missing'),u=t.includes('unplanned');"
+            "const show=v==='all'||(v==='any'&&(m||u))||(v==='planned'&&m)||t.includes(v);",
+        )
     )
+    page = _page(cfg, controls, body)
     out = wd / "preview.html"
     out.write_text(page, encoding="utf-8")
     return {
@@ -377,17 +409,18 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
 
 
 def share_page(cfg: dict, wd: Path, page: Path) -> dict:
-    """Self-contained copy of a preview page in ``preview.share_dir/<run_name>/`` (default
-    docs/preview/), to commit or send: index.html plus downscaled JPEG copies of every image it
-    shows (``preview.share_max_side``, ``share_quality``). Boxes are drawn from the original
-    pixel coordinates scaled to the fixed thumbnail width, so the smaller copies need no change.
+    """Self-contained copy of a preview page in the week's results folder
+    (``inlayfake.site.share_dir``: docs/results/week<N>_<topic>/), to commit or send:
+    index.html plus downscaled JPEG copies of every image it shows (``preview.share_max_side``,
+    ``share_quality``). Boxes are SVG in original pixel coordinates, scaled with the image, so
+    the smaller copies need no change.
     Like the week-1 viewer (``viewer --share``), the copies include COCO photos, downscaled."""
     import re
 
     from inlayfake.stages.viewer import share_copy
 
     pcfg = cfg.get("preview", {})
-    out = Path(pcfg.get("share_dir", "docs/preview")) / cfg.get("run_name", "default")
+    out = share_dir(cfg)
     side, quality = pcfg.get("share_max_side", 480), pcfg.get("share_quality", 80)
     html_text = page.read_text(encoding="utf-8")
     n = 0
@@ -452,14 +485,13 @@ def run(
         panels = "".join(
             _panel(r, wd, thumb, *_status(r, verified, passed_keys, final_ids)) for r in recs
         )
-        rows.append(f"<section><h3>source {sid} · {html.escape(cat)}</h3>{panels}</section>")
-    page = (
-        STYLE + "<p>All attempts. Yellow: planned box. Red: inserted or pasted object "
-        "(verified box for passed edits). "
-        "Only edits marked <b style=color:#080>in benchmark</b> enter ledger.jsonl; greyed "
-        "attempts were rejected by the verifier and regenerated with a new seed or dropped.</p>"
-        + "".join(rows)
+        rows.append(_card(sid, cat, "", panels))
+    body = (
+        '<p class="note">All attempts. Only edits marked <b>in benchmark</b> enter ledger.jsonl; '
+        "greyed attempts were rejected by the verifier and regenerated with a new seed or "
+        "dropped.</p>" + LEGEND + "".join(rows)
     )
+    page = _page(cfg, "", body)
     out = wd / "preview.html"
     out.write_text(page, encoding="utf-8")
     n_ok = sum(1 for r in verified.values() if r["passed"])
