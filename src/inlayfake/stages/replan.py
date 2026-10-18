@@ -528,7 +528,9 @@ def make_merged_version(cfg, index, src: dict, plan: dict, version: int, state, 
     gt = index.image_anns(sid)
     box, occ_id = place_anywhere(W, H, w, h, gt, rng)
     start = pcfg["merged"].get("avoid_same_class_from")
-    if start is not None and k + 1 >= start:
+    until = pcfg["merged"].get("avoid_same_class_until")  # author, 2026-10-18: after this box,
+    # plain anywhere again (any overlap allowed) for the last two photos (bed, train)
+    if start is not None and k + 1 >= start and (until is None or k + 1 <= until):
         # author, 2026-10-18 (re-run of the 7 dropped photos): 59 of their 210 failed attempts
         # had the box on the photo's real object of the same class, which the verifier can never
         # accept (a detection on a real object does not count). Still anywhere in the image, but
