@@ -1,5 +1,7 @@
 """End-to-end CPU dry run: sample → plan → generate → preview with the fake inpainter."""
 
+from pathlib import Path
+
 import numpy as np
 from PIL import Image
 from PIL.JpegImagePlugin import get_sampling
@@ -261,6 +263,18 @@ def test_audit_review_page(cfg, tmp_path):
     assert page.index(f"1. {sids[1]}-0") < page.index(f"2. {sids[0]}-0")  # CSV order
     assert "reject: detector mistake" in page and "add: a real object COCO missed" in page
     assert page.count('<section class="card"') == 2
+    # --share: the same page in the week's website folder, photos copied next to it
+    import re
+
+    from inlayfake.config import deep_merge
+
+    shared = audit.run(
+        deep_merge(cfg, {"site": {"dir": str(tmp_path / "site")}}), review=True, share=True
+    )
+    page = Path(shared["review"]).read_text(encoding="utf-8")
+    assert Path(shared["review"]).name == "audit.html"
+    for href in re.findall(r'<image href="([^"]+)"', page):
+        assert href.startswith("images/") and (Path(shared["review"]).parent / href).exists()
 
 
 def test_detector_matches_hand_example():

@@ -11,6 +11,7 @@ import html
 import json
 import os
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -37,9 +38,9 @@ def _crop(img: np.ndarray, box: list[float], out_path, size: int = 220) -> None:
     pil.save(out_path, quality=90)
 
 
-def run(cfg: dict, review: bool = False) -> dict:
+def run(cfg: dict, review: bool = False, share: bool = False) -> dict:
     if review:  # only (re)build the review page from the current decisions
-        return review_page(cfg)
+        return review_page(cfg, share=share)
     acfg = cfg["audit"]
     wd = work_dir(cfg)
     c0 = [r for r in read_ledger(ledger_path(cfg)) if r.condition.value == "C0"]
@@ -127,12 +128,17 @@ def _svg_boxes(boxes: list[tuple[list[float], str, str, bool]], scale: float) ->
     return "".join(out)
 
 
-def review_page(cfg: dict) -> dict:
+def review_page(cfg: dict, share: bool = False) -> dict:
     """<work>/audit_review.html: every label-audit candidate in the order of
     audit_decisions.csv (card k = row k), with its current decision, a zoomed crop and the whole
     photo. Orange: the candidate (a confident detection that matches no label); green: the
     labels COCO already has, with their class. A Show dropdown filters by decision. Read-only:
-    decisions are still changed in the CSV (author request 2026-10-18: re-check decisions)."""
+    decisions are still changed in the CSV (author request 2026-10-18: re-check decisions).
+
+    ``share=True`` (CLI ``audit --review --share``) writes the page as ``audit.html`` into the
+    week's website folder (``inlayfake.site.share_dir``, docs/results/week1_real_baseline/) and
+    uses the photo copies there (``images/<C0 image id>.jpg``, made by ``viewer --share``; any
+    missing one is added), so it works on GitHub Pages. Rebuild it after changing a decision."""
     from inlayfake.data.audit import detector_matches, read_decisions
     from inlayfake.site import DETECTOR_NAMES, SITE_CSS, page_title
     from inlayfake.stages.common import decisions_path
@@ -142,6 +148,11 @@ def review_page(cfg: dict) -> dict:
     decisions = read_decisions(path)
     c0 = {r.source_id: r for r in read_ledger(ledger_path(cfg)) if r.condition.value == "C0"}
     counts = Counter(d["decision"] for d in decisions)
+    if share:
+        from inlayfake.site import share_dir
+
+        out_dir = share_dir(cfg)
+        out_dir.mkdir(parents=True, exist_ok=True)
     names = cfg["detect"]["detectors"]
     dets = {}
     for n in names:  # saved C0 detections; a missing file shows as "not run"
@@ -168,7 +179,21 @@ def review_page(cfg: dict) -> dict:
         m = 0.6 * max(w, h) + 16
         x0, y0 = max(x - m, 0), max(y - m, 0)
         x1, y1 = min(x + w + m, W), min(y + h + m, H)
-        src = html.escape(os.path.relpath(rec.path, wd).replace(os.sep, "/"))
+        if share:
+            name = f"images/{rec.image_id}.jpg"
+            if not (out_dir / name).exists():
+                from inlayfake.stages.viewer import share_copy
+
+                vcfg = cfg.get("viewer", {})
+                share_copy(
+                    Path(rec.path),
+                    out_dir / name,
+                    vcfg.get("share_max_side", 640),
+                    vcfg.get("share_quality", 80),
+                )
+            src = html.escape(name)
+        else:
+            src = html.escape(os.path.relpath(rec.path, wd).replace(os.sep, "/"))
         crop = (
             f'<svg viewBox="{x0:.1f} {y0:.1f} {x1 - x0:.1f} {y1 - y0:.1f}" class="zoom">'
             f'<image href="{src}" width="{W}" height="{H}"/>'
@@ -242,7 +267,7 @@ def review_page(cfg: dict) -> dict:
         ".forEach(s=>{const show=v==='all'||s.dataset.dec===v;s.style.display=show?'':'none';"
         "k+=show});n.textContent=k+' shown'}sel.onchange=f;f()</script></main></body></html>"
     )
-    out = wd / "audit_review.html"
+    out = out_dir / "audit.html" if share else wd / "audit_review.html"
     out.write_text(page, encoding="utf-8")
     return {
         "review": out.as_posix(),

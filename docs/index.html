@@ -9,6 +9,7 @@
   self-contained folder docs/results/week<N>_<topic>/, built by its stage with --share in the
   shared site style (src/inlayfake/site.py), and is shown below the tabs:
     week 1: results/week1_real_baseline/   (viewer --share, configs/real_baseline.yaml)
+            results/week1_real_baseline/audit.html  (audit --review --share: label audit)
     week 2: results/week2_ai_insertion/    (preview --share, configs/insertion_inphoto.yaml)
   To add a week, add one entry to WEEKS below. The colour tokens are a copy of SITE_CSS.
 -->
@@ -63,6 +64,8 @@ iframe { flex: 1; width: 100%; border: 0; background: var(--bg); }
 const WEEKS = [
   { id: "week1", label: "Week 1", sub: "Real-photo baseline",
     src: "results/week1_real_baseline/index.html" },
+  { id: "week1-audit", label: "Week 1", sub: "Label audit",
+    src: "results/week1_real_baseline/audit.html" },
   { id: "week2", label: "Week 2", sub: "AI insertion",
     src: "results/week2_ai_insertion/index.html" },
 ];

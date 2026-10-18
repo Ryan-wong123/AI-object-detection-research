@@ -68,6 +68,11 @@ def main(argv: list[str] | None = None) -> int:
                 action="store_true",
                 help="only build <work>/audit_review.html from the current decisions",
             )
+            p.add_argument(
+                "--share",
+                action="store_true",
+                help="with --review: write the page into the week's website folder (docs/results/)",
+            )
         if name == "preview":
             p.add_argument(
                 "--share",
