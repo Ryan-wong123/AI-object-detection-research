@@ -7,6 +7,17 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Publishing checklist started (`docs/PUBLISHING_CHECKLIST.md`)
+
+- **What:** a list of things to settle before the repo, previews or paper go public: COCO photo
+  licences for the shared previews (`docs/viewer/`, `docs/preview/`), the dataset licence
+  statement, double-blind anonymity, 24 commits whose messages carry an assistant co-author
+  line (against `CLAUDE.md`; removing them needs a history rewrite, the author's decision), no
+  data in git, and the paper's open items. README now says how to update the shared week-2
+  preview after the benchmark changes.
+
+---
+
 ## 2026-10-18: Week-2 preview shared in the repo (`docs/preview/task2_insertion/`)
 
 - **Author request:** the week-2 preview should be on GitHub like the week-1 viewer.
