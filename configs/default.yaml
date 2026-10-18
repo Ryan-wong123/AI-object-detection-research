@@ -139,6 +139,7 @@ verify:
   min_visible_fraction: 0.10           # occluded originals below this become ignore regions
   audit_fraction: 0.10                 # share of verified edits put on the human-audit sheet
   audit_all_conditions: []             # conditions put on the sheet in full (e.g. [C4])
+  audit_only_conditions: null          # only these conditions on the sheet (null: all edits)
 
 detect:
   detectors: [faster_rcnn, yolo, rtdetr, grounding_dino]

@@ -45,8 +45,9 @@ placement:
     c2_attempts: 6         # author, 2026-10-18: 4 C2 shams failed 3 seeds; 3 more seeds, checked
                            # with verify.sham_original_overlap
 verify:
-  audit_all_conditions: [C4]    # author, 2026-10-18: every C4 is checked by a person, plus the
-                                # random 10% sample (C2 and C4) for an unbiased error rate
+  audit_all_conditions: [C4]    # author, 2026-10-18: every C4 is checked by a person; the C4s of
+                                # the random 10% draw are flagged for an unbiased error rate
+  audit_only_conditions: [C4]   # author, 2026-10-18: only C4 on the sheet (no C2 rows)
   sham_original_overlap: 0.25   # author, 2026-10-18: a sham detection lying >= 25% on a real
                                 # object of the class is that object, not a new one
 edit:

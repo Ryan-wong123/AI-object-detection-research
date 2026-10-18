@@ -7,6 +7,16 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Audit sheet: C4 only (544 rows)
+
+- **Author:** audit only the C4 AI insertions; no C2 rows. `verify.audit_only_conditions: [C4]`
+  keeps only C4 on the sheet. The random draw is unchanged, so its 52 C4 rows stay a random
+  sample of the C4 edits (`in_random_sample: y`). 1 new test. Sheet: 544 rows, bed row 6, train
+  row 143; the empty 601-row sheet is kept as `audit_edits_c4_plus_c2.*`.
+- **Consequence:** C2 shams are checked by OWLv2 only; the paper says so (§4).
+
+---
+
 ## 2026-10-18: Human audit extended to every C4 edit (601-row sheet)
 
 - **Author decision:** audit all AI insertions, not only a 10% sample: a sample estimates the
