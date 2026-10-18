@@ -56,7 +56,7 @@ object are dropped, never labelled.
 | Merge (18 Oct): photos with C4+C5 / only C4 / only C5 / neither | 284 / 175 / 41 / 44 <!-- file:paper/results/task2_insertion_merge_decision.json --> |
 | Merged AI condition at restart: from C4 / from C5 / to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z --> |
 | Merged run: photos with an AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
-| Re-run of the 7 dropped (6 more boxes, not on the real same-class object) | [[TBD]] |
+| After the re-run of the 7 dropped: AI edit / all of C0–C4 / dropped | 542 / 538 / 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss
