@@ -56,6 +56,23 @@ def ledger_path(cfg: dict) -> Path:
     return final if final.exists() else wd / "ledger_generated.jsonl"
 
 
+def decisions_path(cfg: dict) -> tuple[Path, bool]:
+    """(path, configured) of the label-audit decisions applied when scoring.
+
+    One file for every run on the same photos (author, 2026-10-18): ``audit.decisions``, else
+    ``placement.audit_decisions`` (the file the week-2 class choice used), else the run's own
+    ``<work>/audit_decisions.csv`` (week 1, where the `audit` stage writes it). Before, scoring
+    always used the work dir, so a run in another work dir (week 2: data/inlayfake_v2) would
+    silently have been scored without the week-1 labels.
+    """
+    explicit = cfg.get("audit", {}).get("decisions") or cfg.get("placement", {}).get(
+        "audit_decisions"
+    )
+    if explicit:
+        return Path(explicit), True
+    return work_dir(cfg) / "audit_decisions.csv", False
+
+
 def load_records(cfg: dict):
     """Ledger records restricted to the configured conditions, with audit decisions applied."""
     from inlayfake.data.audit import apply_decisions, read_decisions
@@ -63,7 +80,10 @@ def load_records(cfg: dict):
 
     conds = set(cfg["conditions"])
     recs = [r for r in read_ledger(ledger_path(cfg)) if r.condition.value in conds]
-    decisions = read_decisions(work_dir(cfg) / "audit_decisions.csv")
+    path, configured = decisions_path(cfg)
+    if configured and not path.exists():  # a named file must exist: never score without it
+        raise SystemExit(f"audit decisions file not found: {path} (audit.decisions)")
+    decisions = read_decisions(path)
     return apply_decisions(recs, decisions) if decisions else recs
 
 

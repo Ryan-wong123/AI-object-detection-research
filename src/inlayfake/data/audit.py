@@ -70,8 +70,24 @@ def find_candidates(
                     "bbox": [round(v, 1) for v in d["bbox"]],
                     "n_detectors": len(agree),
                     "max_score": round(d["score"], 3),
+                    "detectors": sorted(agree),
                 }
             )
+    return out
+
+
+def detector_matches(
+    box: list[float], category: str, dets_by_detector: dict[str, list[dict]], iou_min: float = 0.5
+) -> dict[str, float | None]:
+    """Per detector: the highest score of its same-class detections overlapping ``box`` with
+    IoU >= ``iou_min`` (None if it has none). A detector *agrees* on a candidate when that score
+    is >= audit.min_score; this is the rule ``find_candidates`` counts in ``n_detectors``."""
+    out: dict[str, float | None] = {}
+    for name, dets in dets_by_detector.items():
+        scores = [
+            d["score"] for d in dets if d["category"] == category and iou(d["bbox"], box) >= iou_min
+        ]
+        out[name] = round(max(scores), 3) if scores else None
     return out
 
 

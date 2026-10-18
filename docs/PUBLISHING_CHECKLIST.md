@@ -8,7 +8,8 @@ before publishing".
 ## Licences and shared images
 
 - [ ] **COCO photo licences for the shared previews.** `docs/results/week1_real_baseline/` (week 1)
-  and `docs/results/week2_ai_insertion/` (week 2) contain downscaled COCO photos, plus edited
+  (including the label-audit page `audit.html`) and `docs/results/week2_ai_insertion/` (week 2)
+  contain downscaled COCO photos, plus edited
   versions of them. COCO images carry their own Flickr licences (the COCO annotations are a
   separate licence). Confirm the terms allow redistributing these copies, edited ones included,
   in a public repo. If not, keep the repo private, or remove those folders (and their history)
