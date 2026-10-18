@@ -7,6 +7,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Insertion run complete: 544 of 544 photos have C0–C4; audit sheet rebuilt
+
+- **Corner boxes** (restart 9, last check run_verify_2026-10-18T070254Z, 15:02 local): 151857
+  (train) passed on corner box 23, seed 2 (OWLv2 0.25); 10995 (bed) on corner box 27, seed 1
+  (0.20). Their C2 and C3 passed. Both scores sit at the 0.2 threshold and **by eye both are
+  doubtful**: a pale, pillow-like shape by the window; a small grey shape at the left edge. Flagged
+  for the human audit; if the author rejects them they are reported as failures.
+- **Final benchmark:** all 544 photos have C0, C1, C2, C3 and C4; AI edits from the free-space rule
+  464, the occlusion rule 38, placed anywhere 42 (2 of them in the corner); 1,088 edited images
+  (`paper/results/task2_insertion_final.json`). The ledger already carries the new
+  `merged_source` labels (restart 9 ran the new code).
+- **Audit sheet rebuilt** from the final ledger: the old `audit_edits.csv` (86 rows, 17 Oct,
+  unfilled, partly no longer in the benchmark) and `.html` (another sample) are kept as
+  `audit_edits_before_final.*`. New sheet: 109 edits (10%; 57 C2, 52 C4), CSV rows and numbered HTML
+  cards in the same order, no C5 in the page text. The bed edit is in the sample; the train edit
+  is not (random sample kept as drawn) and is checked separately.
+- **Next:** author fills the audit; then Table 1 counts and week 3.
+
+---
+
 ## 2026-10-18: Bed and train photos: boxes in the bottom-left corner (restart 9)
 
 - **Status at the stop (14:36):** plain anywhere boxes 19–21 failed all 9 tries for both 10995

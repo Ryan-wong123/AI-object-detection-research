@@ -58,7 +58,8 @@ object are dropped, never labelled.
 | Merge (18 Oct): photos with C4+C4-occ / only C4 / only C4-occ / neither | 284 / 175 / 41 / 44 <!-- file:paper/results/task2_insertion_merge_decision.json --> |
 | Merged AI condition at restart: from C4 / from C4-occ / to place anywhere | 464 / 38 / 42 <!-- run:task2_insertion, run_verify_2026-10-17T194502Z --> |
 | Merged run: photos with an AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
-| After the re-run of the 7 dropped: AI edit / all of C0–C4 / dropped | 542 / 538 / 2 <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
+| Final: photos with all of C0–C4 / edited images | 544 / 1,088 (AI edits: 464 free-space, 38 occluding, 42 anywhere; bed and train in the corner, doubtful) <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
+| Human audit (109 edits) | [[TBD]] |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss
