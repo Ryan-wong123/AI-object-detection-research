@@ -64,8 +64,8 @@ object are dropped, never labelled.
 
 ## Next week and points to discuss
 
-**Rest of week 2:** change the edit window and run a third pilot, then the overnight `insert`
-run, the 10% human audit and the Open Images download.
+**Rest of week 2:** the author's human audit of all 544 C4 edits, then removing rejected edits,
+the paper's Table 1 and audit numbers, and merging the week-2 branch into `main`.
 
 **To discuss:**
 
