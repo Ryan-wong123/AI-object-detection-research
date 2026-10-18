@@ -226,8 +226,27 @@ longer linked from the page; delete that folder before rebuilding if you want on
 images in the repo.
 
 Week-1 label-audit decisions live in one file, `data\inlayfake\audit_decisions.csv`, used by
-both weeks (and week 3). After changing a decision there, re-run week 1's `evaluate` and `report`
-(and the week-1 viewer with `--share`); week 2's images pick the change up when they are scored.
+both weeks (and week 3). To re-check them, build and open the review page (card *k* = row *k* of
+the CSV; current decision, zoom on the candidate in orange, COCO's own labels in green, whole
+photo; Show dropdown by decision):
+
+```powershell
+python -m inlayfake audit --config configs/real_baseline.yaml --review
+start data\inlayfake\audit_review.html
+```
+
+To change a decision, edit the `decision` column of that row (`add` / `ignore` / `reject`), keep a
+copy of the old file, and rebuild the page to see the new decision. Then:
+
+1. If a row changed to or from `add`: remove that photo's rows from
+   `runs\task1_real_baseline\forensics\*.jsonl` and run
+   `python -m inlayfake forensics --config configs/real_baseline.yaml` (seconds; only that photo
+   is redone).
+2. `python -m inlayfake evaluate --config configs/real_baseline.yaml` (about 30–90 min, CPU).
+3. `python -m inlayfake report --config configs/real_baseline.yaml` (about 10 s), and the week-1
+   page with `viewer --config configs/real_baseline.yaml --share`.
+
+Week 2's images pick the change up when they are scored (week 3).
 Before making the repo or the previews public, see
 `docs/PUBLISHING_CHECKLIST.md` (licences of the COCO photos in these copies).
 

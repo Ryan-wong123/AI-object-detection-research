@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import html
 import json
+import os
+from collections import Counter
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -35,7 +37,9 @@ def _crop(img: np.ndarray, box: list[float], out_path, size: int = 220) -> None:
     pil.save(out_path, quality=90)
 
 
-def run(cfg: dict) -> dict:
+def run(cfg: dict, review: bool = False) -> dict:
+    if review:  # only (re)build the review page from the current decisions
+        return review_page(cfg)
     acfg = cfg["audit"]
     wd = work_dir(cfg)
     c0 = [r for r in read_ledger(ledger_path(cfg)) if r.condition.value == "C0"]
@@ -87,3 +91,125 @@ def run(cfg: dict) -> dict:
     }
     write_run_info(run_dir(cfg), "audit", cfg, summary)
     return summary
+
+
+DECISION_COLOR = {
+    "add": "var(--tp)",
+    "ignore": "var(--ign)",
+    "reject": "var(--fp)",
+    "?": "var(--mod)",
+}
+DECISION_TEXT = {
+    "add": "add: a real object COCO missed (becomes a label)",
+    "ignore": "ignore: unsure (neither rewarded nor penalised)",
+    "reject": "reject: detector mistake (nothing changes)",
+    "?": "? not decided (counts as ignore)",
+}
+
+
+def _svg_boxes(boxes: list[tuple[list[float], str, str, bool]], scale: float) -> str:
+    """SVG rects (and labels) in image pixels; ``scale`` sets stroke and font size."""
+    out = []
+    sw, fs = max(1.5, scale / 220), max(9.0, scale / 30)
+    for (x, y, w, h), color, label, dashed in boxes:
+        dash = f' stroke-dasharray="{3 * sw:.1f},{2 * sw:.1f}"' if dashed else ""
+        out.append(
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="none" '
+            f'stroke="{color}" stroke-width="{sw:.1f}"{dash}/>'
+        )
+        if label:
+            ty = y - 3 if y - fs - 3 >= 0 else y + fs
+            out.append(
+                f'<text x="{x + 2:.1f}" y="{ty:.1f}" font-size="{fs:.1f}" fill="{color}" '
+                f'paint-order="stroke" stroke="#000" stroke-width="{fs / 6:.1f}" '
+                f'font-family="system-ui,sans-serif">{html.escape(label)}</text>'
+            )
+    return "".join(out)
+
+
+def review_page(cfg: dict) -> dict:
+    """<work>/audit_review.html: every label-audit candidate in the order of
+    audit_decisions.csv (card k = row k), with its current decision, a zoomed crop and the whole
+    photo. Orange: the candidate (a confident detection that matches no label); green: the
+    labels COCO already has, with their class. A Show dropdown filters by decision. Read-only:
+    decisions are still changed in the CSV (author request 2026-10-18: re-check decisions)."""
+    from inlayfake.data.audit import read_decisions
+    from inlayfake.site import SITE_CSS, page_title
+    from inlayfake.stages.common import decisions_path
+
+    wd = work_dir(cfg)
+    path, _ = decisions_path(cfg)
+    decisions = read_decisions(path)
+    c0 = {r.source_id: r for r in read_ledger(ledger_path(cfg)) if r.condition.value == "C0"}
+    counts = Counter(d["decision"] for d in decisions)
+    cards = []
+    for k, d in enumerate(decisions, 1):
+        rec = c0.get(int(d["source_id"]))
+        if rec is None:
+            continue
+        box = [float(d[c]) for c in ("x", "y", "w", "h")]
+        W, H = rec.width, rec.height
+        labels = [
+            (i.bbox, "var(--gt)", i.category, False)
+            for i in rec.instances
+            if i.instance_id.startswith("coco:")
+        ]
+        cand = [(box, "var(--fp)", d["category"], False)]
+        x, y, w, h = box
+        m = 0.6 * max(w, h) + 16
+        x0, y0 = max(x - m, 0), max(y - m, 0)
+        x1, y1 = min(x + w + m, W), min(y + h + m, H)
+        src = html.escape(os.path.relpath(rec.path, wd).replace(os.sep, "/"))
+        crop = (
+            f'<svg viewBox="{x0:.1f} {y0:.1f} {x1 - x0:.1f} {y1 - y0:.1f}" class="zoom">'
+            f'<image href="{src}" width="{W}" height="{H}"/>'
+            f"{_svg_boxes(labels + cand, max(x1 - x0, y1 - y0))}</svg>"
+        )
+        whole = (
+            f'<svg viewBox="0 0 {W} {H}" class="whole"><image href="{src}" width="{W}" '
+            f'height="{H}"/>{_svg_boxes(labels + cand, max(W, H))}</svg>'
+        )
+        dec = d["decision"]
+        cards.append(
+            f'<section class="card" data-dec="{html.escape(dec)}"><h2>{k}. '
+            f"{html.escape(d['candidate_id'])} <span>· candidate: {html.escape(d['category'])} · "
+            f"{d['n_detectors']} detectors agree · score {float(d['max_score']):.2f} · COCO "
+            f'{rec.source_id}</span></h2><p class="dec" style="border-color:'
+            f'{DECISION_COLOR.get(dec, "var(--line)")}">current decision: <b>'
+            f"{html.escape(DECISION_TEXT.get(dec, dec))}</b></p>"
+            f'<div class="row"><div class="panel"><div class="t"><b>Zoom</b><i>around the '
+            f'candidate</i></div><div class="wrap">{crop}</div></div><div class="panel">'
+            f'<div class="t"><b>Whole photo</b><i>{W}×{H}</i></div><div class="wrap">{whole}'
+            "</div></div></div></section>"
+        )
+    options = [("all", f"all candidates ({len(decisions)})")] + [
+        (v, f"{v} ({counts[v]})") for v in ("add", "ignore", "reject", "?") if counts[v]
+    ]
+    select = "".join(f'<option value="{v}">{html.escape(t)}</option>' for v, t in options)
+    title = page_title(cfg, "Label audit") + " · label audit review"
+    page = (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" '
+        'content="width=device-width, initial-scale=1">'
+        f"<title>{html.escape(title)}</title><style>{SITE_CSS}"
+        ".wrap svg{position:static;width:100%;height:auto;display:block;border-radius:4px}"
+        ".dec{margin:0 0 8px;padding:4px 8px;border-left:4px solid;background:var(--bg)}"
+        "</style></head><body>"
+        f'<header><h1>{html.escape(title)}</h1><label>Show <select id="f">{select}'
+        '</select></label><span class="muted" id="n"></span></header><main>'
+        '<p class="note">Each card is one row of <code>'
+        f"{html.escape(path.as_posix())}</code> (card k = row k after the header). A candidate "
+        "is a confident detection (score ≥ 0.7, at least 2 of 4 detectors agree) that matches no "
+        "COCO label. To change a decision, edit the <code>decision</code> column of that row "
+        "(add / ignore / reject) and save; then see the README (re-run evaluate and report).</p>"
+        '<div class="legend"><span><i class="sw" style="border-color:var(--fp)"></i>candidate '
+        '(possible missing label)</span><span><i class="sw" style="border-color:var(--gt)">'
+        "</i>label COCO already has</span></div>"
+        + "".join(cards)
+        + "<script>const sel=document.getElementById('f'),n=document.getElementById('n');"
+        "function f(){const v=sel.value;let k=0;document.querySelectorAll('section.card')"
+        ".forEach(s=>{const show=v==='all'||s.dataset.dec===v;s.style.display=show?'':'none';"
+        "k+=show});n.textContent=k+' shown'}sel.onchange=f;f()</script></main></body></html>"
+    )
+    out = wd / "audit_review.html"
+    out.write_text(page, encoding="utf-8")
+    return {"review": out.as_posix(), "candidates": len(cards), "decisions": dict(counts)}
