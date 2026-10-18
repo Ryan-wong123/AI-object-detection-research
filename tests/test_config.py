@@ -18,8 +18,11 @@ def test_full_run_uses_the_pilot_settings():
     """configs/insertion_inphoto.yaml = pilot_inphoto settings on all 600 sources, new work dir."""
     pilot = load_config(ROOT / "configs" / "pilot_inphoto.yaml")
     full = load_config(ROOT / "configs" / "insertion_inphoto.yaml")
-    for key in ("edit", "verify", "generators_enabled", "encoding", "generation"):
+    for key in ("edit", "generators_enabled", "encoding", "generation"):
         assert full[key] == pilot[key], key
+    # verify: identical except the sham rule added to the full run on 2026-10-18
+    full_v = {k: v for k, v in full["verify"].items() if k != "sham_original_overlap"}
+    assert full_v == pilot["verify"]
     # placement: identical except the C5 fill added to the full run on 2026-10-18
     # fills and the merged AI condition: added to the full run on 2026-10-18
     fills = ("occlusion_fill", "free_fill", "merged")

@@ -166,6 +166,12 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 22. Last 2 AI edits and 4 shams re-run (18 Oct)
+- The 4 missing C2 shams added nothing; OWLv2 kept seeing the photo's real train, umbrella, bus
+  or book next to the box. Sham check now ignores a detection lying ≥ 25% on a real object of
+  that class; 3 new seeds each. The bed and train photos get up to 12 more boxes anywhere.
+  Running since 13:34; result [[TBD]].
+
 ### 21. Merged run done: 537 of 544; re-run of the 7 dropped photos (18 Oct)
 - **Result:** 537 photos have a verified AI edit (from C4 464, from C5 38, placed anywhere 35);
   533 have every condition C0–C4 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json -->.

@@ -34,9 +34,15 @@ placement:
     enabled: true          # class already in the photo, placed anywhere. Verified C4s are kept
                            # (preferred), else the verified C5 is used, else a box anywhere;
                            # C2/C3 sit at the chosen box
-    versions: 12           # author, 2026-10-18: 7 photos were dropped after 6 boxes; re-run them
-    avoid_same_class_from: 7   # with 6 more boxes anywhere that do not sit on the photo's real
-                               # object of the same class (boxes 1-6 unchanged)
+    versions: 24           # author, 2026-10-18: boxes anywhere per photo (6 at first; 12 for the
+                           # re-run of 7 dropped photos; 24 for the last 2, bed and train)
+    avoid_same_class_from: 7   # from box 7 on, a box does not sit on the photo's real object of
+                               # the same class (<= 30% of its area; boxes 1-6 unchanged)
+    c2_attempts: 6         # author, 2026-10-18: 4 C2 shams failed 3 seeds; 3 more seeds, checked
+                           # with verify.sham_original_overlap
+verify:
+  sham_original_overlap: 0.25   # author, 2026-10-18: a sham detection lying >= 25% on a real
+                                # object of the class is that object, not a new one
 edit:
   window_scale: 1.2
   window_min_px: 64
