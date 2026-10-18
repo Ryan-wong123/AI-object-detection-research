@@ -89,6 +89,14 @@ def merged_version(cfg: dict, state: dict, sid: int, versions: dict | None = Non
     return v
 
 
+def attempts_for(cfg: dict, cond: str, version: int) -> int:
+    """Seeds a job may use at one box. Merged mode: C2 at a merged box may get more
+    (``placement.merged.c2_attempts``, author 2026-10-18: 4 shams failed 3 seeds)."""
+    if cond == "C2" and version >= ADOPT and merged(cfg):
+        return cfg["placement"]["merged"].get("c2_attempts") or cfg["edit"]["max_attempts"]
+    return cfg["edit"]["max_attempts"]
+
+
 def leader_passed(cfg: dict, state: dict, sid: int, v: int) -> bool:
     """Merged mode: is the AI edit at free version ``v`` verified (C2/C3 may follow)?"""
     if v == ADOPT:
@@ -217,7 +225,7 @@ def next_job(
         if cond != "C4" and not leader_passed(cfg, state, sid, v):
             return None  # C2 waits for a verified AI edit at this box
     rows = rows_at(state.get(f"{sid}|{cond}|{gen}", []), v)
-    if any(r["passed"] for r in rows) or len(rows) >= cfg["edit"]["max_attempts"]:
+    if any(r["passed"] for r in rows) or len(rows) >= attempts_for(cfg, cond, v):
         return None
     return v, len(rows)
 

@@ -467,3 +467,71 @@ def test_merged_box_avoids_real_same_class_object(monkeypatch):
         b = row["box"]
         assert intersection(b, real) <= 0.3 * b[2] * b[3] + 1e-6, (v, b)
     assert np.isfinite(b).all()
+
+
+def test_c2_extra_seeds_at_merged_box():
+    """placement.merged.c2_attempts gives C2 at a merged box more seeds; other jobs keep 3."""
+    from inlayfake.stages.replan import ADOPT, attempts_for
+
+    cfg = {
+        "edit": {"max_attempts": 3, "max_replans": 1},
+        "conditions": ["C2", "C3", "C4", "C5"],
+        "placement": {"merged": {"enabled": True, "versions": 2, "c2_attempts": 6}},
+        "generation": {
+            "insert_generators": ["G1"],
+            "occlusion_generators": ["G1"],
+            "sham_generators": ["G1"],
+        },
+        "generators_enabled": ["G1"],
+    }
+    assert attempts_for(cfg, "C2", ADOPT + 1) == 6
+    assert attempts_for(cfg, "C2", 0) == attempts_for(cfg, "C4", ADOPT + 1) == 3
+    ok = {"passed": True, "version": ADOPT + 1, "image_id": "a"}
+    fail = {"passed": False, "version": ADOPT + 1}
+    state = {"7|C4|G1": [ok], "7|C5|G1": [], "7|C2|G1": [fail] * 3}
+    assert next_job(cfg, state, 7, "C2", "G1") == (ADOPT + 1, 3)  # a 4th seed
+    state["7|C2|G1"] = [fail] * 6
+    assert next_job(cfg, state, 7, "C2", "G1") is None
+
+
+def test_sham_detection_on_real_object_does_not_count(tmp_path):
+    """verify.sham_original_overlap: a C2 detection lying mostly on a real object of the class
+    is that object, so the sham passes; without the rule it fails."""
+    import numpy as np
+    from PIL import Image
+
+    from inlayfake.ledger import EditInfo, ImageRecord, Instance
+    from inlayfake.stages.verify import verify_one
+
+    img = np.zeros((200, 200, 3), dtype=np.uint8)
+    mpath = tmp_path / "m.png"
+    Image.fromarray(np.zeros((200, 200), dtype=np.uint8)).save(mpath)
+    rec = ImageRecord(
+        "x",
+        1,
+        "train",
+        "C2",
+        "x.jpg",
+        200,
+        200,
+        generator="G1",
+        edit=EditInfo("train", 0, [40, 40, 100, 100], intended_mask_path=str(mpath)),
+        instances=[Instance("orig:1", "train", [60, 60, 120, 120], Origin.PHOTOGRAPHED)],
+    )
+    # the detection covers the box and the real train: IoU to the train < 0.5
+    finder = lambda crop, cat, r: [([30, 30, 150, 150], 0.6)]  # noqa: E731
+    vcfg = {
+        "min_iou": 0.3,
+        "min_score": 0.2,
+        "min_inside": 0.8,
+        "changed_pixel_threshold": 4,
+        "mixed_modified_overlap": 0.1,
+        "window_scale": 2.5,
+        "window_min_px": 64,
+    }
+    seg = lambda crop, box: np.zeros(crop.shape[:2], dtype=bool)  # noqa: E731
+    passed, reason, _ = verify_one(rec, img, img, finder, seg, vcfg, None, tmp_path)
+    assert not passed and reason == "sham edit produced the target object"
+    vcfg["sham_original_overlap"] = 0.25
+    passed, _, _ = verify_one(rec, img, img, finder, seg, vcfg, None, tmp_path)
+    assert passed

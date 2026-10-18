@@ -218,6 +218,10 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   missing condition). `placement.merged.avoid_same_class_from` (7 in the full run, 2026-10-18):
   from that box on, a merged box may cover at most 30% of its area with a real object of its
   class (shrinks ×0.8 if no spot is found), since a box on the real object cannot pass verify.
+  `placement.merged.c2_attempts` (6 in the full run): seeds for C2 at a merged box
+  (`replan.attempts_for`). `verify.sham_original_overlap` (0.25 in the full run): a C2 detection
+  lying at least that share of its area on a real object of the class does not count as a
+  produced object (a sham box may cover part of a real object since the merge).
 - **Inserted-object GT**: SAM (ViT-B) prompted with the OWLv2 box, intersected with the dilated edit
   mask → mask → tight bbox.
 - **Actual changed mask**: `|decode(Cx) − decode(C1)| > 4` (per channel, max), morphological

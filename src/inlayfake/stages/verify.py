@@ -36,6 +36,7 @@ from tqdm import tqdm
 
 from inlayfake.edit.compose import crop_window
 from inlayfake.edit.encode import load_rgb
+from inlayfake.edit.placement import intersection
 from inlayfake.edit.verify import (
     best_candidate,
     build_verifier,
@@ -51,6 +52,7 @@ from inlayfake.stages.replan import (
     ADOPT,
     FREE,
     adopted_c5,
+    attempts_for,
     load_versions,
     merged,
     merged_pending,
@@ -144,6 +146,25 @@ def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool,
         originals,
         vcfg.get("original_iou", 0.5),
     )
+    share = vcfg.get("sham_original_overlap")
+    if rec.condition.value == "C2" and best is not None and share is not None:
+        # a sham repaints a box that may cover part of a real object of the class; a detection
+        # lying >= `share` of its area on such an object is that real object, not a new one
+        # (author, 2026-10-18: 4 shams failed every seed on the real train/umbrella/bus/book)
+        new = [
+            c
+            for c in cands
+            if all(intersection(c[0], o) < share * c[0][2] * c[0][3] for o in originals)
+        ]
+        best = best_candidate(
+            new,
+            rec.edit.plan_box,
+            vcfg["min_iou"],
+            vcfg["min_score"],
+            vcfg.get("min_inside"),
+            originals,
+            vcfg.get("original_iou", 0.5),
+        )
     info = {"n_candidates": len(cands), "score": best[1] if best else None}
 
     actual = changed_mask(img, ref, vcfg["changed_pixel_threshold"])
@@ -328,7 +349,6 @@ def audit_sheet(
 def run(cfg: dict) -> dict:
     wd = work_dir(cfg)
     vcfg = cfg["verify"]
-    max_attempts = cfg["edit"]["max_attempts"]
     generated = list(read_ledger(wd / "ledger_generated.jsonl"))
     state = verify_state(wd)
     checked = {row["image_id"] for rows in state.values() for row in rows}
@@ -347,7 +367,8 @@ def run(cfg: dict) -> dict:
         with (wd / "verify.jsonl").open("a", encoding="utf-8") as f:
             for r in tqdm(todo, desc="verify"):
                 done_here = rows_at(state.get(job_key(r), []), r.edit.plan_version)
-                if any(x["passed"] for x in done_here) or len(done_here) >= max_attempts:
+                limit = attempts_for(cfg, r.condition.value, r.edit.plan_version)
+                if any(x["passed"] for x in done_here) or len(done_here) >= limit:
                     continue  # this box already passed (or is out of attempts): not needed
                 n_verified += 1
                 img, ref = load_rgb(r.path), load_rgb(c1[r.source_id].path)

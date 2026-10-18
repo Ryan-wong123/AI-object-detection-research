@@ -52,6 +52,7 @@ placement:
     versions: 6                        # place a box of a photo class anywhere (this many
                                        # boxes x edit.max_attempts seeds); C2/C3 follow the
                                        # chosen box; C5 is no longer generated
+    c2_attempts: null                  # seeds for C2 at a merged box (null: edit.max_attempts)
     avoid_same_class_from: null        # from this box on, a box may cover at most 30% of its
                                        # area with a real object of the same class (null: off)
   support:                             # boxes rest on a plausible surface (COCO-Stuff labels)

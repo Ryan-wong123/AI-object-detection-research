@@ -5,6 +5,25 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Last 2 AI edits and 4 C2 shams re-run (restart 7)
+
+- **Author:** add the same class anywhere for 10995 (bed) and 151857 (train); regenerate C2 for
+  108440, 203580, 259571, 262938.
+- **Why the 4 shams failed** (OWLv2 re-run on their 12 attempts, and checked by eye): no new
+  object; every attempt's detection is the photo's **real** train / umbrella / bus / book that
+  partly overlaps the box (25–97% of the detection on the real object's box, but IoU < 0.5 so
+  the existing guard did not discount it), at the same spot in every seed. More seeds alone
+  would fail the same way.
+- **Change:** `verify.sham_original_overlap: 0.25` (full run only): a C2 detection lying ≥ 25%
+  of its area on a real object of the class is that object, not a new one.
+  `placement.merged.c2_attempts: 6`: C2 at a merged box gets 3 more seeds, checked with that
+  rule (the 12 failed attempts stay failed). `placement.merged.versions` 12 → 24: the bed and
+  train photos get up to 12 more anywhere boxes (not on the real object, as boxes 7–12). C4 and
+  C5 checks are unchanged. 2 new tests; 82 pass. Scratch dry run: exactly these 6 jobs.
+- **Restart 7** at 13:34, PID 16592. Result [[TBD]].
+
+---
+
 ## 2026-10-18: Re-run done: 542 of 544 photos have an AI edit (run `task2_insertion` finished)
 
 - **Result** (run_verify_2026-10-18T031732Z, 11:17 local; 18 rounds of 3–7 images): 5 of the 7

@@ -300,7 +300,9 @@ pipeline, so file format cannot reveal origin.
 not among the evaluated detectors, confirms each insertion: it must find the target class around the edit with score ≥ 0.2 and
 either IoU ≥ 0.3 to the planned box or at least 80% of the detection inside it (inserted objects
 are often smaller than the box); a detection that coincides with a same-class original object
-does not count. A sham edit (C2) passes only if the verifier finds no such object. Failed
+does not count. A sham edit (C2) passes only if the verifier finds no such object; since a sham
+box may now cover part of a real object of the class, a detection lying for at least a quarter of
+its area on that real object is attributed to it, not to the sham. Failed
 edits are regenerated with a new seed, up to three attempts per box; if all fail, the edit is
 re-planned with a new box resting on a supporting surface and sized like the photograph's own
 instance of the class (the sham and paste controls move with it), up to three new boxes, then
