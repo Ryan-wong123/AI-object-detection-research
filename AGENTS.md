@@ -128,6 +128,8 @@ finding arrives, a decision is made or code for the week's task lands:
   missing results are `[[TBD: ...]]`, negative findings are reported, and nothing says "first".
   Numbers must match `paper/PAPER.md` and `paper/results/`.
 - Supporting tables the briefing links to (e.g. `images_used.md`) go in the same folder.
+- When a week has a shareable results page under `docs/`, add it as a tab in `docs/index.html`
+  (the `WEEKS` list), the repo's GitHub Pages site.
 - Header: week number, date range from `PRD.md` §Timeline, last-updated date and author.
 
 ## Git

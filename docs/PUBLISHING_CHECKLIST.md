@@ -18,6 +18,13 @@ before publishing".
 - [ ] **Generator and model licences:** SDXL inpainting, OWLv2, SAM and the evaluated detectors
   allow the released edited images and their use in the paper.
 
+## Results website (GitHub Pages)
+
+- [ ] GitHub Pages (`docs/index.html`, the week tabs) is **public** as soon as it is switched on,
+  and on the free plan the repo must be public too. Settle the licence and anonymity items in this
+  list first. Its address contains the GitHub user name (`ryan-wong123.github.io`), so it must
+  not be linked from the anonymous submission.
+
 ## Anonymity (CVPR review is double-blind)
 
 - [ ] The submission must not reveal the authors: no GitHub user name or repo URL in the paper or

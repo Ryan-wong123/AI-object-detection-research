@@ -7,6 +7,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: One results website with week tabs (`docs/index.html`)
+
+- **Author request:** join the week-1 viewer and the week-2 preview into one site with tabs, to
+  serve as the repo's GitHub Pages site.
+- **What:** `docs/index.html` (tab bar: Week 1 real-photo baseline, Week 2 AI insertion; the page
+  below is the week's self-contained folder in an iframe; tab kept in the URL hash; "open in a
+  new tab" link; light/dark like the week-1 viewer) and `docs/.nojekyll`. Week pages unchanged;
+  adding a week = one entry in `WEEKS`. The iframe has a white background because the week-2
+  preview sets none (its black text was unreadable on the dark frame).
+- **Checked** with a local web server (`.claude/launch.json`, `http.server` on docs/): both tabs
+  load, the week-1 tables and photos show, the week-2 Show dropdown works in the frame (all 544 /
+  complete 544 / missing 0), 2,720 images.
+- **Not done:** switching GitHub Pages on (repo Settings → Pages → branch, `/docs`) is the
+  author's step; the site is public, so the publishing checklist applies first.
+
+---
+
 ## 2026-10-18: Publishing checklist started (`docs/PUBLISHING_CHECKLIST.md`)
 
 - **What:** a list of things to settle before the repo, previews or paper go public: COCO photo

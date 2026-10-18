@@ -170,6 +170,8 @@ cloud sandbox, so their first real run is the pilot.
 
 ### 23. Insertion run complete: all 544 photos have C0–C4 (18 Oct)
 - The full preview (all 544 photos, C0–C4) is in the repo: `docs/preview/task2_insertion/index.html`.
+- Both weeks' pages are joined in one site with week tabs, `docs/index.html`, ready to be
+  published as the repo's GitHub Pages site (not switched on yet; see the publishing checklist).
 - The bed and train close-ups passed only with boxes in the bottom-left corner (author's
   request), at verifier scores right at the threshold (0.20, 0.25). By eye both are doubtful;
   they are flagged for the human audit <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json -->.
