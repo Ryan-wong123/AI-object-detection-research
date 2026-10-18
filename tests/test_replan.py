@@ -591,3 +591,34 @@ def test_corner_box_bottom_left(monkeypatch):
     )
     assert row["box"] == [0.0, 330.0, 200.0, 150.0]  # x = 0, bottom edge = image bottom
     assert row["corner"] == "bottom_left" and row["occluded_ann_id"] == 1
+
+
+def test_preview_share_is_self_contained(cfg, tmp_path):
+    """preview --share: index.html plus downscaled copies of every image it shows; no link
+    points outside the shared folder."""
+    import re
+
+    from PIL import Image
+
+    from inlayfake.stages import preview
+
+    cfg = deep_merge(cfg, {"placement": {"class_choice": "in_photo"}})
+    sample.run(cfg)
+    plan.run(cfg)
+    mcfg = deep_merge(
+        cfg,
+        {
+            "generators_enabled": ["G1"],
+            "placement": {"merged": {"enabled": True}},
+            "preview": {"share_dir": str(tmp_path / "share"), "share_max_side": 64},
+        },
+    )
+    insert.run(mcfg)
+    out = preview.run(mcfg, share=True)
+    page = (tmp_path / "share" / mcfg["run_name"] / "index.html").read_text(encoding="utf-8")
+    srcs = re.findall(r'src="([^"]+)"', page)
+    assert srcs and len(srcs) == out["shared_images"]
+    assert all(s.startswith("images/") for s in srcs)
+    for s in set(srcs):
+        im = Image.open(tmp_path / "share" / mcfg["run_name"] / s)
+        assert max(im.size) <= 64

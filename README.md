@@ -147,6 +147,19 @@ At the top, a summary counts complete photos, and a **Show** dropdown filters th
 
 "Still retrying" and "waits" exist only while the run is going.
 
+**Share it on GitHub.** `--share` writes a self-contained copy of the whole page (all 544
+photos) to `docs/preview/task2_insertion/` (index.html + downscaled 480 px JPEG copies, about
+95 MB), like the week-1 viewer in `docs/viewer/`. Rebuild it after the benchmark changes, then
+commit the folder:
+
+```powershell
+python -m inlayfake preview --config configs/insertion_inphoto.yaml --share
+git add docs/preview/task2_insertion
+```
+
+On GitHub, open `docs/preview/task2_insertion/index.html` after downloading or cloning the repo
+(GitHub shows HTML files as source, not as a page).
+
 To see every attempt, including the rejected ones (greyed, with the reason), add
 `--all-attempts`:
 

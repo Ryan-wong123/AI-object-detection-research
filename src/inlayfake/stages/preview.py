@@ -376,8 +376,49 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
     }
 
 
-def run(cfg: dict, limit: int | None = 50, thumb: int = 240, all_attempts: bool = False) -> dict:
+def share_page(cfg: dict, wd: Path, page: Path) -> dict:
+    """Self-contained copy of a preview page in ``preview.share_dir/<run_name>/`` (default
+    docs/preview/), to commit or send: index.html plus downscaled JPEG copies of every image it
+    shows (``preview.share_max_side``, ``share_quality``). Boxes are drawn from the original
+    pixel coordinates scaled to the fixed thumbnail width, so the smaller copies need no change.
+    Like the week-1 viewer (``viewer --share``), the copies include COCO photos, downscaled."""
+    import re
+
+    from inlayfake.stages.viewer import share_copy
+
+    pcfg = cfg.get("preview", {})
+    out = Path(pcfg.get("share_dir", "docs/preview")) / cfg.get("run_name", "default")
+    side, quality = pcfg.get("share_max_side", 480), pcfg.get("share_quality", 80)
+    html_text = page.read_text(encoding="utf-8")
+    n = 0
+
+    def repl(m: re.Match) -> str:
+        nonlocal n
+        src = (wd / html.unescape(m.group(1))).resolve()
+        name = src.name if src.suffix.lower() in (".jpg", ".jpeg") else src.stem + ".jpg"
+        share_copy(src, out / "images" / name, side, quality)
+        n += 1
+        return f'src="images/{html.escape(name)}"'
+
+    html_text = re.sub(r'src="([^"]+)"', repl, html_text)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "index.html").write_text(html_text, encoding="utf-8")
+    return {"shared": (out / "index.html").as_posix(), "shared_images": n}
+
+
+def run(
+    cfg: dict,
+    limit: int | None = 50,
+    thumb: int = 240,
+    all_attempts: bool = False,
+    share: bool = False,
+) -> dict:
     wd = work_dir(cfg)
+    if share:  # the shareable copy shows every photo of the benchmark view
+        if all_attempts:
+            raise SystemExit("--share builds the benchmark view; drop --all-attempts")
+        out = run(cfg, limit=None, thumb=thumb)
+        return out | share_page(cfg, wd, Path(out["preview"]))
     if not all_attempts:
         from inlayfake.stages.replan import merged
 

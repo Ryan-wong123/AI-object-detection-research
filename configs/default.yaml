@@ -148,6 +148,10 @@ viewer:                                # `viewer --share`: self-contained copy t
   share_dir: docs/viewer               # -> docs/viewer/<run_name>/
   share_max_side: 640                  # downscaled photo copies (boxes are rescaled by the page)
   share_quality: 80
+preview:
+  share_dir: docs/preview               # preview --share -> docs/preview/<run_name>/
+  share_max_side: 480                  # downscaled copies (shown at 240 px wide)
+  share_quality: 80
 
 audit:                                 # candidate missing COCO labels (on C0)
   min_score: 0.7
