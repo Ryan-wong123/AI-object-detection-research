@@ -7,6 +7,18 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Paper: why C1 and C2 are needed, and how C3 is made
+
+- **What:** at the author's request, §4 (*Why each condition*) now says how the C3 real paste is
+  built (same-class COCO donor from another photo, ≥ 48 px, not touching its border, aspect within
+  25%; cut with its COCO mask; scaled to fit the box, bottom-aligned; 3 px feather; no generator;
+  same JPEG settings) and adds *Why not only C0, C3 and C4?* (C1: matched-encoding reference, since
+  re-encoding alone shifts forensic scores; C2: separates AI-made objects from AI-repainted
+  pixels). No new numbers. The author had asked whether C0, C3 and C4 would be enough; C1 and C2
+  stay.
+
+---
+
 ## 2026-10-18: Bed and train photos: plain anywhere boxes again from box 19 (restart 8)
 
 - **Status at the stop (14:08):** the 4 C2 shams passed on their first new seed (restart 7);

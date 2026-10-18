@@ -13,7 +13,7 @@
 > | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
 > | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C4-occ, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C4-occ 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C4-occ, 31 classes). Same-class pilot generated at window 1.2× with the looser verifier (IoU ≥ 0.3 or ≥ 80% inside the box): C4 27/41, C4-occ 17/34 verified after ≤ 3 attempts, C2 41/41 (paper/results/task2_pilot_inphoto_final_verify.json); §4 verification text updated. With re-plan on failure (up to 3 new boxes): C4 38/41, C4-occ 25/34 verified, C2 39/41 (paper/results/task2_pilot_inphoto_replan_verify.json). With class switch and C4-occ-only plans (2026-10-17): C4 39/41, C4-occ 35/41; 46 of 50 photos have a verified AI object (paper/results/task2_pilot_inphoto_classswitch_verify.json). With C4-occ boxes sized from the covered object: C4-occ 37/42, 48 of 50 photos (paper/results/task2_pilot_inphoto_targetsize_verify.json). With a class not in the photo as last resort: 49 of 50 photos, one such edit (paper/results/task2_pilot_inphoto_outside_verify.json). With a C4-occ box anywhere as very last resort: 50 of 50 photos (one doubtful tiny object; paper/results/task2_pilot_inphoto_anywhere_verify.json). Full run task2_insertion planned on the 544 week-1 photos (544 of 544, configs/insertion_inphoto.yaml), generation pending; success rate stays TBD until it finishes |
 > | Approx. length | ~3,800 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures); §4 condition rationale added 2026-10-17 (~450 words, may need shortening for the page limit) |
-> | Design decision | 2026-10-17 (author): C2 sham edit kept as a control; its justification and scoring (never an AI object; separate edited-background flag rate) written into §4, §6, §7.6 |
+> | Design decision | 2026-10-18: §4 explains how C3 is built and why C0, C3 and C4 alone would not suffice (C1 matched-encoding reference, C2 separates AI objects from AI-repainted pixels; ~370 words added). 2026-10-17 (author): C2 sham edit kept as a control; its justification and scoring (never an AI object; separate edited-background flag rate) written into §4, §6, §7.6 |
 > | To verify | every reference marked [verify]; CVPR 2027 dates; dataset licence statement |
 >
 > Terminology (status box only): C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
@@ -241,7 +241,37 @@ object in free space. Three controls isolate what in C4 is specific to *AI origi
 - *C3 (real paste)* composites a *photographed* object of the same class into the same box with
   the same feathered blending. C3 versus C4 contrasts two objects that are both composited, one
   real and one AI-made, so compositing seams alone cannot explain an origin difference.
+  No generator is involved: a donor instance of the same class is drawn (with a fixed seed) from
+  another COCO photograph, excluding crowd annotations, instances under 48 px on their shorter
+  side and instances touching their image border (likely truncated), and preferring donors whose
+  aspect ratio is within 25% of the box. The donor is cut out with its COCO segmentation mask,
+  scaled with its aspect ratio kept to fit the box (centred horizontally, bottom-aligned, as if
+  standing on the ground), and alpha-blended with the same 3 px feather as the AI edits; every
+  pixel outside the pasted mask is the original photograph, and the result is saved with the
+  same JPEG settings. C3 therefore contains only camera-recorded pixels, with the usual traces of
+  cut-and-paste (resampling, a soft seam, possibly mismatched lighting and noise). Its object is
+  a real-object negative: calling it "AI" counts as a false accusation. One difference from C4
+  remains, and C2 covers it: the background inside a C3 box is untouched, whereas in C4 it is
+  regenerated together with the object.
 - *C1* versus C2, C3 and C4 separates re-encoding from editing.
+
+*Why not only C0, C3 and C4?* The task is to decide, per object, whether it is AI-made, so one
+might expect the original (C0), a real inserted object (C3) and an AI inserted object (C4) to
+suffice. Two confounds rule this out. First, C0 is COCO's original file with its own JPEG
+history, whereas C3 and C4 have passed through the benchmark's decode–encode pipeline; a method
+could separate C0 from C3/C4 by detecting re-encoding alone, which already shifts every
+hand-crafted forensic score (§7.1). C1 is not a resize but the same photograph re-saved with
+exactly the settings of every edited image, so it is the real, unedited reference with matched
+encoding. Second, in C4 the generator regenerates the whole box, background included, not only
+the object, while C3 contains no generated pixels; a method that flags C4 but not C3 may detect
+*AI-repainted pixels* rather than an *AI-made object*. C2 applies the same generator to the same
+box with no object, so a method that flags C2 boxes as often as C4 boxes detects repainting, not
+AI objects. C2 also provides the "editing without a new object" control for H2 and a false-alarm
+rate on edited real backgrounds. Neither control changes the headline task: positives are only
+the AI objects of C4, negatives are photographed objects (including those pasted in C3), and C2
+boxes are never scored as objects (§6). Without C1 and C2, a separation of C3 from C4 objects
+could only be claimed as "pasted-real versus AI-inserted", not as evidence that methods respond
+to AI origin.
 
 C2, C3 and C4 share **one box** per photograph, so they differ only in what fills it: nothing
 (C2), a real object (C3) or an AI object (C4). When the AI insertion fails and is re-planned to a
