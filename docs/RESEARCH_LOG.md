@@ -25,7 +25,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   6 → 12; from box 7 (`avoid_same_class_from: 7`) a box may cover at most 30% of its area with
   a real object of the same class (shrinks ×0.8 if no spot is found), because a box on the real
   object cannot pass. Boxes 1–6 and all other photos are unchanged (scratch dry run: only the 7
-  get jobs). 1 new test; 80 pass. Restart 6 at ~06:50, PID 3304, 7 images per round.
+  get jobs). 1 new test; 80 pass. Restart 6 at 10:28, PID 3304, 7 images per round.
 - **Next:** record the result of boxes 7–12; final Table 1 counts.
 
 ---

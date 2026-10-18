@@ -173,7 +173,7 @@ cloud sandbox, so their first real run is the pilot.
   of one big object (bed, train, toilet) the box lands on the real object, which never counts;
   in cluttered scenes small classes (remote, book, knife) are not recognised.
 - **Re-run (author):** 6 more boxes, still anywhere, but not on the real object of the same class
-  (≤ 30% overlap). Running since ~06:50; result [[TBD]].
+  (≤ 30% overlap). Running since 10:28; result [[TBD]].
 
 ### 20. Decision: C4 and C5 merged into one AI condition (18 Oct)
 - **Why:** after seven rounds, 44 of 544 photos still had no AI object under the separate rules
