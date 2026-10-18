@@ -157,6 +157,8 @@ preview:                               # `preview --share`: same, for the benchm
   share_quality: 80
 
 audit:                                 # candidate missing COCO labels (on C0)
+  decisions: null                      # decisions applied when scoring (null: placement.
+                                       # audit_decisions, else <work>/audit_decisions.csv)
   min_score: 0.7
   min_agree: 2                         # at least 2 detectors must agree
 

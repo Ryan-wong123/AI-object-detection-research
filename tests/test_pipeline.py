@@ -178,3 +178,49 @@ def test_viewer_share_is_self_contained(cfg, tmp_path):
             with Image.open(vdir / view["src"]) as p:
                 assert max(p.size) <= 200
         assert im["w"] == 400  # boxes stay in original pixel coordinates
+
+
+def test_scoring_uses_the_configured_audit_decisions(cfg, tmp_path):
+    """audit.decisions: a run in another work dir is scored with the same decisions file (no
+    copy in its own work dir); a named file that is missing stops the run."""
+    import csv
+
+    import pytest
+
+    from inlayfake.config import deep_merge
+    from inlayfake.stages.common import decisions_path, load_records
+
+    cfg = dict(cfg, conditions=["C0", "C1"], generators_enabled=[])
+    for stage in (sample, plan, generate):
+        stage.run(cfg)
+    sid = load_records(cfg)[0].source_id
+    shared = tmp_path / "week1" / "audit_decisions.csv"
+    shared.parent.mkdir()
+    with shared.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(
+            [
+                "candidate_id",
+                "source_id",
+                "category",
+                "x",
+                "y",
+                "w",
+                "h",
+                "n_detectors",
+                "max_score",
+                "decision",
+            ]
+        )
+        w.writerow([f"{sid}-0", sid, "cup", 1, 2, 30, 40, 2, 0.9, "add"])
+    assert decisions_path(cfg) == (tmp_path / "work" / "audit_decisions.csv", False)
+    assert not any(
+        i.instance_id.startswith("audit:") for r in load_records(cfg) for i in r.instances
+    )
+    scored = deep_merge(cfg, {"audit": {"decisions": str(shared)}})
+    recs = [r for r in load_records(scored) if r.source_id == sid]
+    assert recs and all(  # the added label is on every condition of that photo
+        any(i.instance_id == f"audit:{sid}-0" for i in r.instances) for r in recs
+    )
+    with pytest.raises(SystemExit):
+        load_records(deep_merge(cfg, {"audit": {"decisions": str(tmp_path / "missing.csv")}}))

@@ -48,6 +48,9 @@ placement:
                                # plain anywhere again, any overlap allowed
     c2_attempts: 6         # author, 2026-10-18: 4 C2 shams failed 3 seeds; 3 more seeds, checked
                            # with verify.sham_original_overlap
+audit:
+  decisions: data/inlayfake/audit_decisions.csv   # the week-1 label audit, one file for weeks 1-3:
+                                                  # scoring the week-2 images applies it too
 verify:
   audit_all_conditions: [C4]    # author, 2026-10-18: every C4 is checked by a person; the C4s of
                                 # the random 10% draw are flagged for an unbiased error rate
