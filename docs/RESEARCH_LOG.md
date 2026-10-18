@@ -7,6 +7,21 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-18: Finding: the 77 audit-added objects have no per-object forensic scores (week 1)
+
+- **What:** `runs/task1_real_baseline/forensics/*.jsonl` has per-object rows only for COCO labels:
+  7,764 instance rows = 3,882 objects × 2 conditions, and none for the 77 audit "add" labels
+  (checked in `ela.jsonl`). The detector metrics use 3,959 objects (3,882 + 77).
+- **Why:** `forensics` ran (10 Oct 01:52 local) before the audit decisions were saved (03:42); it
+  scores the labels present at run time and skips photos already done, so the later "add" labels
+  were never scored.
+- **Effect:** Table 2b's per-object contrast on real objects covers 3,882 objects, not 3,959 (2% left
+  out); image-level forensic scores and all detector numbers are unaffected. Not yet fixed.
+- **Fix if wanted:** remove the 70 audited photos' rows from the forensic files, re-run `forensics`
+  (those photos only) and `evaluate`; or state n = 3,882 in Table 2b.
+
+---
+
 ## 2026-10-18: One label-audit file for all weeks (scoring fix before week 3)
 
 - **Found:** scoring stages (`detect`, `forensics`, `evaluate`, `report`, `viewer`) read
