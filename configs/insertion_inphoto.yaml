@@ -34,8 +34,10 @@ placement:
     enabled: true          # class already in the photo, placed anywhere. Verified C4s are kept
                            # (preferred), else the verified C5 is used, else a box anywhere;
                            # C2/C3 sit at the chosen box
-    versions: 24           # author, 2026-10-18: boxes anywhere per photo (6 at first; 12 for the
-                           # re-run of 7 dropped photos; 24 for the last 2, bed and train)
+    versions: 27           # author, 2026-10-18: boxes anywhere per photo (6 at first; 12 for the
+                           # re-run of 7 dropped photos; 24, then 27, for the last 2, bed and train)
+    corner_from: 22        # author, 2026-10-18: boxes 22-27 of the bed and train photos sit in
+                           # the bottom-left corner (any overlap; size varies per box)
     avoid_same_class_from: 7   # from box 7 on, a box does not sit on the photo's real object of
                                # the same class (<= 30% of its area; boxes 1-6 unchanged)
     avoid_same_class_until: 18 # author, 2026-10-18: boxes 19-24 (bed and train photos) are

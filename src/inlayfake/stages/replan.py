@@ -526,6 +526,20 @@ def make_merged_version(cfg, index, src: dict, plan: dict, version: int, state, 
     except ValueError:  # no usable size statistics for this class: version skipped
         return row
     gt = index.image_anns(sid)
+    corner_from = pcfg["merged"].get("corner_from")
+    if corner_from is not None and k + 1 >= corner_from:
+        # author, 2026-10-18: the last two photos (bed, train close-ups) get the box in the
+        # bottom-left corner of the image, any overlap allowed; the size still varies per box
+        w, h = min(w, 0.95 * W), min(h, 0.95 * H)
+        box = [0.0, float(H - h), float(w), float(h)]
+        covered = [(intersection(box, a["bbox"]), a["id"]) for a in gt if not a.get("iscrowd", 0)]
+        covered = [c for c in covered if c[0] > 0]
+        return row | {
+            "box": box,
+            "occluded_ann_id": max(covered)[1] if covered else None,
+            "placement_rule": "anywhere",
+            "corner": "bottom_left",
+        }
     box, occ_id = place_anywhere(W, H, w, h, gt, rng)
     start = pcfg["merged"].get("avoid_same_class_from")
     until = pcfg["merged"].get("avoid_same_class_until")  # author, 2026-10-18: after this box,
