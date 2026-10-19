@@ -7,6 +7,19 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-20: Full natural run started with looser rules (run `task2_insertion_natural`)
+
+- **Author decisions:** loosen three rules for coverage: an AI object may cover up to 30% of a
+  person (was: never) and up to 30% of any other real object (was 15%), and its outline must fill
+  at least 25% of its box (was 35%) (commit 75fe93b, `configs/pilot_natural_v4.yaml`). Then: no
+  pilot for these rules; the 50-photo pilot v4 was stopped during planning and the full run
+  started with them (`configs/insertion_natural.yaml` = v4 settings, test-checked).
+- **Expectation:** more photos than v2's 36% (rough estimate ~200; v2 lost most photos to people
+  and overlap), somewhat less natural placements; untested, so the result will tell.
+  Work dir `data/inlayfake_v3`; the random-placement run in `data/inlayfake_v2` stays.
+
+---
+
 ## 2026-10-20: Full natural-placement run prepared (`configs/insertion_natural.yaml`)
 
 - **Author decision:** use the pilot-v2 settings for the full run on the 544 week-1 photos (v3's
