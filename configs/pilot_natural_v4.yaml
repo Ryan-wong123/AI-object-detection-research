@@ -1,0 +1,20 @@
+# Natural-placement pilot v4 (author, 2026-10-20): v2's method with three looser rules to raise
+# coverage (v2: 18 of 50 photos; most lost to people, 15% overlap and the 35% fill rule):
+#   D1  an AI object may cover up to 30% of a person (v2: never)
+#   D2  it may cover up to 30% of any other real object (v2: 15%)
+#   F4  its outline box must fill at least 25% of the planned box (v2: 35%)
+#   python -m inlayfake sample  --config configs/pilot_natural_v4.yaml
+#   python -m inlayfake plan    --config configs/pilot_natural_v4.yaml
+#   python -m inlayfake insert  --config configs/pilot_natural_v4.yaml
+#   python -m inlayfake preview --config configs/pilot_natural_v4.yaml --limit 50
+inherit: pilot_natural_v2.yaml
+run_name: task2_pilot_natural_v4
+placement:
+  natural:
+    box_rules:
+      max_cover_person: 0.30
+      max_cover_real: 0.30
+verify:
+  min_box_fill: 0.25
+paths:
+  work: data/inlayfake_pilot_natural_v4

@@ -238,10 +238,17 @@ def check_box(
     ``blocked``: pixels the object must not rest on (None: no COCO-Stuff labels)."""
     x, y, w, h = box
     H, W = blocked.shape if blocked is not None else (None, None)
+    max_person = rules.get("max_cover_person", 0.0)
     for a in anns:
-        if a["category"] == "person" and intersection(box, a["bbox"]) > 0:
-            if rules.get("max_cover_person", 0.0) <= 0:
-                return False, "covers a person"
+        if a["category"] != "person":
+            continue
+        cover = intersection(box, a["bbox"])
+        if max_person <= 0 and cover > 0:
+            return False, "covers a person"
+        # 2026-10-20 (author): a person may be partly covered, at most max_cover_person of
+        # their box (also crowd regions of people)
+        if max_person > 0 and cover > max_person * box_area(a["bbox"]) + 1e-6:
+            return False, f"covers {cover / box_area(a['bbox']):.0%} of a person"
     max_real = rules.get("max_cover_real", 0.15)
     for a in anns:
         if a["category"] == "person" or a.get("iscrowd", 0):

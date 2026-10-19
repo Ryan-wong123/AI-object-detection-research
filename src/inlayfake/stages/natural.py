@@ -140,7 +140,8 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
 
     pcfg, ncfg = cfg["placement"], cfg["placement"]["natural"]
     prompts = load_prompts(ncfg["prompts"])
-    rules = prompts["rules"]
+    # box rules from the prompt file, overridden per run by placement.natural.box_rules
+    rules = {**prompts["rules"], **(ncfg.get("box_rules") or {})}
     exclude = set(pcfg.get("exclude_classes", ["person"]))
     spath = pcfg.get("support", {}).get("stuff_annotations")
     stuff = StuffIndex.load(spath) if spath and Path(spath).exists() else None
