@@ -62,6 +62,7 @@ object are dropped, never labelled.
 | Human audit (all 544 C4 edits) | [[TBD]] |
 | Natural-placement pilot (50 photos): with a natural spot / verified AI object | 33 / 28; on a fitting surface 64% (random 46%), but smaller objects <!-- run:task2_pilot_natural, file:paper/results/task2_pilot_natural_vs_random.json --> |
 | Natural pilot v2 (fixes): verified AI object / on fitting surface / object size | 18 of 50 / 72% / 1.8% of image (random 0.8%); about 14 of 18 natural by eye <!-- run:task2_pilot_natural_v2, file:paper/results/task2_pilot_natural_three_way.json --> |
+| Natural pilot v3 (more spots/classes): verified AI object | 19 of 50, same quality as v2 <!-- run:task2_pilot_natural_v3 --> |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss
