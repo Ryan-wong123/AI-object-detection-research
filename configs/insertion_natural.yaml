@@ -1,0 +1,53 @@
+# Task 2, natural placement (author, 2026-10-20): the full run on the 544 week-1 photos with the
+# settings of pilot v2 (configs/pilot_natural_v2.yaml, run task2_pilot_natural_v2: 18 of 50 photos
+# with a verified natural AI edit, 72% on ground/table/water, none on walls, objects median 1.8%
+# of the image). New work dir; the random-placement run (data/inlayfake_v2) stays as the
+# comparison.
+#
+#   AI object (C4): a class already in the photo; Molmo-7B-D points at a natural spot (one fixed
+#     prompt per class, configs/placement_prompts.yaml); the point must be on a surface the class
+#     rests on; box sized from the photo's own object of that class, scaled by depth (x0.7-1.4),
+#     at least 2% of the image and 64 px; never on a person, <= 15% of any real object.
+#   C2 (sham) and C3 (real paste) at the same box; no C5.
+#   Verify: OWLv2 must find the object, filling >= 35% of its box; 3 seeds per spot, then the
+#     next valid spot (up to 9); no random fallback (photos without a spot get no AI edit).
+#
+#   python -m inlayfake sample  --config configs/insertion_natural.yaml
+#   python -m inlayfake plan    --config configs/insertion_natural.yaml
+#   python -m inlayfake insert  --config configs/insertion_natural.yaml
+#   python -m inlayfake preview --config configs/insertion_natural.yaml --limit 544
+inherit: default.yaml
+run_name: task2_insertion_natural
+generators_enabled: [G1]
+conditions: [C0, C1, C2, C3, C4]
+sampling:
+  only_sources: data/inlayfake/plans.jsonl   # the 544 week-1 photos
+placement:
+  class_choice: in_photo
+  audit_decisions: data/inlayfake/audit_decisions.csv
+  natural:
+    enabled: true
+    check: false                 # Molmo's yes/no realism answers were unusable (pilot, 19 Oct)
+    check_point_surface: true
+    min_box_frac: 0.02
+    min_box_side_px: 64
+    size_ratio: [0.7, 1.4]
+edit:
+  window_scale: 1.2
+  window_min_px: 64
+  max_replans: 9                 # versions 1..9 = the next valid natural spots
+  max_class_switches: 0
+  max_outside_classes: 0
+verify:
+  min_box_fill: 0.35
+  sham_original_overlap: 0.25    # a sham detection lying mostly on a real object is that object
+  audit_all_conditions: [C4]     # human audit: every C4
+  audit_only_conditions: [C4]
+audit:
+  decisions: data/inlayfake/audit_decisions.csv
+site:
+  week: 2
+  title: AI insertion (natural)
+  folder: week2_ai_insertion_natural
+paths:
+  work: data/inlayfake_v3

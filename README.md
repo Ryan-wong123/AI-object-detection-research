@@ -354,6 +354,31 @@ python -m inlayfake preview --config configs/pilot_natural.yaml --limit 50
 start data\inlayfake_pilot_natural\preview.html
 ```
 
+### Full natural-placement run (544 photos, pilot v2 settings)
+
+`configs/insertion_natural.yaml` runs the pilot-v2 method on the 544 week-1 photos into
+`data\inlayfake_v3` (the random-placement run in `data\inlayfake_v2` stays as the comparison).
+Expected: about 14–27 h of GPU time (best guess ~18 h: planning ~4.5–8 h, generation ~9–19 h);
+about 190–200 photos with a verified natural AI edit (estimate from the pilot). Close the browser
+and use a high-performance mode (MSI Center): other programs on the GPU slowed the pilots 2–4×.
+Start it in the background (keeps running if this window closes; asks Windows not to idle-sleep):
+
+```powershell
+python -m inlayfake sample --config configs/insertion_natural.yaml
+$code = "import ctypes, subprocess, sys; ctypes.windll.kernel32.SetThreadExecutionState(0x80000001); [subprocess.run([sys.executable, '-m', 'inlayfake'] + a) for a in (['plan','--config','configs/insertion_natural.yaml'], ['insert','--config','configs/insertion_natural.yaml'], ['preview','--config','configs/insertion_natural.yaml','--limit','544'])]"
+$p = Start-Process -FilePath (Resolve-Path .venv\Scripts\python.exe) -ArgumentList @('-c', "`"$code`"") -WorkingDirectory (Get-Location).Path -RedirectStandardOutput data\inlayfake_v3un.log -RedirectStandardError data\inlayfake_v3un_progress.log -WindowStyle Hidden -PassThru
+$p.Id | Out-File data\inlayfake_v3un.pid -Encoding ascii
+```
+
+Check progress (progress bar, then passed / retrying / dropped counts):
+
+```powershell
+((Get-Content data\inlayfake_v3un_progress.log -Raw -Encoding utf8) -split "`r|`n" | Where-Object { $_ -match '^(natural placement|G1|verify)' })[-1]
+python -c "import json,glob,os; f=max(glob.glob('data/inlayfake_v3/runs/run_verify_*.json'),key=os.path.getmtime); d=json.load(open(f)); print({c:{k:v for k,v in d['by_condition'][c].items() if not k.startswith('passed_on')} for c in d['by_condition']}, 'needs_retry:', d['needs_retry'])"
+```
+
+The run is resumable: if it stops, start the same command again (finished steps are kept).
+
 ## Viewing the detector results
 
 The detector viewer is a web page that shows each photo's COCO labels next to every detector's
