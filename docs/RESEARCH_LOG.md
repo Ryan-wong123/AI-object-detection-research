@@ -7,6 +7,21 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-20: Full natural-placement run prepared (`configs/insertion_natural.yaml`)
+
+- **Author decision:** use the pilot-v2 settings for the full run on the 544 week-1 photos (v3's
+  extra spots and classes added one photo of 50 for twice the planning time).
+- **Config:** placement, generation and verification identical to `pilot_natural_v2.yaml` (a test
+  checks this); differences: the 544 photos, work dir `data/inlayfake_v3`, website folder
+  `week2_ai_insertion_natural`, audit sheet with every C4, and the sham rule
+  `sham_original_overlap: 0.25` from the first full run.
+- **Expected** (from pilot v2: planning 30–55 s per photo; 5.3 SDXL images per planned photo at
+  20–45 s): planning ~4.5–8 h, generation ~9–19 h, total ~14–27 h (best guess ~18 h); about 290
+  photos with a plan and 190–200 with a verified natural AI edit. GPU contention (a browser) and a
+  quiet power mode slowed the pilots 2–4×.
+
+---
+
 ## 2026-10-20: Natural pilot v3: more spots and classes do not raise coverage
 
 - **Setup** (author's choice to raise coverage without loosening quality; commit 2814e86,

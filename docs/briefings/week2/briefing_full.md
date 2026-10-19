@@ -188,6 +188,8 @@ cloud sandbox, so their first real run is the pilot.
 - **Pilot v3** (same rules, 3 classes and 10 spots per class): 19 of 50 photos (v2: 18), same
   quality; more tries per photo do not raise coverage, because people and other objects block the
   spots and some objects still fail verification <!-- run:task2_pilot_natural_v3, file:paper/results/task2_pilot_natural_four_way.json -->.
+- **Decision (20 Oct):** the full natural run uses the v2 settings (`configs/insertion_natural.yaml`);
+  expected ~18 h of GPU time and about 190–200 of the 544 photos with a natural AI edit [[TBD]].
 - **Compared with random placement on the same photos:** objects rest on a fitting surface more
   often (64% vs 46%) and on walls less often (11% vs 20%), but they are smaller (median 0.5% vs
   0.8% of the image) <!-- file:paper/results/task2_pilot_natural_vs_random.json -->. Proposed fixes:

@@ -40,3 +40,18 @@ def test_full_run_uses_the_pilot_settings():
 
 def test_cli_help():
     assert main([]) == 0
+
+
+def test_natural_full_run_uses_pilot_v2_settings():
+    """configs/insertion_natural.yaml = pilot v2's placement, edit and verify settings on the 544
+    week-1 photos; only the photo set, folders, website block, audit sheet and the sham rule from
+    the first full run differ."""
+    full = load_config(ROOT / "configs" / "insertion_natural.yaml")
+    pilot = load_config(ROOT / "configs" / "pilot_natural_v2.yaml")
+    for key in ("placement", "edit", "generators_enabled", "encoding", "generation", "conditions"):
+        assert full[key] == pilot[key], key
+    extra = ("audit_all_conditions", "audit_only_conditions", "sham_original_overlap")
+    strip = lambda v: {k: x for k, x in v.items() if k not in extra}  # noqa: E731
+    assert strip(full["verify"]) == strip(pilot["verify"])
+    assert full["sampling"]["only_sources"] == "data/inlayfake/plans.jsonl"
+    assert full["paths"]["work"] == "data/inlayfake_v3"
