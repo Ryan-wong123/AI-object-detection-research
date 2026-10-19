@@ -1,0 +1,91 @@
+{
+ "what": "same 50 pilot photos; one AI edit per photo per pilot; surface = COCO-Stuff label just below the AI object's base (SAM box)",
+ "runs": {
+  "random": "task2_pilot_inphoto",
+  "natural v1": "task2_pilot_natural (run_verify_2026-10-19T151526Z)",
+  "natural v2": "task2_pilot_natural_v2 (run_verify_2026-10-19T174941Z, UTC; 01:49 local 20 Oct)"
+ },
+ "summary": {
+  "random": {
+   "photos_with_ai_edit": 50,
+   "on_fitting_surface": 23,
+   "on_wall_window_fence": 10,
+   "under_object": {
+    "ground/floor": 16,
+    "wall/window/fence": 10,
+    "no label": 7,
+    "other/none": 6,
+    "sky/trees": 4,
+    "water": 4,
+    "table/counter/shelf": 3
+   },
+   "object_over_box_median": 0.38,
+   "object_over_image_median": 0.0084,
+   "objects_under_1pct": 30,
+   "verifier_score_median": 0.501
+  },
+  "natural v1": {
+   "photos_with_ai_edit": 28,
+   "on_fitting_surface": 18,
+   "on_wall_window_fence": 3,
+   "under_object": {
+    "ground/floor": 11,
+    "water": 5,
+    "wall/window/fence": 3,
+    "no label": 3,
+    "sky/trees": 2,
+    "table/counter/shelf": 2,
+    "other/none": 2
+   },
+   "object_over_box_median": 0.279,
+   "object_over_image_median": 0.0047,
+   "objects_under_1pct": 21,
+   "verifier_score_median": 0.556
+  },
+  "natural v2": {
+   "photos_with_ai_edit": 18,
+   "on_fitting_surface": 13,
+   "on_wall_window_fence": 0,
+   "under_object": {
+    "ground/floor": 10,
+    "no label": 3,
+    "other/none": 2,
+    "water": 2,
+    "table/counter/shelf": 1
+   },
+   "object_over_box_median": 0.551,
+   "object_over_image_median": 0.0175,
+   "objects_under_1pct": 1,
+   "verifier_score_median": 0.553,
+   "plan": {
+    "n_plans": 27,
+    "n_failed": 23,
+    "candidates": 211,
+    "candidates_valid": 57
+   },
+   "plan_rejections": {
+    "covers a person": 58,
+    "ok": 57,
+    "covers >15% of a real object": 55,
+    "point on a real object": 15,
+    "point on window-other": 5,
+    "no point in the answer": 4,
+    "point on bush": 3,
+    "point on bridge": 3,
+    "point on wall-tile": 2,
+    "point on metal": 2,
+    "point on floor-other": 2,
+    "point on tree": 1,
+    "point on fence": 1,
+    "point on an unlabelled object": 1,
+    "point on building-other": 1,
+    "outside the image": 1
+   },
+   "c4_attempt_failures": {
+    "inserted object not found by verifier": 45,
+    "object fills too little of its box": 38
+   }
+  }
+ },
+ "by_eye_v2": "about 14 of 18 plausible, about 4 poor (author's audit pending)"
+}

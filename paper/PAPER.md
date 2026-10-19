@@ -5,6 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-18 |
+> | Natural-placement pilot v2 | 2026-10-20 (run task2_pilot_natural_v2): with surface rule, larger boxes and box-fill rule: 18 of 50 photos with a verified AI edit, 72% on a fitting surface (random 46%), objects median 1.8% of the image (random 0.8%) (paper/results/task2_pilot_natural_three_way.json; pilot, not yet a paper result) |
 > | Natural-placement pilot | 2026-10-19 (run task2_pilot_natural, 50 photos): VLM-pointed, depth-scaled boxes; 33/50 photos get a natural spot; VLM realism check unusable (off); 28 of 50 photos with a verified natural AI edit; vs random placement on the same photos: on a fitting surface 64% vs 46%, objects smaller (median 0.5% vs 0.8% of the image) (paper/results/task2_pilot_natural_vs_random.json; pilot, not yet a paper result). If adopted, §4 placement text and a new full run follow |
 > | Insertion run done | 2026-10-18 15:02: all 544 photos complete C0–C4 (AI edits: 464 free-space, 38 occluding, 42 anywhere; the bed and train close-ups pass only in the bottom-left corner at threshold scores, flagged), 1,088 edited images (paper/results/task2_insertion_final.json). Human audit (all 544 C4 edits; C2 not audited) and Table 1 counts pending |
 > | Merged run | 2026-10-18: 537 of 544 photos with a verified AI edit (464 free-space, 38 occluding, 35 anywhere), 7 dropped and re-run with 6 more boxes off the real same-class object (paper/results/task2_insertion_merged_round_final.json) |
