@@ -324,6 +324,36 @@ Notes:
   the paper and the week-2 briefing.
 - The run started on 17 Oct 2026, 02:21, used way B.
 
+## Week 2b: natural placement (pilot)
+
+The first full run placed most AI objects in a random free spot, so some look wrong (a skateboard
+in the air, a bird in a window pane). The natural-placement pipeline (`placement.natural`,
+`configs/pilot_natural.yaml`) places each object where it would really be:
+
+1. **Where:** a local VLM (Molmo-7B-D, 4-bit; not one of the VLMs week 3 evaluates) answers one
+   fixed question per class from `configs/placement_prompts.yaml`, e.g. *"Point to empty spots on
+   a table, counter, desk or shelf where another cup could naturally rest."* Each point is where
+   the object touches its surface.
+2. **Size:** from the photo's own object of that class, scaled by depth (Depth Anything V2 Small):
+   further back means smaller (limited to ×0.5–2).
+3. **Rules:** never on a person, at most 15% of any real object covered, not resting on window,
+   mirror, ceiling or sky (sky allowed for bird, airplane, kite, frisbee). All candidates and
+   reasons: `natural_candidates.jsonl` in the work folder.
+4. **Generate** C4 (SDXL), C3 (real paste) and C2 (sham) at that box, as before.
+5. **Check:** OWLv2 must find the object, then the VLM answers four yes/no questions (resting on
+   something, not behind glass, plausible size, one complete object); a failure is regenerated
+   (3 seeds per spot, then the next natural spot; no random fallback). Answers: `realism.jsonl`.
+
+Pilot (50 photos, about 2–3 h of GPU time; the first run downloads Molmo, 32 GB):
+
+```powershell
+python -m inlayfake sample --config configs/pilot_natural.yaml
+python -m inlayfake plan   --config configs/pilot_natural.yaml
+python -m inlayfake insert --config configs/pilot_natural.yaml
+python -m inlayfake preview --config configs/pilot_natural.yaml --limit 50
+start data\inlayfake_pilot_natural\preview.html
+```
+
 ## Viewing the detector results
 
 The detector viewer is a web page that shows each photo's COCO labels next to every detector's
