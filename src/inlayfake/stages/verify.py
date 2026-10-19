@@ -438,6 +438,9 @@ def run(cfg: dict) -> dict:
                 f.flush()  # an interrupted run keeps every finished row
                 state[row["key"]].append(row)
         del finder, segmenter
+        import gc
+
+        gc.collect()  # free OWLv2/SAM fully before the realism check loads its VLM
         try:
             import torch
 

@@ -345,6 +345,9 @@ def run(cfg: dict, limit: int | None = None) -> dict:
             )
         counts[gen] = done
         del inpainter
+        import gc
+
+        gc.collect()  # large models keep reference cycles; free SDXL before verify loads
         try:
             import torch
 

@@ -47,6 +47,13 @@ def enabled(cfg: dict) -> bool:
 
 
 def _free_gpu() -> None:
+    """Release GPU memory of models that were just deleted. Large transformers models keep
+    reference cycles, so ``del`` alone leaves them in memory until the garbage collector runs:
+    in pilot attempt 2 (19 Oct) Molmo stayed on the GPU after planning and SDXL, in the same
+    process, slowed from ~20 s to ~11 min per image."""
+    import gc
+
+    gc.collect()
     try:
         import torch
 
