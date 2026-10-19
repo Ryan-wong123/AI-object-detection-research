@@ -19,7 +19,37 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 - **Pilot v2** started 00:10 on the same 50 photos, new work dir `data/inlayfake_pilot_natural_v2`
   (v1 kept for comparison), plan / insert / preview in separate processes. Planning runs at
   ~80 s per photo (v1: ~20 s): the GPU is at its memory limit (7.9 of 8.2 GB) with a browser also
-  using it, so Molmo spills into system memory. Results: [[TBD]].
+  using it, so Molmo spills into system memory (back to ~25-35 s once the browser stopped).
+- **Plan v2:** 27 of 50 photos with a spot (v1: 33); of 211 candidates 57 valid. The surface rule
+  rejected 42 points: 15 on another real object, 5 on windows, 4 on bushes/trees, 3 on a bridge,
+  3 on walls/fences, 2 on metal, 2 on a floor for a table-top class, 8 other. Still the largest
+  rejections: 58 covering a person, 55 covering > 15% of a real object.
+- **Generation v2** (finished 01:49, run_verify_2026-10-19T174941Z): verified C4 for **18 of 27**
+  (9 dropped after all spots failed); C2/C3 with each: **18 of 50 photos**. Failed C4 attempts: 45
+  object not found by OWLv2, 38 object filling < 35% of its box (fix 3).
+- **Three-way comparison, same photos** (`paper/results/task2_pilot_natural_three_way.json`;
+  sheets `data/inlayfake_pilot_natural_v2/compare/compare3_1-5.jpg`):
+
+  | | random | natural v1 | natural v2 |
+  |---|---|---|---|
+  | photos with an AI edit | 50/50 | 28/50 | 18/50 |
+  | object on ground/table/water | 46% | 64% | 72% |
+  | object on wall/window/fence | 10 | 3 | 0 |
+  | object area / box (median) | 0.38 | 0.28 | 0.55 |
+  | object area / image (median) | 0.8% | 0.5% | 1.8% |
+  | objects < 1% of the image | 30/50 | 21/28 | 1/18 |
+
+- **By eye:** v2 is the most natural: about 14 of 18 plausible (cow in a field, surfboards on water,
+  bicycle on grass, apple on a counter, toothbrush by taps, car in a car park, giraffe on a hill,
+  backpack by a tent, ball on a floor, cup on a table, motorcycles on a road), about 4 poor (a sink
+  in a towel rail, a bin-like object for a toilet, an odd hair drier, a dark chair in a corner).
+  Objects are clearly visible instead of tiny smudges.
+- **Trade-off:** coverage falls to 18/50 photos. Main limits: people or other objects in the way
+  (rules), OWLv2 misses, and too-small objects now being rejected. On the full 544 this would give
+  roughly a third of the photos (estimate from the pilot rate, not measured).
+- **Next (author's call):** accept v2 with lower coverage, or loosen where it is cheapest (e.g.
+  more candidate spots per photo or a third class, which costs VLM time, not quality).
+
 
 ---
 

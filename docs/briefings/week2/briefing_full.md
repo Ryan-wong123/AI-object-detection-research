@@ -180,6 +180,11 @@ cloud sandbox, so their first real run is the pilot.
   clearly fine ones, so it is switched off; edits are judged by eye.
 - **Generation (final):** 28 of 33 photos have a verified AI object, 5 dropped; 28 of the 50 pilot
   photos <!-- run:task2_pilot_natural, run_verify_2026-10-19T151526Z -->.
+- **Pilot v2 with three fixes** (point on an allowed surface, larger boxes, reject objects filling
+  < 35% of their box): 18 of 50 photos with a verified AI edit; on a fitting surface 72%, none on a
+  wall, objects median 1.8% of the image (random 0.8%, v1 0.5%); by eye about 14 of 18 natural
+  <!-- run:task2_pilot_natural_v2, file:paper/results/task2_pilot_natural_three_way.json -->.
+  Better quality, lower coverage; decision needed.
 - **Compared with random placement on the same photos:** objects rest on a fitting surface more
   often (64% vs 46%) and on walls less often (11% vs 20%), but they are smaller (median 0.5% vs
   0.8% of the image) <!-- file:paper/results/task2_pilot_natural_vs_random.json -->. Proposed fixes:
