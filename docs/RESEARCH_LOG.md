@@ -7,6 +7,22 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-20: Natural placement v2: three fixes, pilot re-run (`task2_pilot_natural_v2`)
+
+- **Fixes** (author approved; commit 06b1b9b; all off by default, on in
+  `configs/pilot_natural_v2.yaml`): (1) the VLM point must lie on a surface the class rests on
+  (COCO-Stuff surface sets per class group, `supports` in `configs/placement_prompts.yaml`) or on an
+  object that carries it (e.g. a cup on a dining table); a point on any other object is rejected;
+  (2) boxes ≥ 2% of the image and ≥ 64 px on the short side, depth scaling limited to ×0.7–1.4
+  (was 0.5–2); (3) `verify.min_box_fill: 0.35` rejects an AI object whose outline fills < 35% of
+  its box (a failed attempt, so it is regenerated). Hand-checked tests for each; 101 pass.
+- **Pilot v2** started 00:10 on the same 50 photos, new work dir `data/inlayfake_pilot_natural_v2`
+  (v1 kept for comparison), plan / insert / preview in separate processes. Planning runs at
+  ~80 s per photo (v1: ~20 s): the GPU is at its memory limit (7.9 of 8.2 GB) with a browser also
+  using it, so Molmo spills into system memory. Results: [[TBD]].
+
+---
+
 ## 2026-10-19: Natural vs random placement on the same 50 pilot photos (comparison)
 
 - **Final natural pilot** (run_verify_2026-10-19T151526Z): verified natural AI edit for **28 of 50**
