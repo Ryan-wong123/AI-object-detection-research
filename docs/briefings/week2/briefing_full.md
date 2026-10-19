@@ -178,8 +178,13 @@ cloud sandbox, so their first real run is the pilot.
   people or other objects in the way).
 - **Automatic realism check did not work:** Molmo answered "not natural" for every edit, including
   clearly fine ones, so it is switched off; edits are judged by eye.
-- **Generation (after 3 rounds):** 25 of 33 photos have a verified AI object, 5 still retrying,
-  3 dropped; so 25 of 50 pilot photos so far <!-- run:task2_pilot_natural, run_verify_2026-10-19T145001Z -->.
+- **Generation (final):** 28 of 33 photos have a verified AI object, 5 dropped; 28 of the 50 pilot
+  photos <!-- run:task2_pilot_natural, run_verify_2026-10-19T151526Z -->.
+- **Compared with random placement on the same photos:** objects rest on a fitting surface more
+  often (64% vs 46%) and on walls less often (11% vs 20%), but they are smaller (median 0.5% vs
+  0.8% of the image) <!-- file:paper/results/task2_pilot_natural_vs_random.json -->. Proposed fixes:
+  the point must be on an allowed surface, a minimum box size with gentler depth scaling, and
+  rejecting objects that fill too little of their box.
 - **By eye:** about half the 25 look natural (backpack by a tent, car in a car park, boats and
   surfboards on water, traffic lights), about half do not (horse or motorcycle on a wall, giraffe
   head in a window, tiny or smudged objects). Causes: the VLM sometimes points at a wall, and SDXL

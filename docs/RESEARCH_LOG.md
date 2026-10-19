@@ -7,6 +7,32 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-19: Natural vs random placement on the same 50 pilot photos (comparison)
+
+- **Final natural pilot** (run_verify_2026-10-19T151526Z): verified natural AI edit for **28 of 50**
+  photos (33 planned, 5 dropped after all spots failed), each with C2 and C3. Random-placement
+  pilot (`task2_pilot_inphoto`): 50 of 50. Numbers: `paper/results/task2_pilot_natural_vs_random.json`.
+- **Placement is better:** object resting on ground/floor, table or water: random 23/50 (46%),
+  natural 18/28 (64%); on wall/window/fence: random 10/50 (20%), natural 3/28 (11%). Of the 75 valid
+  VLM points, 51 lie on a fitting surface (36 ground, 11 water, 4 table), 3 on wall, 4 in sky/trees,
+  and 17 on pixels with no COCO-Stuff surface label (often on another object, e.g. the horse placed
+  on a scoreboard). So "wall pointing" is mostly points landing on objects or unlabelled areas.
+- **Objects are smaller:** object area / box median 0.38 random vs 0.28 natural; object area / image
+  0.8% vs 0.5%; under 1% of the image 30/50 vs 21/28. Natural boxes are smaller (median 1.5% vs 2.6%
+  of the image, short side 47 vs 72 px) and the depth ratio hit its lower limit 0.5 for 27 of 75
+  candidates: VLM spots tend to lie further back than the photo's own object, and single-image
+  relative depth exaggerates the shrink. SDXL fills small boxes even less.
+- **Side by side** (`data/inlayfake_pilot_natural/compare/compare_1-4.jpg`): natural fixes cases like
+  a giraffe floating at the top edge (now in the field), a car above a bus (now on the road), a
+  surfboard in the air (now on water); it fails on a horse on a scoreboard, a giraffe head in a
+  wall, an oversized bottle over taps, a car drawn tiny in a tall box.
+- **Proposed fixes** (not yet applied): (1) the point must lie on a surface allowed for the class
+  (COCO-Stuff whitelist per group) and not on another labelled object; (2) a minimum box size (short
+  side ≥ 64 px, area ≥ 2% of the image) and gentler depth scaling (limit 0.7–1.4); (3) in
+  verification, reject an AI object filling < 35% of its box (counted as a failed attempt).
+
+---
+
 ## 2026-10-19: Natural-placement pilot (run `task2_pilot_natural`, 50 pilot photos)
 
 - **Built and tested** (commits 6696760, 63e9fed, 4e3ed3e, eb2c386): `placement.natural` (see
@@ -59,7 +85,7 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   33** planned photos (C2 33/33 clean; C3 with each), 5 still retrying on their next natural spot,
   3 dropped (only one valid spot, 3 seeds failed). Over all 50 pilot photos: 25 with a verified
   natural AI edit; 17 had no spot that met the rules. Preview: `data/inlayfake_pilot_natural/
-  preview.html`; sheet of the 25: `natural_c4_sheet.jpg`. [[TBD: final counts when the run ends]]
+  preview.html`; sheet of the 25: `natural_c4_sheet.jpg`. Final: 28 of 50 (entry above).
 - **By eye (25 accepted):** about half plausible (backpack by a tent, ball on a floor, car in a car
   park, boat and surfboards on water, traffic lights at junctions, sheep on a hillside, glass and
   bottle on counters, frisbee in the air); about half poor (horse and motorcycle on walls, giraffe
