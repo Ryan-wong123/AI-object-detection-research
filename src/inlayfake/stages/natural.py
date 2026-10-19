@@ -189,7 +189,15 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                         "reason": "no point in the answer",
                     }
                 )
-            spots = spread_points(points, W, H, rules.get("max_candidates", 5))
+            # spots per class: placement.natural.max_candidates (default: the prompt file's
+            # box_rules), at least min_point_dist x the image diagonal apart
+            spots = spread_points(
+                points,
+                W,
+                H,
+                ncfg.get("max_candidates", rules.get("max_candidates", 5)),
+                ncfg.get("min_point_dist", 0.1),
+            )
             for rank, (px, py) in enumerate(spots):
                 on_sky = bool(
                     air
