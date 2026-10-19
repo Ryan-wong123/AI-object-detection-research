@@ -7,6 +7,57 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-19: Natural-placement pilot (run `task2_pilot_natural`, 50 pilot photos)
+
+- **Built and tested** (commits 6696760, 63e9fed, 4e3ed3e, eb2c386): `placement.natural` (see
+  ARCHITECTURE). 98 CPU tests pass, incl. hand-checked geometry and a fake end-to-end run.
+- **Models on the laptop** (RTX 4070, 8 GB): Depth Anything V2 Small works (nearness higher at the
+  image bottom, as expected). **InternVL3.5-4B** (planned fallback) loaded in 4-bit (4.2 GB) but
+  gave invented, evenly spaced points or refused, at 12–86 s per question: not usable for
+  pointing. **Molmo-7B-D** needed adapting to transformers 5.19 (its code targets transformers 4):
+  16-bit vision encoder and output layer named for 4-bit loading, single-GPU placement, an
+  (empty) tied-weights map, tie_weights accepting new arguments, and a greedy decoding loop with
+  Molmo's own tuple cache; TensorFlow (CPU) installed for its preprocessing. Then 6.7 GB in
+  4-bit, 5–18 s per pointing question, ~1 s per yes/no question, points in sensible places.
+  Molmo often lists many points along one line, so `spread_points` keeps up to 5 spots at least
+  10% of the image diagonal apart.
+- **Plan, attempt 1:** 27 of 50 photos got a natural spot; of 208 candidates 62 valid; rejected:
+  46 "outside the image" (a box centred on a point near the left/right edge could shift only
+  15%), 45 covering a person, ~50 covering > 15% of a real object. Fix: a box may slide sideways
+  up to half its width (the point still lies on its base). Attempt-1 files kept in the work
+  dir's `attempt1/`.
+- **Plan, attempt 2** (final pilot plan): **33 of 50 photos** have a natural spot; of 208
+  candidates 75 valid; rejected: 62 covering a person, 64 covering > 15% of a real object (the
+  author's rules), 4 answers without a point, 2 resting on window/ceiling/sky, 1 outside the
+  image. 17 photos: no natural spot. Size from the photo's own same-class object for 39 valid
+  candidates, from typical COCO size for 36.
+- **Visual check of 12 plans:** natural for cow on grass, sheep on a hillside, surfboard at the
+  water, bus at the roadside, apple on a counter, wine glass on a vanity; questionable: a toilet
+  box on the wall above the real toilet, a sink on a window sill, a tall thin elephant box, an
+  oversized bottle box over taps (depth ratio at its ×2 limit), a train box on the real train's
+  front. The realism check is meant to catch such cases; its numbers follow below.
+- **GPU memory bug:** planning and generation in one process left Molmo on the GPU (`del` without
+  garbage collection), and SDXL slowed from ~20 s to ~11 min per image. Fixed (gc before
+  `empty_cache` after every model); generation restarted in a fresh process 21:24.
+- **Round 1** (33 photos; ~47 s per SDXL image, GPU clock ~0.7–0.9 GHz although on mains power,
+  so probably a quiet MSI performance mode): C2 33/33 clean; OWLv2 accepted 17 of 33 C4.
+- **Realism check failed validation.** Molmo rejected all 17 accepted C4. Wording 1 was flawed: the
+  glass question was inverted ("in front of any glass" → "no" when no glass is near) and the
+  compound support question got "no" every time. Reworded (one plain question each, neutral
+  instruction, glass question expects "no") and re-asked on the same 17: still 0/17; "not resting
+  on a surface" and "not a realistic size" for all 17, "seen through glass" for 10. By eye the 17
+  are mixed: plausible (backpack on grass by a tent, ball on a floor, traffic lights at a
+  junction) and poor (tiny cow head in grass, giraffe head in a window, sink on a sill, tiny
+  motorcycle on a wall, bed as a dark smudge). So "no" was often right, but Molmo says "no" even
+  to clear cases: its yes/no answers do not separate good from bad edits and are not used.
+  Answers and a contact sheet: `data/inlayfake_pilot_natural/attempt2_realism/`.
+- **Pilot continues with the realism check off** (22:30): OWLv2 only; edits are judged by eye.
+- **Placement quality and object size:** many accepted C4 objects are much smaller than their box
+  (SDXL fills part of it; OWLv2 accepts a detection ≥ 80% inside the box), which is part of why
+  edits look odd. [[TBD: final pilot counts]]
+
+---
+
 ## 2026-10-19: Natural placement planned: VLM pointing prompts (`configs/placement_prompts.yaml`)
 
 - **Why:** some week-2 AI objects are placed unnaturally (e.g. a skateboard in the air, a bird in
