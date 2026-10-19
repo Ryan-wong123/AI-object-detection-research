@@ -1,0 +1,125 @@
+# Natural placement (planned stage, not used by any run yet; author request 2026-10-19).
+#
+# Stage 1 asks a local VLM (Molmo-7B-D; NOT Florence-2 / Qwen2.5-VL, which week 3 evaluates) to
+# point at natural spots for another object of a class already in the photo. One fixed template,
+# filled per photo from the class table below: the VLM's answer varies with the image, the
+# question does not (reproducible, no per-image hand-tuning). Molmo points best with short
+# "Point to ..." questions, so the per-class knowledge lives in two slots, not in long rules.
+#
+#   pointing prompt:  "Point to {where} where another {class} could naturally {how}."
+#   e.g. dog:         "Point to empty spots on the floor or ground where another dog could
+#                      naturally stand or lie."
+#
+# A point is where the object touches its support (bottom centre of the box); for classes with
+# air: true a point in open sky is the object's centre instead. Covers every non-person COCO class
+# in the 544 week-1 photos (78) plus toaster. People are never generated, so worn or held items
+# (handbag, tie, tennis racket, ...) are placed resting on a surface, never "held".
+#
+# Stage 3 asks the same VLM the fixed yes/no questions below on the edited image with the box
+# drawn; the edit passes only if every answer matches "expected".
+
+template: "Point to {where} where another {class} could naturally {how}."
+
+check:
+  instruction: "The red box marks a {class} that was added to this photo. Answer each question with yes or no only."
+  questions:
+    - {id: supported, text: "Is the {class} resting on a surface or held up by something, as it would be in reality{air_clause}?", expected: "yes"}
+    - {id: not_glass, text: "Is the {class} in front of any glass, window, mirror or screen rather than seen through it or reflected in it?", expected: "yes"}
+    - {id: size, text: "Is the size of the {class} plausible compared with the objects around it?", expected: "yes"}
+    - {id: whole, text: "Does the box contain one complete, recognisable {class} rather than a fragment, blob or distorted shape?", expected: "yes"}
+  air_clause: " (flying in open sky also counts)"
+
+# where/how per group; classes list the members. air: point may be in open sky.
+groups:
+  ground_animal:
+    where: "empty spots on the ground, grass, sand, snow or floor"
+    how: "stand or lie"
+    classes: [dog, cat, horse, sheep, cow, elephant, bear, zebra, giraffe]
+  bird:
+    where: "empty spots on the ground, a branch, a railing, a roof edge or in open sky"
+    how: "perch or fly"
+    air: true
+    classes: [bird]
+  road_vehicle:
+    where: "empty spots on the road, street, parking area or driveway"
+    how: "be parked or drive"
+    classes: [car, truck, bus, motorcycle]
+  bicycle:
+    where: "empty spots on the road, pavement, path or ground"
+    how: "stand or be parked"
+    classes: [bicycle]
+  rail:
+    where: "empty spots on railway tracks"
+    how: "stand"
+    classes: [train]
+  aircraft:
+    where: "empty spots on the runway, tarmac or in open sky"
+    how: "stand or fly"
+    air: true
+    classes: [airplane]
+  water_craft:
+    where: "empty spots on open water, a beach or a shore"
+    how: "float or lie"
+    classes: [boat]
+  surfboard:
+    where: "empty spots on open water, a beach or sand"
+    how: "float or lie flat"
+    classes: [surfboard]
+  street_furniture:
+    where: "empty spots on the pavement, sidewalk or roadside ground"
+    how: "stand on its base"
+    classes: [fire hydrant, parking meter, bench]
+  street_sign:
+    where: "empty spots on the pavement or roadside ground next to the road"
+    how: "stand on a pole"
+    classes: [stop sign, traffic light]
+  floor_furniture:
+    where: "empty spots on the floor"
+    how: "stand"
+    classes: [chair, couch, bed, dining table, potted plant, refrigerator, toilet]
+  wall_or_stand:
+    where: "empty spots on a wall, a table, a shelf or a TV stand"
+    how: "hang or stand"
+    classes: [clock, tv]
+  counter_appliance:
+    where: "empty spots on a kitchen counter, table or shelf"
+    how: "stand"
+    classes: [microwave, toaster]
+  kitchen_fixture:
+    where: "empty spots along a kitchen or bathroom counter or wall"
+    how: "be installed"
+    classes: [sink, oven]
+  tabletop:
+    where: "empty spots on a table, counter, desk or shelf"
+    how: "rest"
+    classes: [cup, bottle, wine glass, bowl, vase, book, laptop, keyboard, mouse, remote,
+              cell phone, scissors, toothbrush, hair drier, fork, knife, spoon, teddy bear]
+  food:
+    where: "empty spots on a plate, a table, a counter or a cutting board"
+    how: "lie"
+    classes: [pizza, sandwich, cake, donut, hot dog, banana, apple, orange, broccoli, carrot]
+  bag:
+    where: "empty spots on the floor, ground, a bench, a chair or a table"
+    how: "rest"
+    classes: [handbag, backpack, suitcase]
+  worn_item:
+    where: "empty spots on a table, a bed, a chair or a couch"
+    how: "lie"
+    classes: [tie]
+  umbrella:
+    where: "empty spots on the ground, sand or floor"
+    how: "stand open or lie"
+    classes: [umbrella]
+  sports_gear:
+    where: "empty spots on the ground, grass, floor or a bench"
+    how: "lie"
+    classes: [sports ball, tennis racket, baseball bat, baseball glove, skateboard]
+  snow_gear:
+    where: "empty spots on the snow or ground"
+    how: "lie"
+    classes: [skis, snowboard]
+  flying_toy:
+    where: "empty spots in open sky or on the ground"
+    how: "fly or lie"
+    air: true
+    classes: [kite, frisbee]

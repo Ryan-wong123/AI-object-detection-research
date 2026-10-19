@@ -7,6 +7,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-19: Natural placement planned: VLM pointing prompts (`configs/placement_prompts.yaml`)
+
+- **Why:** some week-2 AI objects are placed unnaturally (e.g. a skateboard in the air, a bird in
+  a window pane): ~450 of 544 boxes are random free-space or anywhere spots with no surface or
+  depth rule. Planned fix (author): a local VLM (Molmo-7B-D, not the week-3 VLMs) points at
+  natural spots, a depth model scales the box from the photo's own same-class object, SDXL
+  generates there (C2/C3 at the same box), OWLv2 + VLM yes/no checks, then the human audit.
+- **Prompts:** one fixed template, `Point to {where} where another {class} could naturally
+  {how}.`, with `where`/`how` from a class table (22 groups) covering all 79 non-person COCO classes
+  once (78 in the week-1 photos, plus toaster); worn/held items rest on surfaces (no people are
+  generated); bird, airplane, kite and frisbee may be in open sky. Four fixed yes/no check
+  questions (supported, not seen through glass, plausible size, one complete object).
+- **Status:** prompts only; not implemented or tested yet. The 50-photo pilot will show whether
+  they work; changes to them will be logged.
+
+---
+
 ## 2026-10-18: Label-audit review on the results website
 
 - **Author request:** show the week-1 label-audit review on GitHub Pages, and keep it updatable
