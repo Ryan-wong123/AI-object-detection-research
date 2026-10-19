@@ -178,8 +178,12 @@ cloud sandbox, so their first real run is the pilot.
   people or other objects in the way).
 - **Automatic realism check did not work:** Molmo answered "not natural" for every edit, including
   clearly fine ones, so it is switched off; edits are judged by eye.
-- **Generation:** after 2 rounds, 24 of 33 photos have a verified AI object [[TBD: final]].
-  By eye the placements are mixed; many AI objects come out much smaller than their box.
+- **Generation (after 3 rounds):** 25 of 33 photos have a verified AI object, 5 still retrying,
+  3 dropped; so 25 of 50 pilot photos so far <!-- run:task2_pilot_natural, run_verify_2026-10-19T145001Z -->.
+- **By eye:** about half the 25 look natural (backpack by a tent, car in a car park, boats and
+  surfboards on water, traffic lights), about half do not (horse or motorcycle on a wall, giraffe
+  head in a window, tiny or smudged objects). Causes: the VLM sometimes points at a wall, and SDXL
+  often draws the object much smaller than its box. Decision needed on how to continue.
 
 ### 23. Insertion run complete: all 544 photos have C0–C4 (18 Oct)
 - The full preview (all 544 photos, C0–C4) is in the repo: `docs/results/week2_ai_insertion/index.html`.

@@ -54,7 +54,22 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 - **Pilot continues with the realism check off** (22:30): OWLv2 only; edits are judged by eye.
 - **Placement quality and object size:** many accepted C4 objects are much smaller than their box
   (SDXL fills part of it; OWLv2 accepts a detection ≥ 80% inside the box), which is part of why
-  edits look odd. [[TBD: final pilot counts]]
+  edits look odd.
+- **Status at 22:52** (run_verify_2026-10-19T145001Z, after 3 rounds): verified C4 for **25 of the
+  33** planned photos (C2 33/33 clean; C3 with each), 5 still retrying on their next natural spot,
+  3 dropped (only one valid spot, 3 seeds failed). Over all 50 pilot photos: 25 with a verified
+  natural AI edit; 17 had no spot that met the rules. Preview: `data/inlayfake_pilot_natural/
+  preview.html`; sheet of the 25: `natural_c4_sheet.jpg`. [[TBD: final counts when the run ends]]
+- **By eye (25 accepted):** about half plausible (backpack by a tent, ball on a floor, car in a car
+  park, boat and surfboards on water, traffic lights at junctions, sheep on a hillside, glass and
+  bottle on counters, frisbee in the air); about half poor (horse and motorcycle on walls, giraffe
+  head in a window, cat squeezed into a cupboard, sink on a sill, tiny apple and chair, a cow
+  head, a bed as a dark smudge). Two causes: Molmo sometimes points at a wall or wrong surface, and
+  SDXL often paints the object much smaller than its box. Not yet compared with the random
+  placement on the same photos.
+- **Next (author's call):** compare with `task2_pilot_inphoto` on the same photos; options are
+  tightening the pointing prompt or a check of the surface under the point (COCO-Stuff), and a
+  minimum object-to-box size in verification; a realism judge needs a different model or approach.
 
 ---
 
