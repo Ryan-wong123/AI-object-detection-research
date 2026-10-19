@@ -28,7 +28,7 @@ from inlayfake.edit.paste import choose_donor, paste_instance
 from inlayfake.edit.placement import box_area, intersection
 from inlayfake.ledger import EditInfo, ImageRecord, Instance, Origin
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import load_coco, read_jsonl, work_dir
+from inlayfake.stages.common import load_coco, read_jsonl, work_dir, write_text_atomic
 from inlayfake.stages.replan import (
     ADOPT,
     FREE,
@@ -63,9 +63,8 @@ def _save_mask(mask: np.ndarray, path: Path) -> str:
 
 
 def _write_record(rec: ImageRecord, wd: Path) -> None:
-    p = wd / "records" / f"{rec.image_id}.json"
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(rec.to_dict(), indent=1), encoding="utf-8")
+    # crash-safe: a record exists only once its image is saved and the record is complete
+    write_text_atomic(wd / "records" / f"{rec.image_id}.json", json.dumps(rec.to_dict(), indent=1))
 
 
 def _exists(wd: Path, image_id: str) -> bool:
@@ -280,9 +279,8 @@ def _pending(cfg, plan, cond, gen, state, versions, wd: Path) -> bool:
 
 def consolidate(wd: Path) -> int:
     rows = sorted((wd / "records").glob("*.json"))
-    with (wd / "ledger_generated.jsonl").open("w", encoding="utf-8") as f:
-        for p in rows:
-            f.write(json.dumps(json.loads(p.read_text(encoding="utf-8"))) + "\n")
+    lines = [json.dumps(json.loads(p.read_text(encoding="utf-8"))) + "\n" for p in rows]
+    write_text_atomic(wd / "ledger_generated.jsonl", "".join(lines))
     return len(rows)
 
 

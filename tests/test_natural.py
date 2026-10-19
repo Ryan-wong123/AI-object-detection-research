@@ -268,3 +268,36 @@ def test_person_overlap_limit():
         False,
         "covers a person",
     )
+
+
+def test_natural_plan_resumes_with_identical_plans(cfg, tmp_path, monkeypatch):
+    """A planning run cut off after some photos continues from natural_plan_progress.jsonl:
+    finished photos are not asked again, and the plans equal those of an uninterrupted run."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    cfg = _natural_cfg(cfg)
+    sample.run(cfg)
+    plan.run(cfg)
+    wd = tmp_path / "work"
+    full_plans = (wd / "plans.jsonl").read_text()
+    full_cands = (wd / "natural_candidates.jsonl").read_text()
+    lines = (wd / "natural_plan_progress.jsonl").read_text().splitlines()
+    assert len(lines) >= 4
+    # simulate a crash after 3 photos, the last line cut off mid-write
+    (wd / "natural_plan_progress.jsonl").write_text("\n".join(lines[:3]) + "\n" + lines[3][:20])
+    (wd / "plans.jsonl").unlink()
+    calls = []
+    real_point = scene.FakeVLM.point
+
+    def counting_point(self, img, prompt):
+        calls.append(prompt)
+        return real_point(self, img, prompt)
+
+    monkeypatch.setattr(scene.FakeVLM, "point", counting_point)
+    plan.run(cfg)
+    assert (wd / "plans.jsonl").read_text() == full_plans
+    assert (wd / "natural_candidates.jsonl").read_text() == full_cands
+    n_done = len({json.loads(x)["source_id"] for x in lines[:3]})
+    total = len({json.loads(x)["source_id"] for x in lines})
+    assert 0 < len(calls) and n_done > 0 and total > n_done  # only the unfinished photos asked

@@ -47,7 +47,7 @@ from inlayfake.edit.verify import (
 from inlayfake.forensics.instance_scores import bbox_mask
 from inlayfake.ledger import Condition, ImageRecord, Origin, read_ledger, write_ledger
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import load_coco, read_jsonl, work_dir
+from inlayfake.stages.common import load_coco, read_jsonl, work_dir, write_text_atomic
 from inlayfake.stages.replan import (
     ADOPT,
     FREE,
@@ -258,7 +258,7 @@ def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool,
     out = replace(rec, instances=insts, ignore_regions=ignores, edit=edit)
     p = wd / "verified" / f"{rec.image_id}.json"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(out.to_dict(), indent=1), encoding="utf-8")
+    write_text_atomic(p, json.dumps(out.to_dict(), indent=1))  # crash-safe
     return True, "ok", info
 
 
