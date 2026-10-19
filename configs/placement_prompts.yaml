@@ -20,6 +20,15 @@
 
 template: "Point to {where} where another {class} could naturally {how}."
 
+# Box rules for a candidate spot (author, 2026-10-19). A real object = any labelled object of the
+# photo (COCO labels + week-1 audit "add" labels). Overlap is measured as the share of the real
+# object's area that the AI box covers. A spot that breaks a rule is skipped; if no spot or class
+# fits, the photo gets no AI edit (never forced over a real object).
+box_rules:
+  max_cover_real: 0.15     # at most 15% of any real object covered (author: "around 10-15%")
+  max_cover_person: 0.0    # never on a person
+  max_candidates: 5        # VLM points tried per class before the next class in the photo
+
 check:
   instruction: "The red box marks a {class} that was added to this photo. Answer each question with yes or no only."
   questions:

@@ -21,6 +21,12 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   questions (supported, not seen through glass, plausible size, one complete object).
 - **Status:** prompts only; not implemented or tested yet. The 50-photo pilot will show whether
   they work; changes to them will be logged.
+- **Decision (author, 2026-10-19):** a natural-placement box may cover at most **15%** of any
+  real labelled object's area (COCO + audit adds), never a person; covered objects keep their
+  label with recomputed visibility (ignore below 10% visible, as now). No fitting spot or class:
+  the photo gets no AI edit (no random fallback). In the current set 60 of 544 AI edits cover a
+  real object (38 occlusion-rule, 22 anywhere). Stored in `configs/placement_prompts.yaml`
+  (`box_rules`).
 
 ---
 
