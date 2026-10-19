@@ -255,3 +255,16 @@ def test_box_fill_rule_rejects_tiny_objects(tmp_path):
     assert not ok and why == "object fills only 16% of its box" and info["box_fill"] == 0.16
     ok, _, info = verify_one(rec, img, img, finder, seg(60), vcfg, None, tmp_path)  # 36%
     assert ok and info["box_fill"] == 0.36
+
+
+def test_person_overlap_limit():
+    """max_cover_person > 0: a person may be covered up to that share of their box."""
+    rules = {"max_cover_real": 0.30, "max_cover_person": 0.30}
+    anns = [{"category": "person", "bbox": [0, 0, 100, 100]}]
+    assert check_box([80, 0, 50, 50], anns, None, rules) == (True, "ok")  # 1000 px² = 10%
+    ok, why = check_box([60, 0, 50, 100], anns, None, rules)  # 4000 px² = 40%
+    assert not ok and why == "covers 40% of a person"
+    assert check_box([80, 0, 50, 50], anns, None, {"max_cover_person": 0.0}) == (
+        False,
+        "covers a person",
+    )

@@ -59,6 +59,7 @@ placement:
     classes_per_photo: 2               # classes asked per photo (each: up to max_candidates spots)
     max_candidates: 5                  # spots tried per class (VLM points, spread out)
     min_point_dist: 0.1                # spots at least this x the image diagonal apart
+    box_rules: {}                      # overrides of the prompt file's box_rules (e.g. max_cover_real)
     size_ratio: [0.5, 2.0]             # limit on the depth-based size change from the reference
     check: true                        # VLM yes/no realism check in verify
     check_point_surface: false         # point must be on an allowed surface (prompt file `supports`)
