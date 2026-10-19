@@ -1,0 +1,22 @@
+# Natural-placement pilot v2 (author, 2026-10-20): pilot_natural.yaml plus three fixes from the
+# comparison with random placement (RESEARCH_LOG 2026-10-19):
+#   1. the VLM point must lie on a surface the class rests on (COCO-Stuff, `supports` in
+#      configs/placement_prompts.yaml) or on an object that carries it, never on another object;
+#   2. boxes at least 2% of the image and 64 px on the short side, depth scaling limited to x0.7-1.4;
+#   3. verification rejects an AI object that fills less than 35% of its box.
+#   python -m inlayfake sample  --config configs/pilot_natural_v2.yaml
+#   python -m inlayfake plan    --config configs/pilot_natural_v2.yaml
+#   python -m inlayfake insert  --config configs/pilot_natural_v2.yaml
+#   python -m inlayfake preview --config configs/pilot_natural_v2.yaml --limit 50
+inherit: pilot_natural.yaml
+run_name: task2_pilot_natural_v2
+placement:
+  natural:
+    check_point_surface: true
+    min_box_frac: 0.02
+    min_box_side_px: 64
+    size_ratio: [0.7, 1.4]
+verify:
+  min_box_fill: 0.35
+paths:
+  work: data/inlayfake_pilot_natural_v2

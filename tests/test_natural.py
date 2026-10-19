@@ -177,3 +177,81 @@ def test_spread_points_skips_near_duplicates():
     # (26, 337) is 46 px and (27, 311) 72 px from (24, 383); (310, 205) is 11 px from (300, 200)
     assert spread_points(pts, 640, 480, k=5) == [(24, 383), (300, 200), (600, 400)]
     assert spread_points(pts, 640, 480, k=2) == [(24, 383), (300, 200)]
+
+
+def test_point_support_rules():
+    """Fix 1: a point must be on a surface the class rests on, or on an object that carries it."""
+    from inlayfake.edit.natural import point_support
+
+    p = load_prompts(PROMPTS)
+    horse, cup, bird = p["classes"]["horse"], p["classes"]["cup"], p["classes"]["bird"]
+    assert point_support("grass", None, horse) == (True, "ok")
+    assert point_support("wall-other", None, horse) == (False, "point on wall-other")
+    assert point_support("other", None, horse) == (False, "point on an unlabelled object")
+    assert point_support("other", "tv", horse) == (False, "point on a real tv")
+    assert point_support("other", "dining table", cup) == (True, "ok")  # cup on a table object
+    assert point_support("counter", None, cup) == (True, "ok")
+    assert point_support("road", None, cup)[0] is False
+    assert point_support("sky-other", None, bird) == (True, "ok")
+    assert point_support(None, None, horse) == (True, "ok")  # no COCO-Stuff labels: unchecked
+
+
+def test_minimum_box_area():
+    """Fix 2: a box is enlarged (shape kept) to at least min_area_frac of the image."""
+    depth = np.full((400, 500), 0.5, dtype=np.float32)
+    ref = {"id": 1, "bbox": [100.0, 100.0, 40.0, 20.0]}  # 800 px² = 0.4% of the image
+    box, _ = box_from_point(
+        (250.0, 300.0), depth, [ref], (10, 10), False, (0.7, 1.4), 0.25, 32, 0.02
+    )
+    w, h = box[2], box[3]
+    assert np.isclose(w * h, 0.02 * 500 * 400) and np.isclose(w / h, 2.0)
+    assert np.isclose(box[1] + h, 300.0)  # still standing on the point
+
+
+def test_box_fill_rule_rejects_tiny_objects(tmp_path):
+    """Fix 3: verify rejects an AI object filling less than verify.min_box_fill of its box."""
+    from PIL import Image
+
+    from inlayfake.ledger import EditInfo, ImageRecord, Instance, Origin
+    from inlayfake.stages.verify import verify_one
+
+    img = np.zeros((200, 200, 3), dtype=np.uint8)
+    mpath = tmp_path / "m.png"
+    Image.fromarray(np.full((200, 200), 255, dtype=np.uint8)).save(mpath)
+    rec = ImageRecord(
+        "x",
+        1,
+        "train",
+        "C4",
+        "x.jpg",
+        200,
+        200,
+        generator="G1",
+        edit=EditInfo("cup", 0, [40, 40, 100, 100], intended_mask_path=str(mpath)),
+        instances=[Instance("ins:x", "cup", [40, 40, 100, 100], Origin.AI_INSERTED)],
+    )
+    finder = lambda crop, cat, r: [([60, 60, 120, 120], 0.9)]  # noqa: E731  in-box detection
+
+    def seg(size):  # SAM stand-in: a size×size object in the box's corner
+        def f(crop, box):
+            m = np.zeros(crop.shape[:2], dtype=bool)
+            x0, y0 = int(box[0]), int(box[1])
+            m[y0 : y0 + size, x0 : x0 + size] = True
+            return m
+
+        return f
+
+    vcfg = {
+        "min_iou": 0.3,
+        "min_score": 0.2,
+        "min_inside": 0.8,
+        "changed_pixel_threshold": 4,
+        "mixed_modified_overlap": 0.1,
+        "window_scale": 2.5,
+        "window_min_px": 64,
+        "min_box_fill": 0.35,
+    }
+    ok, why, info = verify_one(rec, img, img, finder, seg(40), vcfg, None, tmp_path)  # 16% fill
+    assert not ok and why == "object fills only 16% of its box" and info["box_fill"] == 0.16
+    ok, _, info = verify_one(rec, img, img, finder, seg(60), vcfg, None, tmp_path)  # 36%
+    assert ok and info["box_fill"] == 0.36

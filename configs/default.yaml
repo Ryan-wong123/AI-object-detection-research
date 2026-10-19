@@ -59,6 +59,9 @@ placement:
     classes_per_photo: 2               # classes asked per photo (each: up to max_candidates spots)
     size_ratio: [0.5, 2.0]             # limit on the depth-based size change from the reference
     check: true                        # VLM yes/no realism check in verify
+    check_point_surface: false         # point must be on an allowed surface (prompt file `supports`)
+    min_box_frac: 0.0                  # smallest box, share of the image area
+    min_box_side_px: 32                # smallest box short side
   merged:                              # one AI condition instead of C4 + C5 (insert stage):
     enabled: false                     # keep a verified C4, else adopt a verified C5, else
     versions: 6                        # place a box of a photo class anywhere (this many
@@ -149,6 +152,7 @@ verify:
   mixed_modified_overlap: 0.10
   candidate_threshold: 0.05            # OWLv2 candidates kept before the min_score/min_iou check
   min_visible_fraction: 0.10           # occluded originals below this become ignore regions
+  min_box_fill: null                   # reject an AI object filling less of its box (e.g. 0.35)
   audit_fraction: 0.10                 # share of verified edits put on the human-audit sheet
   audit_all_conditions: []             # conditions put on the sheet in full (e.g. [C4])
   audit_only_conditions: null          # only these conditions on the sheet (null: all edits)

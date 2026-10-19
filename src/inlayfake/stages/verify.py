@@ -218,6 +218,14 @@ def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool,
             return False, "empty inserted mask", info
         inserted = m
         info["inserted_area"] = int(m.sum())
+        min_fill = vcfg.get("min_box_fill")
+        if min_fill:  # fix 3 (2026-10-20): an object much smaller than its box looks pasted in
+            ox, oy, ow, oh = mask_bbox(m)
+            px_, py_, pw_, ph_ = rec.edit.plan_box
+            fill = (ow * oh) / max(pw_ * ph_, 1e-6)
+            info["box_fill"] = round(fill, 3)
+            if fill < min_fill:
+                return False, f"object fills only {fill:.0%} of its box", info
 
     insts, ignores = [], list(rec.ignore_regions)
     for inst in rec.instances:

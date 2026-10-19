@@ -29,6 +29,51 @@ box_rules:
   max_cover_person: 0.0    # never on a person
   max_candidates: 5        # VLM points tried per class before the next class in the photo
 
+# Allowed support under a VLM point (author, 2026-10-20; pilot fix 1). The point is where the
+# object touches its support, so the COCO-Stuff label there must be one of the group's surfaces,
+# or the point must lie on a labelled object that can carry it (on_objects, e.g. a cup on a dining
+# table). COCO-Stuff marks object pixels "other"; a point on any other object is rejected. In the
+# first pilot 17 of 75 accepted points lay on objects or unlabelled pixels (a horse on a
+# scoreboard, a giraffe in a wall).
+surface_sets:
+  ground: [floor-marble, floor-other, floor-stone, floor-tile, floor-wood, carpet, rug, mat, road,
+           pavement, dirt, sand, gravel, grass, snow, ground-other, playingfield, platform, mud, moss,
+           hill, stairs, rock, stone, straw, plant-other, flower]
+  road: [road, pavement, gravel, dirt, ground-other, platform, snow, sand, grass]
+  rail: [railroad, gravel, platform, ground-other, dirt]
+  table: [table, counter, desk-stuff, shelf, cabinet, cupboard, furniture-other, napkin, cloth, paper,
+          wood, food-other, blanket, textile-other, towel]
+  soft: [blanket, pillow, textile-other, cloth, towel]
+  water: [sea, river, water-other, waterdrops]
+  beach: [sand, ground-other, dirt, gravel, rock, stone, grass]
+  wall: [wall-brick, wall-concrete, wall-other, wall-panel, wall-stone, wall-tile, wall-wood]
+  sky: [sky-other, clouds]
+  perch: [tree, branch, bush, leaves, railing, roof, fence]
+
+supports:   # group: {surfaces: [surface sets], on_objects: [COCO classes]}
+  ground_animal: {surfaces: [ground]}
+  bird: {surfaces: [ground, sky, perch], on_objects: [bench, boat, car, truck, fire hydrant, chair]}
+  road_vehicle: {surfaces: [road]}
+  bicycle: {surfaces: [road, ground]}
+  rail: {surfaces: [rail]}
+  aircraft: {surfaces: [road, ground, sky]}
+  water_craft: {surfaces: [water, beach]}
+  surfboard: {surfaces: [water, beach]}
+  street_furniture: {surfaces: [road, ground]}
+  street_sign: {surfaces: [road, ground]}
+  floor_furniture: {surfaces: [ground]}
+  wall_or_stand: {surfaces: [wall, table], on_objects: [dining table]}
+  counter_appliance: {surfaces: [table], on_objects: [dining table, oven, refrigerator]}
+  kitchen_fixture: {surfaces: [table, wall]}
+  tabletop: {surfaces: [table, soft], on_objects: [dining table, bed, couch, chair, bench, toilet, sink]}
+  food: {surfaces: [table], on_objects: [dining table, bowl, oven]}
+  bag: {surfaces: [ground, table], on_objects: [bench, chair, couch, bed, dining table]}
+  worn_item: {surfaces: [table, soft], on_objects: [bed, chair, couch, dining table]}
+  umbrella: {surfaces: [ground, beach]}
+  sports_gear: {surfaces: [ground], on_objects: [bench]}
+  snow_gear: {surfaces: [ground]}
+  flying_toy: {surfaces: [sky, ground]}
+
 check:
   # pilot 2026-10-19: the first wording failed all 17 accepted edits. "in front of any glass ...
   # rather than seen through it" asked the inverse of what was scored (no glass nearby -> "no"),

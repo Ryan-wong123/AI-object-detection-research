@@ -33,6 +33,7 @@ from inlayfake.edit.natural import (
     check_questions,
     fit_inside,
     load_prompts,
+    point_support,
     pointing_prompt,
     spread_points,
     usable_references,
@@ -81,6 +82,48 @@ def _labels(index, sid: int, extra: list[dict]) -> list[dict]:
     return out
 
 
+def _stuff_label_map(stuff, sid: int, H: int, W: int) -> tuple[np.ndarray, list[str]]:
+    """Per-pixel COCO-Stuff class index (0 = none) and the class names."""
+    from inlayfake.edit.support import _decode
+
+    names = [""]
+    lab = np.zeros((H, W), dtype=np.int16)
+    for a in stuff.anns_by_image.get(sid, []):
+        names.append(stuff.cat_name.get(a["category_id"], ""))
+        lab[_decode(a["segmentation"], H, W)] = len(names) - 1
+    return lab, names
+
+
+def _label_below(lab: np.ndarray, names: list[str], x: float, y: float, r: int = 3) -> str | None:
+    """Most common COCO-Stuff class in a small window just at/below a point (where the object's
+    base meets its support); None if nothing is labelled there."""
+    H, W = lab.shape
+    xi, yi = int(np.clip(round(x), 0, W - 1)), int(np.clip(round(y) + r, 0, H - 1))
+    win = lab[max(yi - r, 0) : yi + r + 1, max(xi - r, 0) : xi + r + 1].ravel()
+    win = win[win > 0]
+    if win.size == 0:
+        return None
+    return names[int(np.bincount(win).argmax())]
+
+
+def _thing_masks(index, sid: int) -> list[tuple[str, np.ndarray, float]]:
+    """(class, mask, area) of the photo's COCO objects, smallest first."""
+    out = []
+    for a in index.image_anns(sid):
+        m = index.ann_mask(a)
+        out.append((index.cat_name[a["category_id"]], m, float(m.sum())))
+    return sorted(out, key=lambda t: t[2])
+
+
+def _thing_at(things, x: float, y: float) -> str | None:
+    """Class of the smallest labelled object whose mask contains the point (None: none)."""
+    for cat, m, _ in things:
+        H, W = m.shape
+        if m[int(np.clip(round(y), 0, H - 1)), int(np.clip(round(x), 0, W - 1))]:
+            return cat
+    return None
+
+
 def _typical_wh(stats: dict, cat: str, W: int, H: int) -> tuple[float, float]:
     """Median COCO size of a class, as (w, h) in this image."""
     frac, aspect = np.median(stats[cat][:, 0]), np.median(stats[cat][:, 1])
@@ -121,6 +164,10 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         img = load_rgb(index.image_path(sid))
         depth = depth_model(img)
         blocked_all = stuff.mask(sid, set(BLOCKED_STUFF), H, W) if stuff else None
+        check_surface = ncfg.get("check_point_surface", False)
+        if check_surface:
+            stuff_map, stuff_names = _stuff_label_map(stuff, sid, H, W) if stuff else (None, [])
+            things = _thing_masks(index, sid)
         sky = stuff.mask(sid, set(SKY_STUFF), H, W) if stuff else None
         valid = []
         for cat in balanced_order(classes, used, rng)[: ncfg.get("classes_per_photo", 2)]:
@@ -149,6 +196,27 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                     and sky is not None
                     and sky[int(np.clip(py, 0, H - 1)), int(np.clip(px, 0, W - 1))]
                 )
+                if check_surface:  # fix 1: the point must be on a surface this class rests on
+                    label = _label_below(stuff_map, stuff_names, px, py) if stuff else None
+                    thing = _thing_at(things, px, py)
+                    sup_ok, sup_why = point_support(label, thing, prompts["classes"][cat])
+                    if not sup_ok:
+                        rows.append(
+                            {
+                                "source_id": sid,
+                                "category": cat,
+                                "rank": rank,
+                                "point": [round(px, 1), round(py, 1)],
+                                "surface": label,
+                                "on_object": thing,
+                                "ok": False,
+                                "reason": sup_why,
+                                "prompt": prompt,
+                                "answer": answer,
+                                "vlm": vlm.name,
+                            }
+                        )
+                        continue
                 box, info = box_from_point(
                     (px, py),
                     depth,
@@ -157,7 +225,8 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                     on_sky,
                     tuple(ncfg.get("size_ratio", (0.5, 2.0))),
                     pcfg["max_area_frac"],
-                    pcfg["min_side_px"],
+                    ncfg.get("min_box_side_px", pcfg["min_side_px"]),
+                    ncfg.get("min_box_frac", 0.0),
                 )
                 fitted = fit_inside(box, W, H)
                 if fitted is None:

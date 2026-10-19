@@ -43,8 +43,11 @@ def load_prompts(path: str | Path) -> dict:
     import yaml
 
     y = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    sets = y.get("surface_sets", {})
+    supports = y.get("supports", {})
     classes = {}
     for group, g in y["groups"].items():
+        sup = supports.get(group, {})
         for c in g["classes"]:
             if c in classes:
                 raise ValueError(f"class {c!r} is in two prompt groups")
@@ -53,6 +56,9 @@ def load_prompts(path: str | Path) -> dict:
                 "where": g["where"],
                 "how": g["how"],
                 "air": bool(g.get("air", False)),
+                # allowed support under the point (fix 1): COCO-Stuff names and COCO classes
+                "surfaces": {n for k in sup.get("surfaces", []) for n in sets[k]},
+                "on_objects": set(sup.get("on_objects", [])),
             }
     return {
         "template": y["template"],
@@ -80,6 +86,24 @@ def check_questions(prompts: dict, category: str) -> list[tuple[str, str, str]]:
 
 
 # ------------------------------------------------------------------------------------ geometry
+def point_support(stuff_label: str | None, thing: str | None, entry: dict) -> tuple[bool, str]:
+    """Is the surface under a VLM point one this class may rest on? (``supports`` in the prompt
+    file.) ``thing``: class of the labelled object under the point (None: no object);
+    ``stuff_label``: COCO-Stuff class there ("other" marks object pixels; None: no COCO-Stuff
+    labels for this photo, so nothing can be checked)."""
+    if thing is not None:
+        if thing in entry["on_objects"]:
+            return True, "ok"
+        return False, f"point on a real {thing}"
+    if stuff_label is None:
+        return True, "ok"
+    if stuff_label == "other":
+        return False, "point on an unlabelled object"
+    if stuff_label in entry["surfaces"]:
+        return True, "ok"
+    return False, f"point on {stuff_label}"
+
+
 def spread_points(
     points: list[tuple[float, float]], W: int, H: int, k: int = 5, min_dist: float = 0.1
 ) -> list[tuple[float, float]]:
@@ -132,6 +156,7 @@ def box_from_point(
     size_ratio: tuple[float, float] = (0.5, 2.0),
     max_area_frac: float = 0.25,
     min_side: float = 32,
+    min_area_frac: float = 0.0,
 ) -> tuple[Box, dict]:
     """A box for one VLM point and how it was sized.
 
@@ -166,6 +191,11 @@ def box_from_point(
     k_max = np.sqrt(max_area_frac * W * H / max(w * h, 1e-6))
     if k_max < 1:
         w, h = w * k_max, h * k_max
+    # at least min_area_frac of the image (fix 2: SDXL fills small boxes poorly; in the first
+    # natural pilot the median box was 1.5% of the image and its object filled 28% of it)
+    if min_area_frac > 0 and w * h < min_area_frac * W * H:
+        k_area = np.sqrt(min_area_frac * W * H / max(w * h, 1e-6))
+        w, h = w * k_area, h * k_area
     if min(w, h) < min_side:
         k_min = min_side / min(w, h)
         w, h = w * k_min, h * k_min
