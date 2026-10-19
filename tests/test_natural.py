@@ -164,3 +164,13 @@ def test_realism_failure_moves_to_the_next_spot(cfg, tmp_path):
     assert recs["C4"].edit.plan_version == 1
     assert recs["C4"].edit.plan_box == valid[sid][1]["box"]
     assert recs["C2"].edit.plan_box == recs["C3"].edit.plan_box == recs["C4"].edit.plan_box
+
+
+def test_spread_points_skips_near_duplicates():
+    from inlayfake.edit.natural import spread_points
+
+    pts = [(24, 383), (26, 337), (27, 311), (300, 200), (310, 205), (600, 400)]
+    # diagonal of 640x480 is 800 -> min distance 80 px
+    # (26, 337) is 46 px and (27, 311) 72 px from (24, 383); (310, 205) is 11 px from (300, 200)
+    assert spread_points(pts, 640, 480, k=5) == [(24, 383), (300, 200), (600, 400)]
+    assert spread_points(pts, 640, 480, k=2) == [(24, 383), (300, 200)]

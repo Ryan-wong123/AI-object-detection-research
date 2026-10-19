@@ -34,6 +34,7 @@ from inlayfake.edit.natural import (
     fit_inside,
     load_prompts,
     pointing_prompt,
+    spread_points,
     usable_references,
 )
 
@@ -134,7 +135,8 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                         "reason": "no point in the answer",
                     }
                 )
-            for rank, (px, py) in enumerate(points[: rules.get("max_candidates", 5)]):
+            spots = spread_points(points, W, H, rules.get("max_candidates", 5))
+            for rank, (px, py) in enumerate(spots):
                 on_sky = bool(
                     air
                     and sky is not None

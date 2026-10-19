@@ -73,37 +73,90 @@ class MolmoVLM:
 
     def __init__(self, model_id: str, device: str, load_in_4bit: bool = True) -> None:
         import torch
-        from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
+        from transformers import AutoProcessor, BitsAndBytesConfig
 
-        kw: dict = {"trust_remote_code": True, "device_map": "auto"}
+        # one GPU: the whole model on it (transformers 5 cannot balance Molmo's own model code)
+        kw: dict = {"trust_remote_code": True, "device_map": {"": device}}
         if load_in_4bit and device.startswith("cuda"):
+            # the vision encoder and output layer stay in 16 bit (usual for Molmo in 4-bit); naming
+            # them also spares transformers 5 from inspecting tied weights, which Molmo's own
+            # (transformers-4) model code does not declare
             kw["quantization_config"] = BitsAndBytesConfig(
-                load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                llm_int8_skip_modules=["model.vision_backbone", "model.transformer.ff_out"],
             )
+            kw["torch_dtype"] = torch.float16
         else:
             kw["torch_dtype"] = torch.float32
         self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-        self.model = AutoModelForCausalLM.from_pretrained(model_id, **kw)
+        from transformers.dynamic_module_utils import get_class_from_dynamic_module
+
+        cls = get_class_from_dynamic_module("modeling_molmo.MolmoForCausalLM", model_id)
+        if not hasattr(cls, "all_tied_weights_keys"):
+            # transformers 5 expects this map of tied weights; Molmo-7B-D ties none
+            # (config weight_tying: false), so it is empty
+            cls.all_tied_weights_keys = {}
+        if not getattr(cls, "_inlayfake_patched", False):
+            # transformers 5 passes new keyword arguments to tie_weights; Molmo's version takes
+            # none (and ties nothing here), so they are dropped
+            original = cls.tie_weights
+            cls.tie_weights = lambda self, *a, **k: original(self)
+            cls._inlayfake_patched = True
+        from transformers import GenerationMixin
+
+        if not issubclass(cls, GenerationMixin):
+            # transformers 5 models get generation helpers only from GenerationMixin
+            cls = type(cls.__name__, (cls, GenerationMixin), {})
+        self.model = cls.from_pretrained(model_id, **kw)
         self.model.eval()
 
     def _generate(self, img: np.ndarray, text: str, max_new_tokens: int) -> str:
+        """Greedy decoding with Molmo's own forward pass and its tuple key/value cache.
+
+        transformers 5's generate() hands models a DynamicCache, which Molmo's code (written for
+        transformers 4) cannot read; this loop repeats what Molmo's generate_from_batch and
+        prepare_inputs_for_generation do: position ids from the attention mask, the image
+        inputs on the first step only, then one token at a time with the cache."""
         import torch
-        from transformers import GenerationConfig
 
         inputs = self.processor.process(images=[Image.fromarray(img)], text=text)
         inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
         if "images" in inputs:
             inputs["images"] = inputs["images"].to(torch.float16)
+        input_ids = inputs["input_ids"]
+        eos = self.processor.tokenizer.eos_token_id
+        step: dict = {"use_cache": True}
+        if self.model.config.use_position_ids:
+            mask = input_ids != -1
+            position_ids = torch.clamp(torch.cumsum(mask.to(torch.int32), dim=-1) - 1, min=0)
+            attention_mask = torch.cat([mask, mask.new_ones((1, max_new_tokens))], dim=1)
+            step.update(attention_mask=attention_mask, last_logits_only=True)
+            first = {
+                "position_ids": position_ids,
+                "append_last_valid_logits": mask.long().sum(dim=-1) - 1,
+            }
+        else:
+            position_ids, first = None, {}
+        for k in ("images", "image_masks", "image_input_idx"):
+            if k in inputs:
+                first[k] = inputs[k]
+        new: list[int] = []
         with torch.inference_mode():
-            out = self.model.generate_from_batch(
-                inputs,
-                GenerationConfig(
-                    max_new_tokens=max_new_tokens, stop_strings="<|endoftext|>", do_sample=False
-                ),
-                tokenizer=self.processor.tokenizer,
-            )
-        new = out[0, inputs["input_ids"].size(1) :]
-        return self.processor.tokenizer.decode(new, skip_special_tokens=True)
+            out = self.model(input_ids=input_ids, past_key_values=None, **step, **first)
+            for _ in range(max_new_tokens):
+                tok = int(out.logits[0, -1].argmax())
+                if tok == eos:
+                    break
+                new.append(tok)
+                nxt = {"past_key_values": out.past_key_values}
+                if position_ids is not None:
+                    position_ids = position_ids[:, -1:] + 1
+                    nxt["position_ids"] = position_ids
+                ids = torch.tensor([[tok]], device=input_ids.device)
+                out = self.model(input_ids=ids, **step, **nxt)
+        text_out = self.processor.tokenizer.decode(new, skip_special_tokens=True)
+        return text_out.split("<|endoftext|>")[0]
 
     def point(self, img: np.ndarray, prompt: str) -> tuple[list[tuple[float, float]], str]:
         text = self._generate(img, prompt, 200)

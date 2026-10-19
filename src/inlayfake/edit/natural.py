@@ -80,6 +80,22 @@ def check_questions(prompts: dict, category: str) -> list[tuple[str, str, str]]:
 
 
 # ------------------------------------------------------------------------------------ geometry
+def spread_points(
+    points: list[tuple[float, float]], W: int, H: int, k: int = 5, min_dist: float = 0.1
+) -> list[tuple[float, float]]:
+    """Up to ``k`` points in the VLM's order, skipping any closer than ``min_dist`` × the image
+    diagonal to one already kept (Molmo often lists many points along one line; retries should
+    try different spots)."""
+    d = min_dist * float(np.hypot(W, H))
+    kept: list[tuple[float, float]] = []
+    for p in points:
+        if all(np.hypot(p[0] - q[0], p[1] - q[1]) >= d for q in kept):
+            kept.append(p)
+        if len(kept) == k:
+            break
+    return kept
+
+
 def nearness_at(depth: np.ndarray, x: float, y: float, r: int = 3) -> float:
     """Median nearness in a (2r+1)² window around a pixel (clipped to the image)."""
     H, W = depth.shape
