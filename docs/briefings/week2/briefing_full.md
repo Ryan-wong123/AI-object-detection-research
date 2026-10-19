@@ -168,6 +168,19 @@ cloud sandbox, so their first real run is the pilot.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
 
+### 24. Natural-placement pilot (19 Oct, run `task2_pilot_natural`)
+- **Why:** many full-run AI objects are placed unnaturally (a skateboard in the air, a bird in a
+  window pane), because most boxes were random free-space spots.
+- **New method:** a local VLM (Molmo-7B-D) points at natural spots for a class already in the photo
+  (one fixed "Point to …" prompt per class), the box is sized from the photo's own object of that
+  class and scaled by depth, and it may cover no person and at most 15% of any real object.
+- **Plan:** 33 of the 50 pilot photos got a natural spot; 17 had none that met the rules (mostly
+  people or other objects in the way).
+- **Automatic realism check did not work:** Molmo answered "not natural" for every edit, including
+  clearly fine ones, so it is switched off; edits are judged by eye.
+- **Generation:** after 2 rounds, 24 of 33 photos have a verified AI object [[TBD: final]].
+  By eye the placements are mixed; many AI objects come out much smaller than their box.
+
 ### 23. Insertion run complete: all 544 photos have C0–C4 (18 Oct)
 - The full preview (all 544 photos, C0–C4) is in the repo: `docs/results/week2_ai_insertion/index.html`.
 - Both weeks' pages are joined in one site with week tabs, `docs/index.html`, ready to be
