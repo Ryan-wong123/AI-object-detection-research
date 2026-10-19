@@ -7,6 +7,27 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-20: Natural pilot v3: more spots and classes do not raise coverage
+
+- **Setup** (author's choice to raise coverage without loosening quality; commit 2814e86,
+  `configs/pilot_natural_v3.yaml`): v2's rules, but up to 3 classes per photo (v2: 2), up to 10
+  spots per class (v2: 5) at least 7% of the image diagonal apart (v2: 10%), 30 spot versions.
+- **Plan** (~70 min, ~100 s per photo; a browser on the GPU slowed part of it): 28 of 50 photos with
+  a spot (v2: 27); 82 valid of 332 candidates (v2: 57 of 211). Rejections: 86 covering > 15% of a
+  real object, 83 covering a person, 19 on another object, 17 outside the image, 39 on another
+  surface (windows, wall tiles, bushes, trees, metal, ...), 6 no point.
+- **Generation** (finished 04:43): verified C4 for **19 of 28**, so **19 of 50 photos** (v2: 18);
+  the 18 v2 photos are all among them. Failed C4 attempts: 58 not found by OWLv2, 36 filling < 35%
+  of the box. Same quality as v2: 68% on ground/table/water, none on walls, objects median 1.9% of
+  the image, 1 of 19 under 1%; the edits are mostly identical to v2's (Molmo answers the same
+  question the same way).
+- **Conclusion:** coverage is limited by photo content (people and other objects where the VLM
+  points) and by generation failures, not by the number of candidate spots; v3 doubled planning
+  time for one extra photo. `paper/results/task2_pilot_natural_four_way.json`; sheets
+  `data/inlayfake_pilot_natural_v3/compare/compare4_1-6.jpg`.
+
+---
+
 ## 2026-10-20: Natural placement v2: three fixes, pilot re-run (`task2_pilot_natural_v2`)
 
 - **Fixes** (author approved; commit 06b1b9b; all off by default, on in
