@@ -177,15 +177,21 @@ def box_from_point(
     return [float(v) for v in box], info
 
 
-def fit_inside(box: Box, W: int, H: int, max_shift: float = 0.15) -> Box | None:
-    """Shift a box into the image if it sticks out by at most ``max_shift`` of its size (a point
-    near the border); None if it would have to move further or is larger than the image."""
+def fit_inside(
+    box: Box, W: int, H: int, max_shift: float = 0.15, max_side_shift: float = 0.5
+) -> Box | None:
+    """Shift a box into the image; None if that is not possible without losing the spot.
+
+    Sideways it may move up to ``max_side_shift`` of its width: the VLM point (the contact point)
+    then still lies on the box's base, just not at its centre (pilot 2026-10-19: with 15%, 46 of
+    208 candidates near the left or right edge were rejected). Up or down only ``max_shift`` of
+    its height, so the object keeps standing on its surface."""
     x, y, w, h = box
     if w > W or h > H:
         return None
     dx = -x if x < 0 else min(0.0, W - (x + w))
     dy = -y if y < 0 else min(0.0, H - (y + h))
-    if abs(dx) > max_shift * w or abs(dy) > max_shift * h:
+    if abs(dx) > max_side_shift * w or abs(dy) > max_shift * h:
         return None
     return [x + dx, y + dy, w, h]
 

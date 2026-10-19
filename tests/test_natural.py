@@ -80,7 +80,9 @@ def test_box_rules():
     ok, why = check_box([10, 200, 40, 55], [], blocked, rules)
     assert not ok and "window" in why
     assert fit_inside([-5, 10, 100, 100], 300, 300) == [0, 10, 100, 100]
-    assert fit_inside([-50, 10, 100, 100], 300, 300) is None
+    assert fit_inside([-50, 10, 100, 100], 300, 300) == [0, 10, 100, 100]  # sideways: up to 50%
+    assert fit_inside([-60, 10, 100, 100], 300, 300) is None
+    assert fit_inside([10, -20, 100, 100], 300, 300) is None  # up/down: at most 15%
 
 
 def _natural_cfg(cfg, **natural):
