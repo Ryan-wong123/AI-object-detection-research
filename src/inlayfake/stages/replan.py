@@ -273,7 +273,8 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
         class_in_photo=free_in,
         class_in_photo_occ=base_in,
         placement_rule_occ=plan.get("placement_rule", "standard"),
-        placement_rule_free="standard",
+        # natural placement: every free-track box (version 0 included) comes from a VLM point
+        placement_rule_free="natural" if plan.get("placement_rule") == "natural" else "standard",
     )
     sid = plan["source_id"]
     if v_free:
@@ -604,11 +605,42 @@ def _ensure_merged(cfg, index, sources, plans, state, wd: Path, versions: dict) 
     return versions
 
 
+def _ensure_natural(cfg, plans, state, wd: Path, versions: dict) -> dict:
+    """Natural placement: version v of the free track is the photo's v-th valid natural spot
+    (``stages.natural``); a version past the last spot has no box, which ends the ladder."""
+    from inlayfake.stages.natural import load_valid, natural_version
+
+    valid = load_valid(wd)
+    new = []
+    for plan in plans:
+        sid = plan["source_id"]
+        if plan.get("box_free") is None:
+            continue
+        while True:
+            v = track_version(cfg, state, sid, FREE, versions)
+            missing = [ver for ver in range(1, v + 1) if (sid, FREE, ver) not in versions]
+            if not missing:
+                break
+            for ver in missing:
+                row = natural_version(valid, sid, FREE, ver)
+                versions[(sid, FREE, ver)] = row
+                new.append(row)
+    if new:
+        with (wd / "replans.jsonl").open("a", encoding="utf-8") as f:
+            for r in new:
+                f.write(json.dumps(r) + "\n")
+    return versions
+
+
 def ensure_versions(cfg, index, sources, plans, state, wd: Path) -> dict:
     """Create the box versions the current state needs; returns all versions."""
     versions = load_versions(wd)
     if merged(cfg):
         return _ensure_merged(cfg, index, sources, plans, state, wd, versions)
+    from inlayfake.stages.natural import enabled as natural_enabled
+
+    if natural_enabled(cfg):
+        return _ensure_natural(cfg, plans, state, wd, versions)
     if not max_version(cfg):
         return versions
     from inlayfake.stages.plan import audit_anns

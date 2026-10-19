@@ -47,6 +47,18 @@ placement:
                                        # the C4 rules (incl. margin_px) are unchanged
   allow_anywhere: false                # very last resort: a C5 box anywhere, no overlap rule
                                        # (ledger placement_rule "anywhere")
+  natural:                             # VLM-pointed, depth-scaled placement (stages/natural.py)
+    enabled: false
+    prompts: configs/placement_prompts.yaml   # pointing template, class table, check, box rules
+    vlm:
+      backend: molmo                   # molmo | internvl | fake (not a week-3 evaluated VLM)
+      model_id: allenai/Molmo-7B-D-0924
+      load_in_4bit: true
+    depth:
+      model_id: depth-anything/Depth-Anything-V2-Small-hf
+    classes_per_photo: 2               # classes asked per photo (each: up to max_candidates spots)
+    size_ratio: [0.5, 2.0]             # limit on the depth-based size change from the reference
+    check: true                        # VLM yes/no realism check in verify
   merged:                              # one AI condition instead of C4 + C5 (insert stage):
     enabled: false                     # keep a verified C4, else adopt a verified C5, else
     versions: 6                        # place a box of a photo class anywhere (this many

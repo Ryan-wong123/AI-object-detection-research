@@ -1,0 +1,29 @@
+# Natural-placement pilot (author, 2026-10-19): the 50 pilot photos with the AI object placed
+# where a VLM points (one fixed "Point to ..." prompt per class, configs/placement_prompts.yaml),
+# sized from the photo's own object of that class and scaled by monocular depth, never on a
+# person, at most 15% of any real object covered, not on window/mirror/ceiling/sky. C2 and C3 at
+# the same box; no C5. After OWLv2 the VLM answers four yes/no realism questions; a failure is
+# regenerated (3 seeds per spot, then the next valid spot; no random fallback).
+#
+#   python -m inlayfake sample --config configs/pilot_natural.yaml
+#   python -m inlayfake plan   --config configs/pilot_natural.yaml
+#   python -m inlayfake insert --config configs/pilot_natural.yaml
+#   python -m inlayfake preview --config configs/pilot_natural.yaml --limit 50
+inherit: pilot.yaml
+run_name: task2_pilot_natural
+conditions: [C0, C1, C2, C3, C4]
+placement:
+  class_choice: in_photo
+  audit_decisions: data/inlayfake/audit_decisions.csv
+  natural:
+    enabled: true
+edit:
+  window_scale: 1.2
+  window_min_px: 64
+  max_replans: 9          # versions 1..9 = the next valid natural spots (no new random boxes)
+  max_class_switches: 0
+  max_outside_classes: 0
+audit:
+  decisions: data/inlayfake/audit_decisions.csv
+paths:
+  work: data/inlayfake_pilot_natural

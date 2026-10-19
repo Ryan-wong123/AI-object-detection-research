@@ -113,6 +113,9 @@ def verify_state(wd: Path) -> dict[str, list[dict]]:
     if path.exists():
         for row in read_jsonl(path):
             state[row["key"]].append(row)
+    from inlayfake.stages.natural import apply_realism
+
+    apply_realism(wd, state)  # natural placement: edits the VLM judged implausible count as failed
     return state
 
 
@@ -442,6 +445,14 @@ def run(cfg: dict) -> dict:
         except ImportError:
             pass
 
+    realism = {}
+    from inlayfake.stages.natural import enabled as natural_enabled
+
+    if natural_enabled(cfg) and cfg["placement"]["natural"].get("check", True):
+        from inlayfake.stages.natural import realism_pass
+
+        realism = realism_pass(cfg, wd, state)  # after OWLv2/SAM are off the GPU
+
     final = build_final_ledger(wd, generated, state, cfg)
     write_ledger(final, wd / "ledger.jsonl")
     n_audit = audit_sheet(wd, final, vcfg.get("audit_fraction", 0.1), cfg["seed"] + 7, vcfg)
@@ -468,6 +479,8 @@ def run(cfg: dict) -> dict:
         "needs_retry": sum(v["needs_retry"] for v in by_cond.values()),
         "audit_sample": n_audit,
     }
+    if realism:
+        summary["realism_check"] = realism
     if merged(cfg):  # one AI condition per photo; C2 may wait for its AI edit (no rows yet)
         plans = read_jsonl(wd / "plans.jsonl")
         src = Counter(
