@@ -377,7 +377,10 @@ Check progress (progress bar, then passed / retrying / dropped counts):
 python -c "import json,glob,os; f=max(glob.glob('data/inlayfake_v3/runs/run_verify_*.json'),key=os.path.getmtime); d=json.load(open(f)); print({c:{k:v for k,v in d['by_condition'][c].items() if not k.startswith('passed_on')} for c in d['by_condition']}, 'needs_retry:', d['needs_retry'])"
 ```
 
-The run is resumable: if it stops, start the same command again (finished steps are kept).
+The run is resumable, also after a crash or power loss: start the same command again. Planning
+saves every photo as it finishes (`natural_plan_progress.jsonl`), generation every image, and
+verification every check, so at most the photo or image in progress is redone. Files are written
+crash-safely (a cut-off last log line is skipped; records and plans are replaced in one step).
 
 ## Viewing the detector results
 

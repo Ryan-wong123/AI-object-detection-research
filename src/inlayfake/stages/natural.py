@@ -40,6 +40,7 @@ from inlayfake.edit.natural import (
 )
 
 CANDIDATES = "natural_candidates.jsonl"
+PROGRESS = "natural_plan_progress.jsonl"  # one line per planned photo, so planning can resume
 REALISM = "realism.jsonl"
 
 
@@ -146,11 +147,22 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
     spath = pcfg.get("support", {}).get("stuff_annotations")
     stuff = StuffIndex.load(spath) if spath and Path(spath).exists() else None
     device = cfg["hardware"]["device"]
-    depth_model = build_depth(ncfg["depth"], device)
-    vlm = build_vlm(ncfg["vlm"], device)
+    depth_model = vlm = None  # loaded when the first photo needs them (none if all resumed)
     rng = np.random.default_rng(derive_seed(cfg["seed"], "natural_plan"))
     used: Counter = Counter()
     plans, failed, rows = [], [], []
+    # resume (author, 2026-10-20): every planned photo is saved at once, so a stopped or crashed
+    # run continues where it stopped; finished photos are replayed (same random draws and class
+    # balance as an uninterrupted run, so the plans are identical)
+    done = {}
+    if (wd / PROGRESS).exists():
+        for line in (wd / PROGRESS).read_text(encoding="utf-8").splitlines():
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:  # a line cut off by a crash: that photo is redone
+                continue
+            done[rec["source_id"]] = rec
+    progress = (wd / PROGRESS).open("a", encoding="utf-8")
     for src in tqdm(sources, desc="natural placement"):
         sid, W, H = src["source_id"], src["width"], src["height"]
         labels = _labels(index, sid, extra.get(sid, []))
@@ -162,6 +174,20 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         if not classes:
             failed.append({"source_id": sid, "reason": "no insertable class"})
             continue
+        if sid in done:  # planned before a stop: replay it
+            balanced_order(classes, used, rng)  # the same random draw as the first time
+            rec = done[sid]
+            rows.extend(rec["rows"])
+            if rec["plan"] is not None:
+                used[rec["plan"]["category"]] += 1
+                plans.append(rec["plan"])
+            else:
+                failed.append(rec["failed"])
+            continue
+        if vlm is None:
+            depth_model = build_depth(ncfg["depth"], device)
+            vlm = build_vlm(ncfg["vlm"], device)
+        n_rows = len(rows)
         img = load_rgb(index.image_path(sid))
         depth = depth_model(img)
         blocked_all = stuff.mask(sid, set(BLOCKED_STUFF), H, W) if stuff else None
@@ -259,13 +285,14 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                     row["valid_rank"] = len(valid)
                     valid.append(row)
                 rows.append(row)
+        rec = {"source_id": sid, "rows": rows[n_rows:], "plan": None, "failed": None}
         if not valid:
-            failed.append({"source_id": sid, "reason": "no natural spot"})
-            continue
-        first = valid[0]
-        used[first["category"]] += 1
-        plans.append(
-            {
+            rec["failed"] = {"source_id": sid, "reason": "no natural spot"}
+            failed.append(rec["failed"])
+        else:
+            first = valid[0]
+            used[first["category"]] += 1
+            rec["plan"] = {
                 "source_id": sid,
                 "split": src["split"],
                 "category": first["category"],
@@ -275,7 +302,10 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 "class_in_photo": True,
                 "placement_rule": "natural",
             }
-        )
+            plans.append(rec["plan"])
+        progress.write(json.dumps(rec) + "\n")
+        progress.flush()
+    progress.close()
     with (wd / CANDIDATES).open("w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
