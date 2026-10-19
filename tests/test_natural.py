@@ -29,8 +29,9 @@ def test_prompts_cover_every_class_once():
         "naturally rest."
     )
     qs = check_questions(p, "bird")
-    assert [q[0] for q in qs] == ["supported", "not_glass", "size", "whole"]
-    assert "flying in open sky also counts" in qs[0][1]  # air class
+    assert [q[0] for q in qs] == ["supported", "through_glass", "size", "whole"]
+    assert "or flying in the sky" in qs[0][1]  # air class
+    assert qs[1][2] == "no"  # seen through glass: must be "no"
     assert "flying" not in check_questions(p, "dog")[0][1]
     assert p["rules"]["max_cover_real"] == 0.15
 

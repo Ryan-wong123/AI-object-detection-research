@@ -30,13 +30,17 @@ box_rules:
   max_candidates: 5        # VLM points tried per class before the next class in the photo
 
 check:
-  instruction: "The red box marks a {class} that was added to this photo. Answer each question with yes or no only."
+  # pilot 2026-10-19: the first wording failed all 17 accepted edits. "in front of any glass ...
+  # rather than seen through it" asked the inverse of what was scored (no glass nearby -> "no"),
+  # and the compound "resting on a surface or held up by something, as it would be in reality"
+  # was answered "no" every time. Now one plain question each, with a neutral instruction.
+  instruction: "Look at the {class} inside the red box. Answer yes or no only."
   questions:
-    - {id: supported, text: "Is the {class} resting on a surface or held up by something, as it would be in reality{air_clause}?", expected: "yes"}
-    - {id: not_glass, text: "Is the {class} in front of any glass, window, mirror or screen rather than seen through it or reflected in it?", expected: "yes"}
-    - {id: size, text: "Is the size of the {class} plausible compared with the objects around it?", expected: "yes"}
-    - {id: whole, text: "Does the box contain one complete, recognisable {class} rather than a fragment, blob or distorted shape?", expected: "yes"}
-  air_clause: " (flying in open sky also counts)"
+    - {id: supported, text: "Is the {class} in the red box standing, lying or resting on the ground, a floor or another surface{air_clause}?", expected: "yes"}
+    - {id: through_glass, text: "Is the {class} in the red box seen through a window or glass, reflected in a mirror, or shown on a screen?", expected: "no"}
+    - {id: size, text: "Is the {class} in the red box a realistic size compared with the things around it?", expected: "yes"}
+    - {id: whole, text: "Does the red box contain one complete {class}, not a fragment or a blurry blob?", expected: "yes"}
+  air_clause: ", or flying in the sky"
 
 # where/how per group; classes list the members. air: point may be in open sky.
 groups:

@@ -17,6 +17,9 @@ placement:
   audit_decisions: data/inlayfake/audit_decisions.csv
   natural:
     enabled: true
+    check: false          # 2026-10-19: Molmo's yes/no realism answers were unusable in this pilot
+                          # (it said "not resting on a surface" and "seen through glass" for nearly
+                          # every edit, under two wordings); edits are judged by eye instead
 edit:
   window_scale: 1.2
   window_min_px: 64

@@ -52,7 +52,7 @@ def parse_yes_no(text: str) -> str:
 # ---------------------------------------------------------------------------------------- VLMs
 class FakeVLM:
     """CPU stand-in: points along the lower part of the image (where floors and tables usually
-    are), answers 'yes' unless the record id is in ``fail_ids``."""
+    are) and answers the realism questions as a judge that finds every edit natural."""
 
     name = "fake"
 
@@ -65,7 +65,11 @@ class FakeVLM:
         return pts, "fake points"
 
     def ask(self, img: np.ndarray, question: str, record_id: str = "") -> str:
-        return "no" if record_id in self.fail_ids else "yes"
+        """Answers as a judge that finds the edit natural ("no" only to the seen-through-glass
+        question); 'unclear' (a failing answer) for records in ``fail_ids``."""
+        if record_id in self.fail_ids:
+            return "unclear"
+        return "no" if "seen through" in question else "yes"
 
 
 class MolmoVLM:
