@@ -192,8 +192,10 @@ cloud sandbox, so their first real run is the pilot.
   person or of a real object covered, object filling at least 25% of its box;
   `configs/insertion_natural.yaml`). It runs planning alone first: the number of photos with a
   spot decides whether the rules are loosened further before any generation. Molmo's answers are
-  saved, so trying other rules re-checks the photos in minutes. Photos with a spot / with a
-  natural AI edit: [[TBD]].
+  saved, so trying other rules re-checks the photos in minutes. Planning result: **349 of 544
+  photos (64%) have a natural spot** <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json -->; looser overlap limits
+  would add at most 50 (40%), 62 (50%) or 78 (60%) photos. Photos with a verified natural AI
+  edit: [[TBD]].
 - **Compared with random placement on the same photos:** objects rest on a fitting surface more
   often (64% vs 46%) and on walls less often (11% vs 20%), but they are smaller (median 0.5% vs
   0.8% of the image) <!-- file:paper/results/task2_pilot_natural_vs_random.json -->. Proposed fixes:

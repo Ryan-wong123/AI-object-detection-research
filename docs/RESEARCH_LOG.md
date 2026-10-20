@@ -7,6 +7,31 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-20: Full natural run, planning only: 349 of 544 photos have a natural spot
+
+- **Run** `task2_insertion_natural`, `run_plan_2026-10-20T145159Z` (v4 rules: up to 30% of a
+  person or real object covered, box fill >= 25% at verification);
+  `paper/results/task2_insertion_natural_plan.json`.
+- **Result:** **349 of 544 photos (64%)** have at least one valid natural spot; 195 have none
+  (every photo has an insertable class). 993 valid of 2,363 candidate spots; 75 classes planned
+  (most: surfboard 18, toilet 12, horse 10). Main rejections: 85 outside the image, 80 covering a
+  whole person, 39 answers without a point, and many points on surfaces the class does not rest on
+  (metal, buildings, fences, walls, trees, ...).
+- **Why photos have no spot** (kinds of rejection among each photo's candidates): only wrong
+  surface 53, real-object overlap 24 (+28 with surface), people 12 (+18 with surface, +11 with
+  real), no point in Molmo's answer 21.
+- **Upper bound for looser overlap limits** (photos with a candidate rejected only for covering
+  a person/real object by at most the limit; other checks may still reject them): 40%: +50
+  photos, 50%: +62, 60%: +78. So even 60% would leave about 120 photos without a spot.
+- **Process:** speed fixes during the run (Molmo memory, CPU power mode, ~12 s per photo at the
+  end); the last restart re-checked all saved photos once from saved answers (124 Molmo
+  questions asked, 736 reused). Photos 1–28 are now planned with the depth model on the CPU, as
+  all others are.
+- **Next:** author decides: keep the v4 rules (349 photos) and start `insert`, or loosen
+  overlap limits and re-plan (minutes).
+
+---
+
 ## 2026-10-20: Planning first; saved VLM answers make rule changes cheap
 
 - **Author decision:** run the planning stage of the full natural run alone first, look at how
