@@ -56,6 +56,8 @@ placement:
       load_in_4bit: true
     depth:
       model_id: depth-anything/Depth-Anything-V2-Small-hf
+      device: cpu                      # small model, ~1 s per photo on the CPU; on the GPU it pushed
+                                       # Molmo past 8 GB into shared memory (5x slower, 20 Oct)
     classes_per_photo: 2               # classes asked per photo (each: up to max_candidates spots)
     max_candidates: 5                  # spots tried per class (VLM points, spread out)
     min_point_dist: 0.1                # spots at least this x the image diagonal apart

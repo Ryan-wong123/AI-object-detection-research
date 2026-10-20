@@ -65,6 +65,16 @@ def _free_gpu() -> None:
         pass
 
 
+def _free_cuda_cache() -> None:
+    """Release cached GPU memory between photos (no-op without torch or CUDA)."""
+    try:
+        import torch
+    except ImportError:
+        return
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 def _labels(index, sid: int, extra: list[dict]) -> list[dict]:
     """The photo's real objects with class names: COCO labels plus week-1 audit rows ("add" are
     real objects; ignore / "?" are unresolved regions, treated like objects here so a box never
@@ -255,7 +265,7 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 failed.append(rec["failed"])
             continue
         if depth_model is None:
-            depth_model = build_depth(ncfg["depth"], device)
+            depth_model = build_depth(ncfg["depth"], ncfg["depth"].get("device", device))
         n_rechecked += sid in seen
         n_rows = len(rows)
         img = load_rgb(index.image_path(sid))
@@ -401,6 +411,9 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
             plans.append(rec["plan"])
         progress.write(json.dumps(rec) + "\n")
         progress.flush()
+        # free the photo's activations and Molmo's generation cache: on the 8 GB GPU, memory left
+        # reserved between photos spilled into shared system memory (~80 s instead of ~15 s/photo)
+        _free_cuda_cache()
     progress.close()
     points_file.close()
     with (wd / CANDIDATES).open("w", encoding="utf-8") as f:
