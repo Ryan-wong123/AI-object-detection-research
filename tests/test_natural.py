@@ -377,3 +377,54 @@ def test_plan_settings_do_not_depend_on_set_order(cfg):
     assert plan_settings(c, flipped, {}) == a
     s = next(iter(a["prompts"]["classes"].values()))["surfaces"]
     assert isinstance(s, list) and s == sorted(s)
+
+
+def test_parse_bbox_2d_and_dedupe():
+    """Qwen3-VL boxes on the 0-1000 grid become pixel [x, y, w, h]; near-duplicates are dropped."""
+    from inlayfake.edit.natural import dedupe_boxes
+    from inlayfake.edit.scene import parse_bbox_2d
+
+    text = '[{"bbox_2d": [100, 500, 300, 700], "label": "cup"}, {"bbox_2d": [0, 0, 1200, 50]}]'
+    boxes = parse_bbox_2d(text, 640, 480)
+    assert boxes[0] == [64.0, 240.0, 128.0, 96.0]
+    assert boxes[1] == [0.0, 0.0, 640.0, 24.0]  # clipped to the image
+    assert parse_bbox_2d("[]", 640, 480) == []
+    a, b, c = [0, 0, 100, 100], [5, 5, 100, 100], [300, 300, 50, 50]
+    assert dedupe_boxes([a, b, c], 5) == [a, c]
+    assert dedupe_boxes([a, b, c], 1) == [a]
+
+
+def test_box_prompt_fills_the_class_slots():
+    from inlayfake.edit.natural import box_prompt, load_prompts
+
+    p = box_prompt(load_prompts(PROMPTS), "tennis racket")
+    assert "one more tennis racket" in p and "lie on the ground" in p and "bbox_2d" in p
+    assert "{" not in p.replace('[{"bbox_2d"', "").replace("}]", "")  # every slot filled
+
+
+def test_box_mode_plans_use_the_vlm_boxes(cfg, tmp_path):
+    """mode: box takes the VLM's own boxes (after the same rules), records size_from 'vlm', and
+    reuses the saved answers on a second run."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    c = _natural_cfg(cfg, mode="box", check_point_surface=False)
+    sample.run(c)
+    summary = plan.run(c)
+    wd = tmp_path / "work"
+    cands = [json.loads(x) for x in (wd / "natural_candidates.jsonl").read_text().splitlines()]
+    ok = [r for r in cands if r["ok"]]
+    assert ok and all(r["size_from"] == "vlm" for r in ok)
+    plans = [json.loads(x) for x in (wd / "plans.jsonl").read_text().splitlines()]
+    assert summary["n_plans"] == len(plans) > 0
+    for p in plans:  # the plan's box is one of the fake VLM's flat boxes (scaled to the photo)
+        x, y, w, h = p["box_free"]
+        assert w > h
+    calls = []
+    orig = scene.FakeVLM.boxes
+    scene.FakeVLM.boxes = lambda self, img, prompt: calls.append(1) or orig(self, img, prompt)
+    try:
+        again = plan.run(c)
+    finally:
+        scene.FakeVLM.boxes = orig
+    assert calls == [] and again["n_plans"] == summary["n_plans"]
