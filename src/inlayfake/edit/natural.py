@@ -66,6 +66,7 @@ def load_prompts(path: str | Path) -> dict:
         "box_template": y.get("box_template"),
         "box_retry_template": y.get("box_retry_template"),
         "any_class_template": y.get("any_class_template"),
+        "any_class_alt_template": y.get("any_class_alt_template"),
         "check": y["check"],
         "rules": y.get("box_rules", {}),
         "classes": classes,
@@ -151,10 +152,18 @@ def box_retry_prompt(
 
 
 def any_class_prompt(
-    prompts: dict, classes: list[str], taken: list[list[float]], min_side_px: float, W: int, H: int
+    prompts: dict,
+    classes: list[str],
+    taken: list[list[float]],
+    min_side_px: float,
+    W: int,
+    H: int,
+    alt: bool = False,
 ) -> str:
-    """Any-class question: the VLM picks one of ``classes`` that fits the scene."""
-    return prompts["any_class_template"].format(
+    """Any-class question: the VLM picks one of ``classes`` that fits the scene (``alt``: the
+    wording that starts from free space)."""
+    key = "any_class_alt_template" if alt else "any_class_template"
+    return prompts[key].format(
         taken=_taken_text(taken, W, H),
         class_list=", ".join(classes),
         min_side=min_side_grid(min_side_px, W, H),

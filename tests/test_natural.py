@@ -586,3 +586,49 @@ def test_spot_review_page_server_and_plan(cfg, tmp_path):
     c2 = deep_merge(c, {"placement": {"natural": {"review": {"enabled": True}}}})
     after = plan.run(c2)
     assert after["n_plans"] == 1
+
+
+def test_more_questions_only_for_photos_without_an_accepted_spot(cfg, tmp_path, monkeypatch):
+    """more_questions: a photo whose spots were all rejected in review gets every class and both
+    any-class questions; a photo with an accepted spot is planned exactly as before and asks
+    nothing new."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+    from inlayfake.stages.spots import spot_id
+
+    c = _natural_cfg(
+        cfg,
+        mode="box",
+        check_point_surface=False,
+        retry=True,
+        any_class=True,
+        stop_when_valid=True,
+        classes_per_photo=99,
+    )
+    sample.run(c)
+    plan.run(c)
+    wd = tmp_path / "work"
+    before = [json.loads(x) for x in (wd / "natural_candidates.jsonl").open()]
+    sids = sorted({r["source_id"] for r in before if r["ok"]})
+    assert len(sids) >= 2
+    bad, good = sids[0], sids[1]
+    dec = {spot_id(r): "reject" for r in before if r["ok"] and r["source_id"] == bad}
+    dec |= {spot_id(r): "accept" for r in before if r["ok"] and r["source_id"] == good}
+    (wd / "spot_review.json").write_text(json.dumps(dec))
+    asked = []
+    orig = scene.FakeVLM.boxes
+
+    def spy(self, img, prompt):
+        asked.append(prompt)
+        return orig(self, img, prompt)
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", spy)
+    more = deep_merge(c, {"placement": {"natural": {"more_questions": True}}})
+    plan.run(more)
+    after = [json.loads(x) for x in (wd / "natural_candidates.jsonl").open()]
+    rounds_bad = {r.get("round") for r in after if r["source_id"] == bad}
+    assert {"any", "any2"} <= rounds_bad
+    assert [r for r in after if r["source_id"] == good] == [
+        r for r in before if r["source_id"] == good
+    ]
+    assert asked and any("empty areas" in p for p in asked)
