@@ -62,6 +62,7 @@ def load_prompts(path: str | Path) -> dict:
             }
     return {
         "template": y["template"],
+        "box_template": y.get("box_template"),
         "check": y["check"],
         "rules": y.get("box_rules", {}),
         "classes": classes,
@@ -71,6 +72,40 @@ def load_prompts(path: str | Path) -> dict:
 def pointing_prompt(prompts: dict, category: str) -> str:
     c = prompts["classes"][category]
     return prompts["template"].format(where=c["where"], how=c["how"], **{"class": category})
+
+
+def box_prompt(prompts: dict, category: str) -> str:
+    """Box-mode question (``box_template``) for one class; ``where_short`` is the group's
+    ``where`` without the leading "empty spots on"."""
+    c = prompts["classes"][category]
+    where = c["where"]
+    for lead in ("empty spots on the ", "empty spots on ", "empty spots in ", "empty spots "):
+        if where.startswith(lead):
+            where = "the " + where[len(lead) :] if lead.endswith("the ") else where[len(lead) :]
+            break
+    return prompts["box_template"].format(where_short=where, how=c["how"], **{"class": category})
+
+
+def dedupe_boxes(boxes: list[list[float]], max_n: int, max_iou: float = 0.5) -> list[list[float]]:
+    """Boxes in the VLM's order without near-duplicates (IoU > ``max_iou`` with an earlier box),
+    at most ``max_n``."""
+    out: list[list[float]] = []
+    for b in boxes:
+        if all(_iou(b, o) <= max_iou for o in out):
+            out.append(b)
+        if len(out) == max_n:
+            break
+    return out
+
+
+def _iou(a: list[float], b: list[float]) -> float:
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    iw = max(0.0, min(ax + aw, bx + bw) - max(ax, bx))
+    ih = max(0.0, min(ay + ah, by + bh) - max(ay, by))
+    inter = iw * ih
+    union = aw * ah + bw * bh - inter
+    return inter / union if union > 0 else 0.0
 
 
 def check_questions(prompts: dict, category: str) -> list[tuple[str, str, str]]:

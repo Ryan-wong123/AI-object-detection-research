@@ -20,6 +20,21 @@
 
 template: "Point to {where} where another {class} could naturally {how}."
 
+# Box mode (placement.natural.mode: box; author, 2026-10-21): the VLM (Qwen3-VL-8B) sees the whole
+# photo and draws the box itself, so the box's place, size and shape (an object lying flat gets a
+# flat box) come from its reading of the scene, not from a point plus a depth-scaled template.
+# Motivation: with points, 39 of 73 planned objects that should lie flat got an upright box (a
+# tennis racket standing in mid-air against a wall). The same where/how slots fill it.
+box_template: >-
+  Look at the whole photo and understand the scene: what is happening, where the surfaces are,
+  and how big things are at each distance. Where could one more {class} be added so that it
+  looks completely natural and makes sense in this exact scene? It should {how} on {where_short},
+  rest on a real surface (or be in open sky if it can fly), have a realistic size and orientation
+  for its distance, fit what is happening in the photo, and not be on or in front of a person.
+  Give up to 3 different places, best first, as JSON:
+  [{{"bbox_2d": [x1, y1, x2, y2], "label": "{class}"}}].
+  The box must tightly fit the whole new {class}. If no place would look natural, answer [].
+
 # Box rules for a candidate spot (author, 2026-10-19). A real object = any labelled object of the
 # photo (COCO labels + week-1 audit "add" labels). Overlap is measured as the share of the real
 # object's area that the AI box covers. A spot that breaks a rule is skipped; if no spot or class

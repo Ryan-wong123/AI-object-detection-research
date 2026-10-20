@@ -26,6 +26,9 @@ from PIL import Image
 
 # ---------------------------------------------------------------------------- answer parsing
 _MOLMO_POINT = re.compile(r'x\d*="([\d.]+)"\s+y\d*="([\d.]+)"')
+_BBOX_2D = re.compile(
+    r'"bbox_2d"\s*:\s*\[\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\]'
+)
 _GRID_POINT = re.compile(r"\[\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\]")
 
 
@@ -33,6 +36,19 @@ def parse_molmo_points(text: str, W: int, H: int) -> list[tuple[float, float]]:
     """Molmo writes <point x="61.5" y="40.6" ...> or <points x1=".." y1=".." x2=..>, in percent
     of the image width/height."""
     return [(float(x) / 100 * W, float(y) / 100 * H) for x, y in _MOLMO_POINT.findall(text)]
+
+
+def parse_bbox_2d(text: str, W: int, H: int, scale: float = 1000.0) -> list[list[float]]:
+    """Qwen3-VL boxes ``"bbox_2d": [x1, y1, x2, y2]`` on a 0-``scale`` grid, as [x, y, w, h] in
+    pixels (clipped to the image; empty boxes dropped)."""
+    out = []
+    for m in _BBOX_2D.findall(text):
+        x1, y1, x2, y2 = (float(v) / scale for v in m)
+        x1, x2 = sorted((min(max(x1, 0), 1) * W, min(max(x2, 0), 1) * W))
+        y1, y2 = sorted((min(max(y1, 0), 1) * H, min(max(y2, 0), 1) * H))
+        if x2 - x1 >= 1 and y2 - y1 >= 1:
+            out.append([x1, y1, x2 - x1, y2 - y1])
+    return out
 
 
 def parse_grid_points(text: str, W: int, H: int) -> list[tuple[float, float]]:
@@ -64,6 +80,12 @@ class FakeVLM:
         H, W = img.shape[:2]
         pts = [(0.5 * W, 0.97 * H), (0.2 * W, 0.95 * H), (0.8 * W, 0.95 * H)]
         return pts, "fake points"
+
+    def boxes(self, img: np.ndarray, prompt: str) -> tuple[list[list[float]], str]:
+        """Two flat boxes resting on the lower part of the image (box mode)."""
+        H, W = img.shape[:2]
+        bx = [[0.35 * W, 0.8 * H, 0.3 * W, 0.15 * H], [0.05 * W, 0.78 * H, 0.25 * W, 0.15 * H]]
+        return bx, "fake boxes"
 
     def ask(self, img: np.ndarray, question: str, record_id: str = "") -> str:
         """Answers as a judge that finds the edit natural ("no" only to the seen-through-glass
@@ -251,12 +273,52 @@ class InternVLVLM:
         return self._generate(img, question + " Answer yes or no.", 8)
 
 
+class QwenVLM(InternVLVLM):
+    """Qwen3-VL (box mode): draws boxes itself, ``bbox_2d`` on a 0-1000 grid. Same chat-template
+    generation as InternVL; 4-bit, the whole model on the one GPU."""
+
+    name = "qwen"
+
+    def __init__(self, model_id: str, device: str, load_in_4bit: bool = True) -> None:
+        import torch
+        from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
+
+        kw: dict = {"device_map": {"": device}}
+        if load_in_4bit and device.startswith("cuda"):
+            # the vision encoder stays in 16 bit (usual for VLMs in 4-bit)
+            kw["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_quant_type="nf4",
+                llm_int8_skip_modules=["visual", "lm_head"],
+            )
+            kw["dtype"] = torch.float16
+        else:
+            kw["dtype"] = torch.float32
+        self.processor = AutoProcessor.from_pretrained(model_id)
+        self.model = AutoModelForImageTextToText.from_pretrained(model_id, **kw)
+        self.model.eval()
+
+    def boxes(self, img: np.ndarray, prompt: str) -> tuple[list[list[float]], str]:
+        text = self._generate(img, prompt, 300)
+        H, W = img.shape[:2]
+        return parse_bbox_2d(text, W, H), text
+
+    def point(self, img: np.ndarray, prompt: str) -> tuple[list[tuple[float, float]], str]:
+        raise NotImplementedError("Qwen is used in box mode (placement.natural.mode: box)")
+
+    def ask(self, img: np.ndarray, question: str, record_id: str = "") -> str:
+        return self._generate(img, question + " Answer yes or no.", 8)
+
+
 def build_vlm(vcfg: dict, device: str):
     backend = vcfg.get("backend", "molmo")
     if backend == "fake":
         return FakeVLM(set(vcfg.get("fake_fail_ids", [])))
     if backend == "molmo":
         return MolmoVLM(vcfg["model_id"], device, vcfg.get("load_in_4bit", True))
+    if backend == "qwen":
+        return QwenVLM(vcfg["model_id"], device, vcfg.get("load_in_4bit", True))
     if backend == "internvl":
         return InternVLVLM(vcfg["model_id"], device, vcfg.get("load_in_4bit", True))
     raise ValueError(f"unknown VLM backend {backend!r}")

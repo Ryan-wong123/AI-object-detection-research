@@ -30,8 +30,10 @@ from inlayfake.edit.natural import (
     BLOCKED_STUFF,
     SKY_STUFF,
     box_from_point,
+    box_prompt,
     check_box,
     check_questions,
+    dedupe_boxes,
     fit_inside,
     load_prompts,
     point_support,
@@ -150,6 +152,7 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
     VLM's answers come from ``POINTS``)."""
     pcfg, ncfg = cfg["placement"], cfg["placement"]["natural"]
     keys = (
+        "mode",
         "check_point_surface",
         "min_box_frac",
         "min_box_side_px",
@@ -286,26 +289,35 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
             things = _thing_masks(index, sid)
         sky = stuff.mask(sid, set(SKY_STUFF), H, W) if stuff else None
         valid = []
+        box_mode = ncfg.get("mode", "point") == "box"
+        n_max = ncfg.get("max_candidates", rules.get("max_candidates", 5))
         for cat in balanced_order(classes, used, rng)[: ncfg.get("classes_per_photo", 2)]:
             air = prompts["classes"][cat]["air"]
             blocked = blocked_all & ~sky if (air and blocked_all is not None) else blocked_all
             same = [lb for lb in labels if lb["category"] == cat]
             refs = usable_references(same, labels, W, H)
-            prompt = pointing_prompt(prompts, cat)
+            prompt = box_prompt(prompts, cat) if box_mode else pointing_prompt(prompts, cat)
             key = _point_key(sid, cat, prompt, vid)
             if key in points_cache:  # asked before (this run or an earlier one): reuse
                 hit = points_cache[key]
-                points = [tuple(pt) for pt in hit["points"]]
+                points = [tuple(pt) for pt in hit.get("points", [])]
+                vboxes = hit.get("boxes", [])
                 answer, vlm_name = hit["answer"], hit["vlm"]
                 n_reused += 1
             else:
                 if vlm is None:
                     vlm = build_vlm(ncfg["vlm"], device)
-                points, answer = vlm.point(img, prompt)
+                if box_mode:
+                    vboxes, answer = vlm.boxes(img, prompt)
+                    points = []
+                else:
+                    points, answer = vlm.point(img, prompt)
+                    vboxes = []
                 vlm_name = vlm.name
                 hit = {
                     "key": key,
                     "points": [list(pt) for pt in points],
+                    "boxes": [list(b) for b in vboxes],
                     "answer": answer,
                     "vlm": vlm_name,
                 }
@@ -313,6 +325,19 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 points_file.write(json.dumps(hit) + "\n")
                 points_file.flush()
                 n_asked += 1
+            if box_mode:
+                # the VLM's own boxes; the contact point is the bottom centre (the centre for a
+                # flying class whose centre is in open sky), used for the surface check
+                vboxes = dedupe_boxes(vboxes, n_max)
+                points = []
+                for bx, by, bw, bh in vboxes:
+                    cx, cy = bx + bw / 2, by + bh / 2
+                    in_sky = bool(
+                        air
+                        and sky is not None
+                        and sky[int(np.clip(cy, 0, H - 1)), int(np.clip(cx, 0, W - 1))]
+                    )
+                    points.append((cx, cy) if in_sky else (cx, by + bh - 1))
             if not points:
                 rows.append(
                     {
@@ -322,17 +347,15 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                         "prompt": prompt,
                         "answer": answer,
                         "ok": False,
-                        "reason": "no point in the answer",
+                        "reason": "no box in the answer" if box_mode else "no point in the answer",
                     }
                 )
             # spots per class: placement.natural.max_candidates (default: the prompt file's
             # box_rules), at least min_point_dist x the image diagonal apart
-            spots = spread_points(
-                points,
-                W,
-                H,
-                ncfg.get("max_candidates", rules.get("max_candidates", 5)),
-                ncfg.get("min_point_dist", 0.1),
+            spots = (
+                points
+                if box_mode
+                else spread_points(points, W, H, n_max, ncfg.get("min_point_dist", 0.1))
             )
             for rank, (px, py) in enumerate(spots):
                 on_sky = bool(
@@ -361,22 +384,34 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                             }
                         )
                         continue
-                box, info = box_from_point(
-                    (px, py),
-                    depth,
-                    refs,
-                    _typical_wh(stats, cat, W, H),
-                    on_sky,
-                    tuple(ncfg.get("size_ratio", (0.5, 2.0))),
-                    pcfg["max_area_frac"],
-                    ncfg.get("min_box_side_px", pcfg["min_side_px"]),
-                    ncfg.get("min_box_frac", 0.0),
-                )
-                fitted = fit_inside(box, W, H)
-                if fitted is None:
-                    ok, reason = False, "outside the image"
+                if box_mode:
+                    box, info = list(vboxes[rank]), {"size_from": "vlm"}
+                    fitted = box
+                    area = box[2] * box[3]
+                    min_side = ncfg.get("min_box_side_px", pcfg["min_side_px"])
+                    if area < ncfg.get("min_box_frac", 0.0) * W * H or min(box[2:]) < min_side:
+                        ok, reason = False, "too small"
+                    elif area > pcfg["max_area_frac"] * W * H:
+                        ok, reason = False, "too large"
+                    else:
+                        ok, reason = check_box(box, labels, blocked, rules)
                 else:
-                    ok, reason = check_box(fitted, labels, blocked, rules)
+                    box, info = box_from_point(
+                        (px, py),
+                        depth,
+                        refs,
+                        _typical_wh(stats, cat, W, H),
+                        on_sky,
+                        tuple(ncfg.get("size_ratio", (0.5, 2.0))),
+                        pcfg["max_area_frac"],
+                        ncfg.get("min_box_side_px", pcfg["min_side_px"]),
+                        ncfg.get("min_box_frac", 0.0),
+                    )
+                    fitted = fit_inside(box, W, H)
+                    if fitted is None:
+                        ok, reason = False, "outside the image"
+                    else:
+                        ok, reason = check_box(fitted, labels, blocked, rules)
                 row = {
                     "source_id": sid,
                     "category": cat,
