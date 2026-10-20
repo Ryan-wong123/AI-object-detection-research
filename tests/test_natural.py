@@ -397,8 +397,9 @@ def test_parse_bbox_2d_and_dedupe():
 def test_box_prompt_fills_the_class_slots():
     from inlayfake.edit.natural import box_prompt, load_prompts
 
-    p = box_prompt(load_prompts(PROMPTS), "tennis racket")
-    assert "one more tennis racket" in p and "lie on the ground" in p and "bbox_2d" in p
+    p = box_prompt(load_prompts(PROMPTS), "tennis racket", [[64, 240, 128, 96]], 640, 480)
+    assert "new tennis racket" in p and "lie on the ground" in p and "bbox_2d" in p
+    assert "one tennis racket at bbox_2d [100, 500, 300, 700]" in p  # existing one, 0-1000 grid
     assert "{" not in p.replace('[{"bbox_2d"', "").replace("}]", "")  # every slot filled
 
 

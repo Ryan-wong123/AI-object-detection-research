@@ -7,6 +7,35 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Box mode: Qwen3-VL-8B draws the box (planning-only pilot, 50 photos)
+
+- **Why:** the author found many planned boxes that do not make sense (a tennis racket standing
+  in mid-air against a wall). Cause: Molmo's point was fine, but the template box was upright;
+  39 of 73 planned objects that should lie flat had an upright box (full run, 50% plan). Author
+  decision: let a stronger VLM read the whole scene and draw the box itself (option 3), with
+  Qwen3-VL-8B although week 3 evaluates Qwen2.5-VL-3B (same family; it only picks the location;
+  to be disclosed and checked in week 3). Commit 71f38aa (`placement.natural.mode: box`).
+- **Model:** Qwen3-VL-8B-Instruct, 4-bit: 6.3 GB on the GPU, 3–9 s per answer (Molmo: 15–45 s).
+- **First test (3 photos):** Qwen boxed the *existing* skis and bowl instead of an empty place.
+  Fix: the question lists the photo's own objects of the class (0–1000 grid) and asks for an
+  empty place; then the racket boxes lie flat on the court and the skis box is on empty snow.
+- **Pilot** (`configs/pilot_natural_qwen.yaml`, same 50 photos as pilots v1–v4, 50% overlap
+  limits, surface check at the box's bottom centre; `run_plan_2026-10-20T171733Z`, UTC):
+  **7 of 50 photos** have a spot: 84 of 150 boxes are below the minimum box (2% of the image,
+  64 px), because Qwen draws realistic tight boxes (median 0.6% of the image, 29 px short side).
+  With a 0.5% / 32 px minimum (`pilot_natural_qwen_small.yaml`, `run_plan_2026-10-20T171923Z`):
+  **22 of 50** (46 boxes still too small, 10 with the bottom on a person, 8 answers without a box).
+  Molmo pilot v2 for comparison: 27 of 50 planned, 18 verified.
+- **By eye (preview page, 22 photos):** most boxes sit in a sensible place at a sensible size
+  (a surfboard on the water by the surfer, rackets flat on the court); some do not (a sink box on
+  the floor under the counter, a train box at the image edge). Not a full fix: still needs the
+  author's judgement.
+- **Trade-off:** realistic sizes are small; the 2% minimum was added on 20 Oct against tiny,
+  smudged SDXL objects. Smaller boxes raise coverage but risk generation and verification.
+- **Next:** author decides the minimum box size and whether to run box mode on the 544 photos.
+
+---
+
 ## 2026-10-21: Overlap limits raised to 50%: 389 of 544 photos have a natural spot
 
 - **Author decision:** after the planning-only pass (349 photos at 30%), raise both overlap

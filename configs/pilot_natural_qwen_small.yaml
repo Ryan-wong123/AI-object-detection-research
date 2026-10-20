@@ -1,0 +1,9 @@
+# What-if for the box-mode pilot (2026-10-21): smaller minimum box, since Qwen draws realistic,
+# tight boxes (half of the rejected ones are under 0.6% of the image). Same work dir: the saved
+# Qwen answers are reused, only the rules are re-checked.
+inherit: pilot_natural_qwen.yaml
+run_name: task2_pilot_natural_qwen_small
+placement:
+  natural:
+    min_box_frac: 0.005
+    min_box_side_px: 32
