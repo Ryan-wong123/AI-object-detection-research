@@ -5,7 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-18 |
-> | Natural placement in §4 | 2026-10-20: rule set (Table 1c) with pilot-v2 and full-run values written into §4; full run (run task2_insertion_natural, looser person/overlap/fill rules) started 05:42, stopped after 19 photos (laptop slept); planning only, finished: 349 of 544 photos with a natural spot <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json -->; earlier note: restarting as planning only first, so the author can decide on the rules from the number of photos with a spot before generating (saved Molmo answers make a rule change a re-check of minutes); results [[TBD]] |
+> | Natural placement in §4 | 2026-10-20: rule set (Table 1c) with pilot-v2 and full-run values written into §4; full run (run task2_insertion_natural, looser person/overlap/fill rules) started 05:42, stopped after 19 photos (laptop slept); planning only: 349 of 544 photos with a natural spot at 30% overlap; author raised both overlap limits to 50% (21 Oct): 389 of 544 <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->; 30% pass: <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json -->; earlier note: restarting as planning only first, so the author can decide on the rules from the number of photos with a spot before generating (saved Molmo answers make a rule change a re-check of minutes); results [[TBD]] |
 > | Natural-placement pilot v3 | 2026-10-20 (run task2_pilot_natural_v3): more spots/classes per photo: 19 of 50 photos (v2 18), same quality (paper/results/task2_pilot_natural_four_way.json) |
 > | Natural-placement pilot v2 | 2026-10-20 (run task2_pilot_natural_v2): with surface rule, larger boxes and box-fill rule: 18 of 50 photos with a verified AI edit, 72% on a fitting surface (random 46%), objects median 1.8% of the image (random 0.8%) (paper/results/task2_pilot_natural_three_way.json; pilot, not yet a paper result) |
 > | Natural-placement pilot | 2026-10-19 (run task2_pilot_natural, 50 photos): VLM-pointed, depth-scaled boxes; 33/50 photos get a natural spot; VLM realism check unusable (off); 28 of 50 photos with a verified natural AI edit; vs random placement on the same photos: on a fitting surface 64% vs 46%, objects smaller (median 0.5% vs 0.8% of the image) (paper/results/task2_pilot_natural_vs_random.json; pilot, not yet a paper result). If adopted, §4 placement text and a new full run follow |
@@ -339,8 +339,8 @@ limits, chosen by the author to raise coverage; not piloted).
 | size | depth-based size change relative to the reference | ×0.7–1.4 | ×0.7–1.4 |
 | size | minimum box | 2% of the image, 64 px short side | same |
 | size | maximum box | 25% of the image | same |
-| overlap | share of a person the box may cover | 0% | **30%** |
-| overlap | share of any other real object the box may cover | 15% | **30%** |
+| overlap | share of a person the box may cover | 0% | **50%** |
+| overlap | share of any other real object the box may cover | 15% | **50%** |
 | verify | the verifier finds the class at the box (score ≥ 0.2; IoU ≥ 0.3 or ≥ 80% inside; not the photo's own object) | yes | yes |
 | verify | the object's outline box fills at least this share of the planned box | 35% | **25%** |
 | retry | seeds per spot / spots tried | 3 / 9 | 3 / 9 |

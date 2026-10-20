@@ -2,13 +2,13 @@
 # pilot-v2 method (configs/pilot_natural_v2.yaml: 18 of 50 photos, 72% on ground/table/water, none
 # on walls, objects median 1.8% of the image) and the looser rules of pilot v4
 # (configs/pilot_natural_v4.yaml; the author chose to start the full run without finishing that
-# pilot): up to 30% of a person and of any real object covered, object filling >= 25% of its box.
+# pilot): up to 30% of a person and of any real object covered (raised to 50% on 21 Oct), object filling >= 25% of its box.
 # New work dir; the random-placement run (data/inlayfake_v2) stays as the comparison.
 #
 #   AI object (C4): a class already in the photo; Molmo-7B-D points at a natural spot (one fixed
 #     prompt per class, configs/placement_prompts.yaml); the point must be on a surface the class
 #     rests on; box sized from the photo's own object of that class, scaled by depth (x0.7-1.4),
-#     at least 2% of the image and 64 px; <= 30% of a person or of any real object covered.
+#     at least 2% of the image and 64 px; <= 50% of a person or of any real object covered.
 #   C2 (sham) and C3 (real paste) at the same box; no C5.
 #   Verify: OWLv2 must find the object, filling >= 25% of its box; 3 seeds per spot, then the
 #     next valid spot (up to 9); no random fallback (photos without a spot get no AI edit).
@@ -33,9 +33,9 @@ placement:
     min_box_frac: 0.02
     min_box_side_px: 64
     size_ratio: [0.7, 1.4]
-    box_rules:                   # pilot v4 rules (v2: person 0, real objects 0.15)
-      max_cover_person: 0.30
-      max_cover_real: 0.30
+    box_rules:                   # author, 21 Oct: 50% after the planning-only pass (v4: 0.30 ->
+      max_cover_person: 0.50     #   349 of 544 photos; v2: person 0, real objects 0.15)
+      max_cover_real: 0.50
 edit:
   window_scale: 1.2
   window_min_px: 64

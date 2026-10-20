@@ -48,8 +48,13 @@ def test_natural_full_run_uses_pilot_v4_settings():
     website block, audit sheet and the sham rule from the first full run differ."""
     full = load_config(ROOT / "configs" / "insertion_natural.yaml")
     pilot = load_config(ROOT / "configs" / "pilot_natural_v4.yaml")
-    for key in ("placement", "edit", "generators_enabled", "encoding", "generation", "conditions"):
+    for key in ("edit", "generators_enabled", "encoding", "generation", "conditions"):
         assert full[key] == pilot[key], key
+    # overlap limits raised from v4's 30% to 50% after the planning-only pass (author, 21 Oct)
+    rules = full["placement"]["natural"].pop("box_rules")
+    assert rules == {"max_cover_person": 0.50, "max_cover_real": 0.50}
+    pilot["placement"]["natural"].pop("box_rules")
+    assert full["placement"] == pilot["placement"]
     extra = ("audit_all_conditions", "audit_only_conditions", "sham_original_overlap")
     strip = lambda v: {k: x for k, x in v.items() if k not in extra}  # noqa: E731
     assert strip(full["verify"]) == strip(pilot["verify"])
