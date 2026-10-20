@@ -1,0 +1,10 @@
+# What-if (author, 2026-10-21): looser automatic rules for box mode, since the author reviews
+# every spot by eye: no surface check at the box's base, and a smaller minimum box (0.2% of the
+# image, 24 px). Same work dir and saved Qwen answers as pilot_natural_qwen_small.yaml.
+inherit: pilot_natural_qwen_small.yaml
+run_name: task2_pilot_natural_qwen_loose
+placement:
+  natural:
+    check_point_surface: false
+    min_box_frac: 0.002
+    min_box_side_px: 24

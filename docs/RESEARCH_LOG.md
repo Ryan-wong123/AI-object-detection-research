@@ -7,6 +7,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Looser automatic rules, since the author reviews every spot: 43 of 50
+
+- **Author request:** loosen the rules so every photo can get a spot that makes sense. Since the
+  author reviews each spot by eye, the automatic rules only need to remove what cannot work:
+  `pilot_natural_qwen_loose.yaml` drops the surface check at the box's base and lowers the
+  minimum box to 0.2% of the image / 24 px (was 0.5% / 32 px); overlap limits stay at 50%.
+- **Result** (`run_plan_2026-10-20T195948Z`, UTC; 97 new Qwen questions, 82 reused): **43 of 50**
+  photos have at least one spot (strict: 33); **17 of the 24** photos without an accepted spot now
+  have new spots to review (73 spots, median 1.8% of the image, 15 under 0.5%). Still nothing for
+  7 photos: boxes under 0.2% / 24 px (40) or on existing objects or people (dogs, surfboards,
+  bicycles, a person).
+- **Risks:** the smallest objects may fail generation or verification; spots on surfaces the old
+  rule rejected (bushes, windows, metal) depend on the author's review.
+- **Next:** author reviews the new spots; then decide on the remaining 7.
+
+---
+
 ## 2026-10-21: Decision: photos without an accepted natural spot get no AI edit
 
 - **Author decision:** only photos with an accepted natural spot get an AI object; the others
