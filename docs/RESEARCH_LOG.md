@@ -7,6 +7,16 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Other-class fallback tried and reverted
+
+- An other-class fallback for close-ups (Qwen picks a class labelled in the 544 week-1 photos when
+  none of the photo's classes gets a place) was built and piloted (50 of 50, but both fallback
+  boxes poor: benches on viaduct pillars, a bottle over a hand). **Author: not what was wanted;
+  reverted** (commit d59b5f2 reverted). No-rules pilot back to 48 of 50
+  (`run_plan_2026-10-20T203038Z`, UTC); the train and toilet photos get no AI edit.
+
+---
+
 ## 2026-10-21: Decision: no object replacement
 
 - In the no-rules pilot 2 photos get no box: each has one insertable class (train on a viaduct,
