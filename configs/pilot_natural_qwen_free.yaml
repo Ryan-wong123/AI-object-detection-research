@@ -17,7 +17,11 @@ placement:
     classes_per_photo: 99
     stop_when_valid: true
     retry: false
-    any_class: false
+    # close-ups and full scenes where Qwen finds no place for any of the photo's classes (author,
+    # 21 Oct): Qwen may pick another class, but only one labelled in the 544 week-1 photos
+    # (COCO + audit adds); flagged class_in_photo: false
+    any_class: true
+    any_class_from: data/inlayfake/plans.jsonl
     more_questions: false
     review:
       enabled: false
