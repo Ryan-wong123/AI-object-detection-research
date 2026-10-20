@@ -7,6 +7,25 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Box mode without rules: 48 of 50 photos
+
+- **Author request:** "scrap all rules": Qwen takes a class from the photo's week-1 labels,
+  understands the photo and places the object where it makes most sense.
+- **Built:** `placement.natural.free` (every Qwen box is used as drawn: no surface, size, overlap
+  or window/sky rule); the next class is asked only if Qwen gives no box. Config
+  `pilot_natural_qwen_free.yaml`, own work dir, Qwen answers reused (0 new questions).
+- **Pilot** (`run_plan_2026-10-20T201049Z`, UTC): **48 of 50** photos get a box; for 2 Qwen
+  answered that no class fits. Planned boxes: median 1.5% of the image; 14 under 0.5% and 11 with
+  a short side under 24 px (likely to fail generation or the verifier); 6 cover more than half of
+  an existing object of the same class (the verifier ignores the photo's own object, so these will
+  fail and fall back to box 2 or 3); 6 touch a person.
+- **Fix kept from before:** photos that had the extra questions keep them after an accept
+  (commit 0b4458c).
+- **Next:** author looks at the boxes (page on port 8768) and decides whether to review them or
+  generate as is.
+
+---
+
 ## 2026-10-21: Looser automatic rules, since the author reviews every spot: 43 of 50
 
 - **Author request:** loosen the rules so every photo can get a spot that makes sense. Since the

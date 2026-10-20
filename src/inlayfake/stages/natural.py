@@ -159,6 +159,7 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
         "any_class",
         "stop_when_valid",
         "more_questions",
+        "free",
         "check_point_surface",
         "min_box_frac",
         "min_box_side_px",
@@ -629,16 +630,20 @@ def _box_mode_photo(
             }
             area = bw * bh
             ok, reason = True, "ok"
-            if surface is not None:
-                stuff_map, stuff_names, things = surface
-                label = _label_below(stuff_map, stuff_names, px, py)
-                ok, reason = point_support(label, _thing_at(things, px, py), entry)
-            if ok and (area < ncfg.get("min_box_frac", 0.0) * W * H or min(bw, bh) < min_side):
-                ok, reason = False, "too small"
-            elif ok and area > pcfg["max_area_frac"] * W * H:
-                ok, reason = False, "too large"
-            elif ok:
-                ok, reason = check_box(box, labels, blocked, rules)
+            # free (author, 21 Oct): no rules; Qwen's box is used as drawn, and only the review
+            # (if on) and the verifier after generation can reject it
+            if not ncfg.get("free", False):
+                if surface is not None:
+                    stuff_map, stuff_names, things = surface
+                    label = _label_below(stuff_map, stuff_names, px, py)
+                    ok, reason = point_support(label, _thing_at(things, px, py), entry)
+                too_small = area < ncfg.get("min_box_frac", 0.0) * W * H or min(bw, bh) < min_side
+                if ok and too_small:
+                    ok, reason = False, "too small"
+                elif ok and area > pcfg["max_area_frac"] * W * H:
+                    ok, reason = False, "too large"
+                elif ok:
+                    ok, reason = check_box(box, labels, blocked, rules)
             row |= {"ok": ok, "reason": reason}
             if ok:
                 row["valid_rank"] = len(valid)

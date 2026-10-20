@@ -1,0 +1,25 @@
+# Box mode without rules (author, 2026-10-21): "scrap all rules; Qwen takes a class from the photo's
+# week-1 labels, understands the photo and places the object where it makes most sense".
+# Per photo, classes in balanced order (COCO labels + week-1 audit adds, never person); Qwen draws
+# up to 3 boxes for one more object of the first class (configs/placement_prompts.yaml,
+# box_template; it is told where the photo's own objects of that class are); every box is used as
+# drawn (no surface, size, overlap or window/sky rule); the next class is asked only if Qwen
+# answers with no box. Box 1 is generated first, 2 and 3 if the verifier rejects it.
+# Own work dir; Qwen answers copied from data/inlayfake_pilot_natural_qwen (same 50 photos).
+#
+#   python -m inlayfake plan  --config configs/pilot_natural_qwen_free.yaml
+#   python -m inlayfake spots --config configs/pilot_natural_qwen_free.yaml --serve   (optional)
+inherit: pilot_natural_qwen.yaml
+run_name: task2_pilot_natural_qwen_free
+placement:
+  natural:
+    free: true
+    classes_per_photo: 99
+    stop_when_valid: true
+    retry: false
+    any_class: false
+    more_questions: false
+    review:
+      enabled: false
+paths:
+  work: data/inlayfake_pilot_natural_qwen_free
