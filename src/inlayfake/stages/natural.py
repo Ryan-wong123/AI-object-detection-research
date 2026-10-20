@@ -166,8 +166,13 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
         "depth": ncfg["depth"].get("model_id", ncfg["depth"].get("backend")),
         "prompts": prompts,
     }
-    # JSON round trip: tuples/lists and key order compare equal to a saved copy
-    return json.loads(json.dumps(out, sort_keys=True, default=str))
+
+    # JSON round trip: tuples/lists and key order compare equal to a saved copy; sets (surface
+    # lists in the prompt file) sorted, since their order changes between Python processes
+    def plain(o):
+        return sorted(o) if isinstance(o, (set, frozenset)) else str(o)
+
+    return json.loads(json.dumps(out, sort_keys=True, default=plain))
 
 
 def _point_key(sid: int, cat: str, prompt: str, vlm_id: str) -> str:

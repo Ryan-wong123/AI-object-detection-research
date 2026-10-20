@@ -356,3 +356,24 @@ def test_saved_molmo_answers_are_read_back_from_old_progress_rows(tmp_path):
     cache = _load_points(tmp_path, [row], {7: (200, 100)}, vcfg)
     hit = cache[_point_key(7, "cup", "Point to a table", _vlm_id(vcfg))]
     assert hit["points"] == [(100.0, 25.0)] and hit["vlm"] == "molmo"
+
+
+def test_plan_settings_do_not_depend_on_set_order(cfg):
+    """The saved settings must compare equal across Python processes: the prompt file's surface
+    sets are stored sorted (set order changes with each process's string hashing)."""
+    from inlayfake.edit.natural import load_prompts
+    from inlayfake.stages.natural import plan_settings
+
+    c = _natural_cfg(cfg)
+    prompts = load_prompts(PROMPTS)
+    a = plan_settings(c, prompts, {})
+    flipped = {
+        **prompts,
+        "classes": {
+            k: {**v, "surfaces": set(sorted(v["surfaces"], reverse=True))}
+            for k, v in prompts["classes"].items()
+        },
+    }
+    assert plan_settings(c, flipped, {}) == a
+    s = next(iter(a["prompts"]["classes"].values()))["surfaces"]
+    assert isinstance(s, list) and s == sorted(s)
