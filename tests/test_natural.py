@@ -429,3 +429,15 @@ def test_box_mode_plans_use_the_vlm_boxes(cfg, tmp_path):
     finally:
         scene.FakeVLM.boxes = orig
     assert calls == [] and again["n_plans"] == summary["n_plans"]
+
+
+def test_surface_fixes_animals_in_plants_and_pole_classes():
+    """Ground animals may stand in bushes or tall plants; traffic lights and stop signs (on a pole)
+    skip the support check (author, 21 Oct)."""
+    from inlayfake.edit.natural import load_prompts, point_support
+
+    c = load_prompts(PROMPTS)["classes"]
+    assert point_support("bush", None, c["elephant"]) == (True, "ok")
+    assert point_support("sky-other", None, c["traffic light"]) == (True, "ok")
+    assert point_support(None, "car", c["traffic light"]) == (True, "ok")
+    assert point_support("bush", None, c["car"])[0] is False
