@@ -2,7 +2,7 @@
 
 > Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
 
-Last updated 20 Oct 2026 · Ryan Wong
+Last updated 21 Oct 2026 · Ryan Wong
 
 Briefing for the project professor. Branch `week-2-ai-insertion`. Generation runs on the RTX 4070
 laptop. The SDXL pilot (run `task2_pilot`, `data/inlayfake_pilot`) ran on 16 Oct; full-run
@@ -197,6 +197,19 @@ cloud sandbox, so their first real run is the pilot.
   would add at most 50 (40%), 62 (50%) or 78 (60%) photos. The author then raised both overlap
   limits to 50%: **389 of 544 photos (72%)** have a spot <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->.
   Photos with a verified natural AI edit: [[TBD]].
+- **Placement replaced (21 Oct): Qwen3-VL-8B draws the box, the author reviews it.** Many Molmo
+  boxes did not make sense: the point was fine but the box was upright for objects that should
+  lie flat (39 of 73; a tennis racket standing in mid-air). Qwen3-VL-8B now reads the whole
+  scene and draws up to three boxes (same rules), with a second question listing taken places,
+  every class of the photo, then any listed class. The author accepted or rejected every box by
+  eye on a review page. Pilot (50 photos): **26 with an accepted natural box**; more questions
+  for the other 24 proposed boxes for 5 [[TBD: author's review]] and none for the 17 far-away,
+  close-up or crowded photos <!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json -->.
+  Qwen3-VL is from the same family as the week-3 origin judge (Qwen2.5-VL-3B): disclosed, and
+  week 3 compares that judge on natural vs random placement.
+- **Decision (21 Oct):** photos without an accepted natural box get no AI edit (no forced or
+  random fallback), so the AI condition covers a subset of the 544 photos; full-run coverage
+  [[TBD]].
 - **Compared with random placement on the same photos:** objects rest on a fitting surface more
   often (64% vs 46%) and on walls less often (11% vs 20%), but they are smaller (median 0.5% vs
   0.8% of the image) <!-- file:paper/results/task2_pilot_natural_vs_random.json -->. Proposed fixes:

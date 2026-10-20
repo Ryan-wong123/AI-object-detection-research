@@ -7,6 +7,20 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Decision: photos without an accepted natural spot get no AI edit
+
+- **Author decision:** only photos with an accepted natural spot get an AI object; the others
+  (about 19 of 50 in the pilot) get none. No hand-drawn spots, no random or forced fallback.
+- **Consequence:** the AI condition (C2–C4) covers a subset of the 544 photos; C0/C1 cover all.
+  Comparisons of AI-inserted vs real stay matched within the subset; the paper reports the
+  subset size and how it differs (fewer close-ups, crowded and far-away scenes).
+- **Paper:** §4 *Natural placement* rewritten for box mode with review; Table 1c has a box-mode
+  column; the Molmo version is described as replaced.
+- **Next:** author reviews the 9 new pilot spots; then the full 544-photo box-mode run (plan,
+  review, more questions, review, generation).
+
+---
+
 ## 2026-10-21: Author's spot review; more Qwen questions add little
 
 - **Review (author, 33 pilot photos):** 26 spots accepted, 8 rejected; **26 of 50 photos** have

@@ -5,7 +5,7 @@
 > | Item | State |
 > |---|---|
 > | Last updated | 2026-10-18 |
-> | Natural placement in §4 | 2026-10-20: rule set (Table 1c) with pilot-v2 and full-run values written into §4; full run (run task2_insertion_natural, looser person/overlap/fill rules) started 05:42, stopped after 19 photos (laptop slept); planning only: 349 of 544 photos with a natural spot at 30% overlap; author raised both overlap limits to 50% (21 Oct): 389 of 544 <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->; 30% pass: <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json -->; earlier note: restarting as planning only first, so the author can decide on the rules from the number of photos with a spot before generating (saved Molmo answers make a rule change a re-check of minutes); results [[TBD]] |
+> | Natural placement in §4 | 2026-10-21: method rewritten for box mode (Qwen3-VL-8B draws the box; author reviews every box; more questions for photos without an accepted box; photos without one get no AI edit, author decision); Table 1c has a box-mode column; pilot: 26 of 50 with an accepted box, 5 more pending review; full run [[TBD]]. Earlier (Molmo version, replaced): 2026-10-20: rule set (Table 1c) with pilot-v2 and full-run values written into §4; full run (run task2_insertion_natural, looser person/overlap/fill rules) started 05:42, stopped after 19 photos (laptop slept); planning only: 349 of 544 photos with a natural spot at 30% overlap; author raised both overlap limits to 50% (21 Oct): 389 of 544 <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->; 30% pass: <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json -->; earlier note: restarting as planning only first, so the author can decide on the rules from the number of photos with a spot before generating (saved Molmo answers make a rule change a re-check of minutes); results [[TBD]] |
 > | Natural-placement pilot v3 | 2026-10-20 (run task2_pilot_natural_v3): more spots/classes per photo: 19 of 50 photos (v2 18), same quality (paper/results/task2_pilot_natural_four_way.json) |
 > | Natural-placement pilot v2 | 2026-10-20 (run task2_pilot_natural_v2): with surface rule, larger boxes and box-fill rule: 18 of 50 photos with a verified AI edit, 72% on a fitting surface (random 46%), objects median 1.8% of the image (random 0.8%) (paper/results/task2_pilot_natural_three_way.json; pilot, not yet a paper result) |
 > | Natural-placement pilot | 2026-10-19 (run task2_pilot_natural, 50 photos): VLM-pointed, depth-scaled boxes; 33/50 photos get a natural spot; VLM realism check unusable (off); 28 of 50 photos with a verified natural AI edit; vs random placement on the same photos: on a fitting surface 64% vs 46%, objects smaller (median 0.5% vs 0.8% of the image) (paper/results/task2_pilot_natural_vs_random.json; pilot, not yet a paper result). If adopted, §4 placement text and a new full run follow |
@@ -306,44 +306,52 @@ When the AI object covers part of a real object, so does the C2 sham at the same
 repaints part of that object, which is then marked *mixed/modified*.
 
 *Natural placement.* Random free-space boxes produced implausible edits (a skateboard in mid-air,
-a bird inside a window pane), so the insertion run uses a scene-aware placement. A vision–language
-model that is not among the models evaluated in this paper (Molmo-7B-D [[verify: citation]])
-receives the whole photograph and one fixed question per class, *"Point to {where} where another
-{class} could naturally {how}"*, where *where* and *how* come from one of 22 class groups (e.g.
-"empty spots on a table, counter, desk or shelf" / "rest" for cups; "empty spots on the ground,
-grass, sand, snow or floor" / "stand or lie" for animals); the question is identical for every
-photograph of a class, so placement involves no per-image tuning. Each returned point is taken as
-the spot where the object touches its support; for classes that may fly (bird, airplane, kite,
-frisbee) a point in open sky is the object's centre. The box takes the shape of the photograph's own
-object of that class and its height is scaled by the ratio of monocular relative depth (Depth
-Anything V2 [[verify: citation]]) at the new point and at that object's base. A candidate is kept
-only if it satisfies every rule in Table 1c. The first valid candidate is generated; if the verifier
-rejects three seeds, the next valid candidate is tried, and a photograph without any valid
-candidate receives no AI edit (there is no random fallback). The C2 and C3 controls use the same
-box. A VLM yes/no realism check after generation was tested and dropped because its answers did not
+a bird inside a window pane), so the insertion run uses a scene-aware placement checked by hand.
+A vision–language model (Qwen3-VL-8B [[verify: citation]]) receives the whole photograph and one
+fixed question per class, filled from one of 22 class groups (where the class rests and how, e.g.
+"lie on the ground, grass, floor or a bench" for a tennis racket), together with the positions of
+the photograph's own objects of that class, and draws up to three boxes for one more, new object
+at an empty place where it would look natural; the question wording is identical for every
+photograph of a class, so placement involves no per-image tuning. Each box must satisfy the rules
+in Table 1c (its base on a surface the class rests on, size limits, limited overlap with people
+and labelled objects). If no box of a class passes, the model is asked once more with every
+labelled object and every rejected box listed as taken and a minimum size; every class of the
+photograph is tried, then a question that lets the model choose any listed class. Finally the
+first author accepted or rejected every remaining box by eye, and photographs with only rejected
+boxes received further questions; a photograph uses its first accepted box, and a photograph
+without one receives no AI edit (there is no random or forced fallback). The placements are
+therefore the author's choice among the model's proposals. Week 3 evaluates Qwen2.5-VL-3B as an
+origin judge (§6); the placement model is a later, larger model of the same family that only
+chooses the location, which we disclose, and §6 compares that judge on natural and random
+placements [[TBD: week-3 check]]. An earlier version let Molmo-7B-D point at a spot and sized a
+box from the photograph's own object and monocular depth; it gave upright boxes for objects that
+should lie flat (39 of 73 such plans; a tennis racket standing in mid-air) and was replaced
+<!-- run:task2_insertion_natural, file:paper/results/task2_insertion_natural_plan_50pct.json; count from data/inlayfake_v3/natural_candidates.jsonl, 2026-10-21 -->.
+A VLM yes/no realism check after generation was tested and dropped because its answers did not
 separate plausible from implausible edits (§7.6 [[TBD: limitation text]]).
 
-**Table 1c.** Rules of the natural placement. *Pilot v2* is the strict version tested on 50
-photographs; *full run* is the version used for the benchmark (looser person, overlap and fill
-limits, chosen by the author to raise coverage; not piloted).
+**Table 1c.** Rules of the natural placement. *Pilot v2* and *Molmo full run* are the earlier
+point-based version (Molmo + depth; replaced); *box mode* is the version used for the benchmark
+(Qwen3-VL draws the box; author review). Rows marked – do not apply.
 
-| Step | Rule | Pilot v2 | Full run |
-|---|---|---|---|
-| class | already in the photograph (COCO labels and audited additions), never *person*; least-used first | same | same |
-| class | classes asked per photograph | 2 | 2 |
-| spot | fixed pointing question per class group (22 groups) | same | same |
-| spot | spots kept per class, at least 10% of the image diagonal apart | 5 | 5 |
-| spot | the point lies on a surface the class rests on (COCO-Stuff classes per group) or on an object that carries it (e.g. a dining table under a cup); never on another object | yes | yes |
-| spot | the box's base does not rest on window, mirror, ceiling or sky (sky allowed for flying classes) | yes | yes |
-| size | reference: the photograph's own object of the class (not cut off, ≤ 30% hidden), else the class's typical COCO size; its shape is kept | same | same |
-| size | depth-based size change relative to the reference | ×0.7–1.4 | ×0.7–1.4 |
-| size | minimum box | 2% of the image, 64 px short side | same |
-| size | maximum box | 25% of the image | same |
-| overlap | share of a person the box may cover | 0% | **50%** |
-| overlap | share of any other real object the box may cover | 15% | **50%** |
-| verify | the verifier finds the class at the box (score ≥ 0.2; IoU ≥ 0.3 or ≥ 80% inside; not the photo's own object) | yes | yes |
-| verify | the object's outline box fills at least this share of the planned box | 35% | **25%** |
-| retry | seeds per spot / spots tried | 3 / 9 | 3 / 9 |
+| Step | Rule | Pilot v2 | Molmo full run | Box mode |
+|---|---|---|---|---|
+| class | already in the photograph (COCO labels and audited additions), never *person*; least-used first | same | same | same; then any listed class, flagged |
+| class | classes asked per photograph | 2 | 2 | until one has a valid box; all for photos without an accepted box |
+| spot | fixed question per class group (22 groups) | point | point | box, with the photo's own objects of the class; second question with taken places and a minimum size |
+| spot | spots kept per class | 5 (≥ 10% of the diagonal apart) | 5 | 3 (boxes with IoU > 0.5 merged) |
+| spot | the base point lies on a surface the class rests on (COCO-Stuff classes per group) or on an object that carries it (e.g. a dining table under a cup); never on another object | yes | yes | yes; animals also on plants; signs on poles unchecked |
+| spot | the box's base does not rest on window, mirror, ceiling or sky (sky allowed for flying classes) | yes | yes | yes |
+| size | reference: the photograph's own object of the class (not cut off, ≤ 30% hidden), else the class's typical COCO size; its shape is kept | same | same | – (the model's box) |
+| size | depth-based size change relative to the reference | ×0.7–1.4 | ×0.7–1.4 | – |
+| size | minimum box | 2% of the image, 64 px short side | same | 0.5% of the image, 32 px |
+| size | maximum box | 25% of the image | same | same |
+| overlap | share of a person the box may cover | 0% | 50% | 50% |
+| overlap | share of any other real object the box may cover | 15% | 50% | 50% |
+| review | the first author accepts the box by eye | – | – | yes |
+| verify | the verifier finds the class at the box (score ≥ 0.2; IoU ≥ 0.3 or ≥ 80% inside; not the photo's own object) | yes | yes | yes |
+| verify | the object's outline box fills at least this share of the planned box | 35% | 25% | 25% |
+| retry | seeds per spot / spots tried | 3 / 9 | 3 / 9 | 3 / accepted boxes |
 
 On the 50 pilot photographs, the strict version (pilot v2) placed a verified AI object in 18
 photographs, 72% of them resting on ground, a table or water and none on a wall, with a median
@@ -352,7 +360,14 @@ on the same photographs <!-- run:task2_pilot_natural_v2, run:task2_pilot_inphoto
 Giving each photograph more classes and spots added one photograph (19 of 50)
 <!-- run:task2_pilot_natural_v3, file:paper/results/task2_pilot_natural_four_way.json -->; most
 photographs without an edit are close-ups or scenes where people and other objects occupy the
-plausible spots. The full run's coverage and placement statistics are [[TBD: full natural run]].
+plausible spots. On the same 50 photographs, box mode with review gave an accepted natural box
+for 26 photographs (20 from the first question, 6 from the second); more questions for the other
+24 proposed new boxes for 5 of them [[TBD: author's review of those 9 boxes]] and none for the 17
+photographs that never had a valid box (far-away views, close-ups, crowded scenes)
+<!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json -->.
+By the first author's decision, photographs without an accepted box receive no AI edit, so the AI
+condition covers a subset of the photographs (C0 and C1 cover all); the full run's coverage is
+[[TBD: full natural run]].
 
 **Table 1b.** What each condition tests.
 
