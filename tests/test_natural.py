@@ -502,3 +502,87 @@ def test_box_mode_any_class_round_is_flagged(cfg, tmp_path, monkeypatch):
     assert "person" not in next(r for r in rows if r["round"] == "any")["prompt"].split(
         "Choose only from:"
     )[1].split(".")[0].split(", ")
+
+
+def test_apply_review_uses_first_accepted_spot():
+    """Only accepted spots stay valid (require_accept); the plan moves to the first accepted
+    one; a photo with none is dropped; with require_accept false only rejects are removed."""
+    import copy
+
+    from inlayfake.stages.spots import apply_review, spot_id
+
+    rows = [
+        {"source_id": 1, "category": "cup", "box": [0, 0, 10, 10], "ok": True, "valid_rank": 0},
+        {"source_id": 1, "category": "cup", "box": [50, 0, 10, 10], "ok": True, "valid_rank": 1},
+        {"source_id": 2, "category": "dog", "box": [0, 0, 20, 20], "ok": True, "valid_rank": 0},
+        {
+            "source_id": 2,
+            "category": "dog",
+            "box": [9, 9, 5, 5],
+            "ok": False,
+            "reason": "too small",
+        },
+    ]
+    plans = [
+        {"source_id": 1, "category": "cup", "box_free": [0, 0, 10, 10], "split": "val"},
+        {"source_id": 2, "category": "dog", "box_free": [0, 0, 20, 20], "split": "test"},
+    ]
+    dec = {spot_id(rows[0]): "reject", spot_id(rows[1]): "accept"}
+    r1 = copy.deepcopy(rows)
+    new_plans, failed = apply_review(r1, copy.deepcopy(plans), [], dec)
+    assert [p["source_id"] for p in new_plans] == [1]
+    assert new_plans[0]["box_free"] == [50, 0, 10, 10] and new_plans[0]["split"] == "val"
+    assert r1[1]["valid_rank"] == 0 and r1[0]["reason"] == "rejected in review"
+    assert r1[2]["reason"] == "not reviewed" and failed == [
+        {"source_id": 2, "reason": "no reviewed spot"}
+    ]
+    loose, _ = apply_review(copy.deepcopy(rows), copy.deepcopy(plans), [], dec, False)
+    assert [p["source_id"] for p in loose] == [1, 2]
+
+
+def test_spot_review_page_server_and_plan(cfg, tmp_path):
+    """spots builds the page; the local server saves clicks; plan then keeps only accepted
+    spots."""
+    import threading
+    import urllib.request
+
+    from inlayfake.stages import plan, sample, spots
+
+    c = _natural_cfg(cfg, mode="box", check_point_surface=False)
+    sample.run(c)
+    first = plan.run(c)
+    res = spots.run(c)
+    page = Path(res["page"]).read_text(encoding="utf-8")
+    assert "__DATA__" not in page and "Accept" in page
+    data = json.loads(page.split("const PHOTOS = ")[1].split(";\nlet DEC")[0])
+    assert len(data) == first["n_plans"]
+
+    import http.server as hs
+
+    real = hs.ThreadingHTTPServer
+    started = {}
+
+    class Grab(real):
+        def __init__(self, addr, handler):
+            super().__init__(("127.0.0.1", 0), handler)
+            started["srv"] = self
+
+    hs.ThreadingHTTPServer = Grab
+    try:
+        t = threading.Thread(target=spots.serve, args=(c,), daemon=True)
+        t.start()
+        while "srv" not in started:
+            pass
+        port = started["srv"].server_address[1]
+        keep = data[0]["spots"][0]["id"]
+        body = json.dumps({"id": keep, "decision": "accept"}).encode()
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/decision", data=body, method="POST")
+        assert urllib.request.urlopen(req).read() == b"ok"
+        got = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/decisions.json").read())
+        assert got == {keep: "accept"}
+    finally:
+        hs.ThreadingHTTPServer = real
+        started["srv"].shutdown()
+    c2 = deep_merge(c, {"placement": {"natural": {"review": {"enabled": True}}}})
+    after = plan.run(c2)
+    assert after["n_plans"] == 1

@@ -382,6 +382,20 @@ saves every photo as it finishes (`natural_plan_progress.jsonl`), generation eve
 verification every check, so at most the photo or image in progress is redone. Files are written
 crash-safely (a cut-off last log line is skipped; records and plans are replaced in one step).
 
+### Reviewing the planned spots by hand
+
+Before generation, every planned natural spot can be accepted or rejected on a web page (one card
+per photo; spot 1 is the planned one, 2 and 3 are backups):
+
+```powershell
+python -m inlayfake spots --config configs/pilot_natural_qwen_small.yaml --serve
+```
+
+Open http://127.0.0.1:8767/ . Every click is saved at once to `<work>\spot_review.json`, so the
+review can stop and continue later (Ctrl+C stops the server). Then switch the review on in the
+config (`placement.natural.review.enabled: true`) and run `plan` again: each photo uses its first
+accepted spot; photos without one get no AI edit.
+
 ### Planning first, then deciding on the rules
 
 Planning alone tells how many photos get a natural spot, before any SDXL time is spent
