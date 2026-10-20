@@ -244,6 +244,8 @@ def run(cfg: dict) -> dict:
             "candidates_valid": sum(bool(c.get("ok")) for c in cands),
             "candidate_reasons": dict(Counter(c["reason"] for c in cands)),
             "size_from": dict(Counter(c.get("size_from") for c in cands if c.get("ok"))),
+            "vlm_questions": res.get("vlm_questions"),
+            "photos_rechecked": res.get("photos_rechecked"),
         }
         write_run_info(wd / "runs", "plan", cfg, summary | {"failed_sources": res["failed"]})
         return summary

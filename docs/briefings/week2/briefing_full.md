@@ -2,7 +2,7 @@
 
 > Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
 
-Last updated 18 Oct 2026 Â· Ryan Wong
+Last updated 20 Oct 2026 · Ryan Wong
 
 Briefing for the project professor. Branch `week-2-ai-insertion`. Generation runs on the RTX 4070
 laptop. The SDXL pilot (run `task2_pilot`, `data/inlayfake_pilot`) ran on 16 Oct; full-run
@@ -188,8 +188,12 @@ cloud sandbox, so their first real run is the pilot.
 - **Pilot v3** (same rules, 3 classes and 10 spots per class): 19 of 50 photos (v2: 18), same
   quality; more tries per photo do not raise coverage, because people and other objects block the
   spots and some objects still fail verification <!-- run:task2_pilot_natural_v3, file:paper/results/task2_pilot_natural_four_way.json -->.
-- **Decision (20 Oct):** the full natural run uses the v2 settings (`configs/insertion_natural.yaml`);
-  expected ~18 h of GPU time and about 190–200 of the 544 photos with a natural AI edit [[TBD]].
+- **Decision (20 Oct):** the full natural run uses the v2 method with looser rules (up to 30% of a
+  person or of a real object covered, object filling at least 25% of its box;
+  `configs/insertion_natural.yaml`). It runs planning alone first: the number of photos with a
+  spot decides whether the rules are loosened further before any generation. Molmo's answers are
+  saved, so trying other rules re-checks the photos in minutes. Photos with a spot / with a
+  natural AI edit: [[TBD]].
 - **Compared with random placement on the same photos:** objects rest on a fitting surface more
   often (64% vs 46%) and on walls less often (11% vs 20%), but they are smaller (median 0.5% vs
   0.8% of the image) <!-- file:paper/results/task2_pilot_natural_vs_random.json -->. Proposed fixes:

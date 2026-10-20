@@ -41,6 +41,7 @@ from inlayfake.edit.natural import (
 
 CANDIDATES = "natural_candidates.jsonl"
 PROGRESS = "natural_plan_progress.jsonl"  # one line per planned photo, so planning can resume
+POINTS = "natural_points.jsonl"  # the VLM's answer per (photo, class, prompt): asked only once
 REALISM = "realism.jsonl"
 
 
@@ -132,6 +133,61 @@ def _typical_wh(stats: dict, cat: str, W: int, H: int) -> tuple[float, float]:
     return w, w / aspect
 
 
+def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
+    """Everything except the VLM's answers that decides a photo's candidates. A saved photo is
+    reused only if it was planned with the same settings; otherwise it is re-checked (cheap: the
+    VLM's answers come from ``POINTS``)."""
+    pcfg, ncfg = cfg["placement"], cfg["placement"]["natural"]
+    keys = (
+        "check_point_surface",
+        "min_box_frac",
+        "min_box_side_px",
+        "size_ratio",
+        "classes_per_photo",
+        "max_candidates",
+        "min_point_dist",
+    )
+    out = {k: ncfg.get(k) for k in keys}
+    out |= {
+        "rules": rules,
+        "max_area_frac": pcfg["max_area_frac"],
+        "min_side_px": pcfg["min_side_px"],
+        "depth": ncfg["depth"].get("model_id", ncfg["depth"].get("backend")),
+        "prompts": prompts,
+    }
+    # JSON round trip: tuples/lists and key order compare equal to a saved copy
+    return json.loads(json.dumps(out, sort_keys=True, default=str))
+
+
+def _point_key(sid: int, cat: str, prompt: str, vlm_id: str) -> str:
+    return json.dumps([sid, cat, prompt, vlm_id])
+
+
+def _vlm_id(vcfg: dict) -> str:
+    return f"{vcfg.get('backend', 'molmo')}:{vcfg.get('model_id', '')}"
+
+
+def _load_points(wd: Path, old_rows: list[dict], sizes: dict, vcfg: dict) -> dict:
+    """Saved VLM answers: ``POINTS``, plus answers kept in progress rows saved before this cache
+    existed (Molmo answers are re-read from their text with the same parser as when asked)."""
+    from inlayfake.edit.scene import parse_molmo_points
+    from inlayfake.stages.common import read_jsonl
+
+    vid = _vlm_id(vcfg)
+    cache: dict[str, dict] = {}
+    if vcfg.get("backend", "molmo") == "molmo":
+        for r in old_rows:
+            if r.get("vlm") == "molmo" and "answer" in r and r["source_id"] in sizes:
+                W, H = sizes[r["source_id"]]
+                pts = parse_molmo_points(r["answer"], W, H)
+                k = _point_key(r["source_id"], r["category"], r["prompt"], vid)
+                cache[k] = {"key": k, "points": pts, "answer": r["answer"], "vlm": "molmo"}
+    if (wd / POINTS).exists():
+        for r in read_jsonl(wd / POINTS):
+            cache[r["key"]] = r
+    return cache
+
+
 def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: Path) -> dict:
     """Natural-placement plans for ``sources``; returns {plans, failed, candidates}."""
     from inlayfake.edit.scene import build_depth, build_vlm
@@ -146,22 +202,36 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
     exclude = set(pcfg.get("exclude_classes", ["person"]))
     spath = pcfg.get("support", {}).get("stuff_annotations")
     stuff = StuffIndex.load(spath) if spath and Path(spath).exists() else None
+    settings = plan_settings(cfg, prompts, rules)
     device = cfg["hardware"]["device"]
-    depth_model = vlm = None  # loaded when the first photo needs them (none if all resumed)
+    depth_model = vlm = None  # loaded when first needed (the VLM only if an answer is not saved)
     rng = np.random.default_rng(derive_seed(cfg["seed"], "natural_plan"))
     used: Counter = Counter()
     plans, failed, rows = [], [], []
     # resume (author, 2026-10-20): every planned photo is saved at once, so a stopped or crashed
     # run continues where it stopped; finished photos are replayed (same random draws and class
     # balance as an uninterrupted run, so the plans are identical)
-    done = {}
+    # Rule changes (author, 2026-10-20): a photo saved with other settings is re-checked with the
+    # current ones. The VLM's answers are saved separately (POINTS) and reused, so a re-check
+    # costs the depth model and the box rules (about a second per photo), not a new VLM question.
+    done, old_rows = {}, []
     if (wd / PROGRESS).exists():
         for line in (wd / PROGRESS).read_text(encoding="utf-8").splitlines():
             try:
                 rec = json.loads(line)
             except json.JSONDecodeError:  # a line cut off by a crash: that photo is redone
                 continue
-            done[rec["source_id"]] = rec
+            old_rows.extend(rec["rows"])
+            if rec.get("settings") == settings:  # a later line for the same photo wins
+                done[rec["source_id"]] = rec
+            else:
+                done.pop(rec["source_id"], None)
+    seen = {r["source_id"] for r in old_rows}
+    sizes = {s["source_id"]: (s["width"], s["height"]) for s in sources}
+    vid = _vlm_id(ncfg["vlm"])
+    points_cache = _load_points(wd, old_rows, sizes, ncfg["vlm"])
+    n_asked = n_reused = n_rechecked = 0
+    points_file = (wd / POINTS).open("a", encoding="utf-8")
     progress = (wd / PROGRESS).open("a", encoding="utf-8")
     for src in tqdm(sources, desc="natural placement"):
         sid, W, H = src["source_id"], src["width"], src["height"]
@@ -184,9 +254,9 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
             else:
                 failed.append(rec["failed"])
             continue
-        if vlm is None:
+        if depth_model is None:
             depth_model = build_depth(ncfg["depth"], device)
-            vlm = build_vlm(ncfg["vlm"], device)
+        n_rechecked += sid in seen
         n_rows = len(rows)
         img = load_rgb(index.image_path(sid))
         depth = depth_model(img)
@@ -203,7 +273,27 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
             same = [lb for lb in labels if lb["category"] == cat]
             refs = usable_references(same, labels, W, H)
             prompt = pointing_prompt(prompts, cat)
-            points, answer = vlm.point(img, prompt)
+            key = _point_key(sid, cat, prompt, vid)
+            if key in points_cache:  # asked before (this run or an earlier one): reuse
+                hit = points_cache[key]
+                points = [tuple(pt) for pt in hit["points"]]
+                answer, vlm_name = hit["answer"], hit["vlm"]
+                n_reused += 1
+            else:
+                if vlm is None:
+                    vlm = build_vlm(ncfg["vlm"], device)
+                points, answer = vlm.point(img, prompt)
+                vlm_name = vlm.name
+                hit = {
+                    "key": key,
+                    "points": [list(pt) for pt in points],
+                    "answer": answer,
+                    "vlm": vlm_name,
+                }
+                points_cache[key] = hit
+                points_file.write(json.dumps(hit) + "\n")
+                points_file.flush()
+                n_asked += 1
             if not points:
                 rows.append(
                     {
@@ -248,7 +338,7 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                                 "reason": sup_why,
                                 "prompt": prompt,
                                 "answer": answer,
-                                "vlm": vlm.name,
+                                "vlm": vlm_name,
                             }
                         )
                         continue
@@ -279,13 +369,19 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                     "reason": reason,
                     "prompt": prompt,
                     "answer": answer,
-                    "vlm": vlm.name,
+                    "vlm": vlm_name,
                 } | info
                 if ok:
                     row["valid_rank"] = len(valid)
                     valid.append(row)
                 rows.append(row)
-        rec = {"source_id": sid, "rows": rows[n_rows:], "plan": None, "failed": None}
+        rec = {
+            "source_id": sid,
+            "rows": rows[n_rows:],
+            "plan": None,
+            "failed": None,
+            "settings": settings,
+        }
         if not valid:
             rec["failed"] = {"source_id": sid, "reason": "no natural spot"}
             failed.append(rec["failed"])
@@ -306,12 +402,19 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         progress.write(json.dumps(rec) + "\n")
         progress.flush()
     progress.close()
+    points_file.close()
     with (wd / CANDIDATES).open("w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
     del vlm, depth_model
     _free_gpu()
-    return {"plans": plans, "failed": failed, "candidates": rows}
+    return {
+        "plans": plans,
+        "failed": failed,
+        "candidates": rows,
+        "vlm_questions": {"asked": n_asked, "reused": n_reused},
+        "photos_rechecked": n_rechecked,
+    }
 
 
 def load_valid(wd: Path) -> dict[int, list[dict]]:
