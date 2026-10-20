@@ -666,3 +666,20 @@ def test_more_question_photos_keep_their_questions_after_an_accept(cfg, tmp_path
     plan.run(reviewed)
     plans = {json.loads(x)["source_id"]: json.loads(x) for x in (wd / "plans.jsonl").open()}
     assert plans[bad]["box_free"] == extra["box"]
+
+
+def test_free_mode_keeps_every_vlm_box(cfg, tmp_path, monkeypatch):
+    """free: no rules; every box the VLM draws is a valid spot, even a tiny one or one over a
+    person, and the first class with a box is used."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", _tiny_then("never in a prompt"))
+    c = _natural_cfg(cfg, mode="box", free=True, stop_when_valid=True, classes_per_photo=99)
+    sample.run(c)
+    summary = plan.run(c)
+    rows = [json.loads(x) for x in (tmp_path / "work" / "natural_candidates.jsonl").open()]
+    assert summary["n_plans"] > 0 and set(summary["failed_reasons"]) <= {"no insertable class"}
+    assert rows and all(r["ok"] for r in rows if r.get("box"))  # tiny 4 px boxes included
+    for sid in {r["source_id"] for r in rows}:  # the first class with a box is used
+        assert len({r["category"] for r in rows if r["source_id"] == sid}) == 1
