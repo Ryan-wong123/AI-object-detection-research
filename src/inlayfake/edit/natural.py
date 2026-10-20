@@ -64,6 +64,8 @@ def load_prompts(path: str | Path) -> dict:
     return {
         "template": y["template"],
         "box_template": y.get("box_template"),
+        "box_retry_template": y.get("box_retry_template"),
+        "any_class_template": y.get("any_class_template"),
         "check": y["check"],
         "rules": y.get("box_rules", {}),
         "classes": classes,
@@ -75,6 +77,14 @@ def pointing_prompt(prompts: dict, category: str) -> str:
     return prompts["template"].format(where=c["where"], how=c["how"], **{"class": category})
 
 
+def _where_short(where: str) -> str:
+    """A group's ``where`` without the leading "empty spots on"."""
+    for lead in ("empty spots on the ", "empty spots on ", "empty spots in ", "empty spots "):
+        if where.startswith(lead):
+            return "the " + where[len(lead) :] if lead.endswith("the ") else where[len(lead) :]
+    return where
+
+
 def box_prompt(
     prompts: dict, category: str, existing: list[list[float]] | None = None, W: int = 1, H: int = 1
 ) -> str:
@@ -82,11 +92,7 @@ def box_prompt(
     ``where`` without the leading "empty spots on"; ``existing`` = the photo's own objects of the
     class ([x, y, w, h] pixels), given to the VLM on its 0-1000 grid so it does not box them."""
     c = prompts["classes"][category]
-    where = c["where"]
-    for lead in ("empty spots on the ", "empty spots on ", "empty spots in ", "empty spots "):
-        if where.startswith(lead):
-            where = "the " + where[len(lead) :] if lead.endswith("the ") else where[len(lead) :]
-            break
+    where = _where_short(c["where"])
     boxes = [
         [
             round(x / W * 1000),
@@ -105,6 +111,53 @@ def box_prompt(
         them = "them"
     return prompts["box_template"].format(
         where_short=where, how=c["how"], existing=listed, them=them, **{"class": category}
+    )
+
+
+def grid_box(box: list[float], W: int, H: int) -> list[int]:
+    """[x, y, w, h] pixels -> [x1, y1, x2, y2] on the VLM's 0-1000 grid."""
+    x, y, w, h = box
+    return [
+        round(x / W * 1000),
+        round(y / H * 1000),
+        round((x + w) / W * 1000),
+        round((y + h) / H * 1000),
+    ]
+
+
+def _taken_text(taken: list[list[float]], W: int, H: int, max_n: int = 30) -> str:
+    """The largest ``max_n`` taken boxes as a list on the 0-1000 grid ("none" if empty)."""
+    big = sorted(taken, key=lambda b: -b[2] * b[3])[:max_n]
+    return ", ".join(str(grid_box(b, W, H)) for b in big) or "none"
+
+
+def min_side_grid(min_side_px: float, W: int, H: int) -> int:
+    """Minimum box side in pixels on the 0-1000 grid of the shorter image side (conservative)."""
+    return round(min_side_px / min(W, H) * 1000)
+
+
+def box_retry_prompt(
+    prompts: dict, category: str, taken: list[list[float]], min_side_px: float, W: int, H: int
+) -> str:
+    """Second-round question: taken places (labelled objects, rejected boxes), minimum size."""
+    c = prompts["classes"][category]
+    return prompts["box_retry_template"].format(
+        taken=_taken_text(taken, W, H),
+        where_short=_where_short(c["where"]),
+        how=c["how"],
+        min_side=min_side_grid(min_side_px, W, H),
+        **{"class": category},
+    )
+
+
+def any_class_prompt(
+    prompts: dict, classes: list[str], taken: list[list[float]], min_side_px: float, W: int, H: int
+) -> str:
+    """Any-class question: the VLM picks one of ``classes`` that fits the scene."""
+    return prompts["any_class_template"].format(
+        taken=_taken_text(taken, W, H),
+        class_list=", ".join(classes),
+        min_side=min_side_grid(min_side_px, W, H),
     )
 
 

@@ -29,8 +29,10 @@ from inlayfake.edit.encode import load_rgb
 from inlayfake.edit.natural import (
     BLOCKED_STUFF,
     SKY_STUFF,
+    any_class_prompt,
     box_from_point,
     box_prompt,
+    box_retry_prompt,
     check_box,
     check_questions,
     dedupe_boxes,
@@ -153,6 +155,9 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
     pcfg, ncfg = cfg["placement"], cfg["placement"]["natural"]
     keys = (
         "mode",
+        "retry",
+        "any_class",
+        "stop_when_valid",
         "check_point_surface",
         "min_box_frac",
         "min_box_side_px",
@@ -281,9 +286,31 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         n_rechecked += sid in seen
         n_rows = len(rows)
         img = load_rgb(index.image_path(sid))
+
+        def _ask(
+            prompt: str, cat: str = "*", sid: int = sid, img: np.ndarray = img
+        ) -> tuple[list[list[float]], str, str]:
+            """Box-mode VLM question, answered from the cache if asked before."""
+            nonlocal vlm, n_asked, n_reused
+            key = _point_key(sid, cat, prompt, vid)  # same key as before box rounds existed
+            if key in points_cache:
+                n_reused += 1
+                hit = points_cache[key]
+            else:
+                if vlm is None:
+                    vlm = build_vlm(ncfg["vlm"], device)
+                vb, ans = vlm.boxes(img, prompt)
+                hit = {"key": key, "points": [], "boxes": vb, "answer": ans, "vlm": vlm.name}
+                points_cache[key] = hit
+                points_file.write(json.dumps(hit) + "\n")
+                points_file.flush()
+                n_asked += 1
+            return hit["boxes"], hit["answer"], hit["vlm"]
+
         depth = depth_model(img)
         blocked_all = stuff.mask(sid, set(BLOCKED_STUFF), H, W) if stuff else None
         check_surface = ncfg.get("check_point_surface", False)
+        stuff_map, stuff_names, things = None, [], []
         if check_surface:
             stuff_map, stuff_names = _stuff_label_map(stuff, sid, H, W) if stuff else (None, [])
             things = _thing_masks(index, sid)
@@ -291,7 +318,27 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         valid = []
         box_mode = ncfg.get("mode", "point") == "box"
         n_max = ncfg.get("max_candidates", rules.get("max_candidates", 5))
-        for cat in balanced_order(classes, used, rng)[: ncfg.get("classes_per_photo", 2)]:
+        order = balanced_order(classes, used, rng)[: ncfg.get("classes_per_photo", 2)]
+        if box_mode:
+            valid = _box_mode_photo(
+                order,
+                sid,
+                img,
+                W,
+                H,
+                labels,
+                prompts,
+                rules,
+                ncfg,
+                pcfg,
+                rows,
+                ask=_ask,
+                surface=(stuff_map, stuff_names, things) if check_surface and stuff else None,
+                sky=sky,
+                blocked_all=blocked_all,
+                exclude=exclude,
+            )
+        for cat in [] if box_mode else order:
             air = prompts["classes"][cat]["air"]
             blocked = blocked_all & ~sky if (air and blocked_all is not None) else blocked_all
             same = [lb for lb in labels if lb["category"] == cat]
@@ -453,7 +500,7 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 "box_free": first["box"],
                 "box_occ": None,
                 "occluded_ann_id": None,
-                "class_in_photo": True,
+                "class_in_photo": first.get("class_in_photo", True),
                 "placement_rule": "natural",
             }
             plans.append(rec["plan"])
@@ -476,6 +523,140 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         "vlm_questions": {"asked": n_asked, "reused": n_reused},
         "photos_rechecked": n_rechecked,
     }
+
+
+def _box_mode_photo(
+    order: list[str],
+    sid: int,
+    img: np.ndarray,
+    W: int,
+    H: int,
+    labels: list[dict],
+    prompts: dict,
+    rules: dict,
+    ncfg: dict,
+    pcfg: dict,
+    rows: list[dict],
+    ask,
+    surface,
+    sky,
+    blocked_all,
+    exclude: set,
+) -> list[dict]:
+    """Box mode for one photo; appends every candidate to ``rows`` and returns the valid ones.
+
+    Per class (``order``): the first question (``box_prompt``); if none of its boxes passes and
+    ``retry`` is on, a second question that lists taken places (labelled objects, people, the
+    rejected boxes) and a minimum size. With ``stop_when_valid`` the next class is asked only if
+    this one found nothing. If no class of the photo works and ``any_class`` is on, one question
+    lets the VLM pick any listed class (plans flagged ``class_in_photo: false``)."""
+    from inlayfake.edit.scene import parse_bbox_items
+
+    n_max = ncfg.get("max_candidates", rules.get("max_candidates", 5))
+    min_side = ncfg.get("min_box_side_px", pcfg["min_side_px"])
+    valid: list[dict] = []
+    tried: list[list[float]] = []
+    taken_base = [lb["bbox"] for lb in labels]
+
+    def evaluate(cat, boxes, prompt, answer, vlm_name, round_tag, in_photo=True) -> None:
+        entry = prompts["classes"][cat]
+        air = entry["air"]
+        blocked = blocked_all & ~sky if (air and blocked_all is not None) else blocked_all
+        boxes = dedupe_boxes(boxes, n_max)
+        base = {"source_id": sid, "category": cat, "prompt": prompt, "answer": answer}
+        base |= {"vlm": vlm_name, "round": round_tag, "class_in_photo": in_photo}
+        if not boxes:
+            rows.append(base | {"rank": None, "ok": False, "reason": "no box in the answer"})
+            return
+        for rank, box in enumerate(boxes):
+            box = [float(v) for v in box]
+            tried.append(box)
+            bx, by, bw, bh = box
+            cx, cy = bx + bw / 2, by + bh / 2
+            on_sky = bool(
+                air
+                and sky is not None
+                and sky[int(np.clip(cy, 0, H - 1)), int(np.clip(cx, 0, W - 1))]
+            )
+            px, py = (cx, cy) if on_sky else (cx, by + bh - 1)  # contact point
+            row = base | {
+                "rank": rank,
+                "point": [round(px, 1), round(py, 1)],
+                "on_sky": on_sky,
+                "box": [round(v, 1) for v in box],
+                "size_from": "vlm",
+            }
+            area = bw * bh
+            ok, reason = True, "ok"
+            if surface is not None:
+                stuff_map, stuff_names, things = surface
+                label = _label_below(stuff_map, stuff_names, px, py)
+                ok, reason = point_support(label, _thing_at(things, px, py), entry)
+            if ok and (area < ncfg.get("min_box_frac", 0.0) * W * H or min(bw, bh) < min_side):
+                ok, reason = False, "too small"
+            elif ok and area > pcfg["max_area_frac"] * W * H:
+                ok, reason = False, "too large"
+            elif ok:
+                ok, reason = check_box(box, labels, blocked, rules)
+            row |= {"ok": ok, "reason": reason}
+            if ok:
+                row["valid_rank"] = len(valid)
+                valid.append(row)
+            rows.append(row)
+
+    for cat in order:
+        same = [lb["bbox"] for lb in labels if lb["category"] == cat]
+        prompt = box_prompt(prompts, cat, same, W, H)
+        boxes, answer, name = ask(prompt, cat)
+        n_before = len(valid)
+        evaluate(cat, boxes, prompt, answer, name, 1)
+        if len(valid) == n_before and ncfg.get("retry", False):
+            prompt = box_retry_prompt(prompts, cat, taken_base + tried, min_side, W, H)
+            boxes, answer, name = ask(prompt, cat)
+            evaluate(cat, boxes, prompt, answer, name, 2)
+        if valid and ncfg.get("stop_when_valid", False):
+            break
+    if not valid and ncfg.get("any_class", False):
+        allowed = [c for c in prompts["classes"] if c not in exclude]
+        prompt = any_class_prompt(prompts, allowed, taken_base + tried, min_side, W, H)
+        boxes, answer, name = ask(prompt)
+        by_label: dict[str, list[list[float]]] = {}
+        for lab, box in parse_bbox_items(answer, W, H):
+            lab = lab.lower().removeprefix("a ").removeprefix("an ").removeprefix("new ").strip()
+            by_label.setdefault(lab, []).append(box)
+        if not by_label:
+            rows.append(
+                {
+                    "source_id": sid,
+                    "category": None,
+                    "prompt": prompt,
+                    "answer": answer,
+                    "vlm": name,
+                    "round": "any",
+                    "rank": None,
+                    "ok": False,
+                    "reason": "no box in the answer",
+                }
+            )
+        in_photo = {lb["category"] for lb in labels}
+        for lab, bxs in by_label.items():
+            if lab not in allowed:
+                rows.append(
+                    {
+                        "source_id": sid,
+                        "category": lab,
+                        "prompt": prompt,
+                        "answer": answer,
+                        "vlm": name,
+                        "round": "any",
+                        "rank": None,
+                        "ok": False,
+                        "reason": "class not allowed",
+                    }
+                )
+                continue
+            evaluate(lab, bxs, prompt, answer, name, "any", in_photo=lab in in_photo)
+    return valid
 
 
 def load_valid(wd: Path) -> dict[int, list[dict]]:

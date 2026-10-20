@@ -441,3 +441,64 @@ def test_surface_fixes_animals_in_plants_and_pole_classes():
     assert point_support("sky-other", None, c["traffic light"]) == (True, "ok")
     assert point_support(None, "car", c["traffic light"]) == (True, "ok")
     assert point_support("bush", None, c["car"])[0] is False
+
+
+def _tiny_then(good_when: str):
+    """Fake box answers: a tiny (rejected) box, unless the question contains ``good_when``."""
+    import json as _json
+
+    def boxes(self, img, prompt):
+        H, W = img.shape[:2]
+        if good_when in prompt:
+            b = [0.35 * W, 0.8 * H, 0.3 * W, 0.15 * H]
+            lab = "chair" if "Choose only from" in prompt else "new object"
+        else:
+            b, lab = [0.5 * W, 0.9 * H, 4.0, 4.0], "new object"
+        g = [round(b[0] / W * 1000), round(b[1] / H * 1000)]
+        g += [round((b[0] + b[2]) / W * 1000), round((b[1] + b[3]) / H * 1000)]
+        return [b], _json.dumps([{"bbox_2d": g, "label": lab}])
+
+    return boxes
+
+
+def test_box_mode_retry_round_finds_a_spot(cfg, tmp_path, monkeypatch):
+    """retry: when the first boxes all fail, the second question (taken places + minimum size)
+    is asked and its box can become the plan."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", _tiny_then("already taken"))
+    c = _natural_cfg(cfg, mode="box", check_point_surface=False, retry=True)
+    sample.run(c)
+    summary = plan.run(c)
+    rows = [json.loads(x) for x in (tmp_path / "work" / "natural_candidates.jsonl").open()]
+    assert summary["n_plans"] > 0
+    assert all(r["round"] == 2 for r in rows if r["ok"])
+    assert any(r["round"] == 1 and r["reason"] == "too small" for r in rows)
+    retry = next(r for r in rows if r["round"] == 2)
+    assert "at least" in retry["prompt"] and "already taken" in retry["prompt"]
+
+
+def test_box_mode_any_class_round_is_flagged(cfg, tmp_path, monkeypatch):
+    """any_class: when no class of the photo works, the VLM may pick a listed class; the plan is
+    flagged class_in_photo false unless that class is in the photo."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", _tiny_then("Choose only from"))
+    c = _natural_cfg(cfg, mode="box", check_point_surface=False, retry=True, any_class=True)
+    sample.run(c)
+    summary = plan.run(c)
+    wd = tmp_path / "work"
+    plans = [json.loads(x) for x in (wd / "plans.jsonl").read_text().splitlines()]
+    rows = [json.loads(x) for x in (wd / "natural_candidates.jsonl").open()]
+    assert summary["n_plans"] == len(plans) > 0
+    assert all(p["category"] == "chair" for p in plans)
+    ok = [r for r in rows if r["ok"]]
+    assert all(r["round"] == "any" for r in ok)
+    for p in plans:
+        r = next(r for r in ok if r["source_id"] == p["source_id"])
+        assert p["class_in_photo"] == r["class_in_photo"]
+    assert "person" not in next(r for r in rows if r["round"] == "any")["prompt"].split(
+        "Choose only from:"
+    )[1].split(".")[0].split(", ")

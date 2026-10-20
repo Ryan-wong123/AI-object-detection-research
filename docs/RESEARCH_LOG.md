@@ -7,6 +7,31 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Box mode, fixes A + B: 33 of 50, but the extra spots are mostly poor
+
+- **Why:** the author wants an AI object in every photo but no random fallback. Looking through
+  the 28 pilot photos without a spot: 15 had only too-small (far) boxes, 9 only boxes on other
+  real objects, ~5 rule mistakes, ~5 bottoms on people or vehicles in traffic, 3 "no place"
+  answers that were right (close-ups, a full scene).
+- **Changes:** surface rule: ground animals may stand in plants, pole-mounted signs skip the check
+  (commit 636594b; pilot 22 -> 23). A: a second question for a class whose boxes all failed,
+  listing every labelled object, person and rejected box as taken, with a minimum size. B: every
+  class of the photo is tried (stop at the first with a valid spot), then Qwen may pick any listed
+  class (flagged `class_in_photo: false`). Config `pilot_natural_qwen_small.yaml`.
+- **Pilot** `run_plan_2026-10-20T191136Z` (UTC): **33 of 50** photos with a spot (23 before):
+  23 from the first question, 9 from the second, 1 other class (a bicycle). 91 new Qwen
+  questions, 66 reused.
+- **By eye, the 10 new spots are mostly poor:** about 3 of 10 look plausible (a bus far down the
+  roadside, a zebra on the grass); the others lie on real things COCO does not label (a resting
+  sheep, a scooter rider, a car's number plate, a museum motorcycle's seat), are the wrong shape
+  (a bicycle box spanning the whole ground strip) or sit where the object makes no sense. The
+  overlap rule cannot catch unlabelled objects. So pushing Qwen for more spots trades quality
+  for coverage, as with the looser Molmo rules.
+- **Next:** author decides: keep the first-question spots only (23 of 50), keep all 33 and review
+  by hand, or another way to judge the extra spots.
+
+---
+
 ## 2026-10-21: Box mode: Qwen3-VL-8B draws the box (planning-only pilot, 50 photos)
 
 - **Why:** the author found many planned boxes that do not make sense (a tennis racket standing
