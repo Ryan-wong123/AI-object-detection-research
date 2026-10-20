@@ -382,6 +382,23 @@ saves every photo as it finishes (`natural_plan_progress.jsonl`), generation eve
 verification every check, so at most the photo or image in progress is redone. Files are written
 crash-safely (a cut-off last log line is skipped; records and plans are replaced in one step).
 
+### Planning first, then deciding on the rules
+
+Planning alone tells how many photos get a natural spot, before any SDXL time is spent
+(~2.5–4.5 h for the 544 photos; Molmo + depth on the GPU):
+
+```powershell
+python -m inlayfake plan --config configs/insertion_natural.yaml
+python -c "import json,glob,os; f=max(glob.glob('data/inlayfake_v3/runs/run_plan_*.json'),key=os.path.getmtime); d=json.load(open(f)); print('photos with a spot:', d['n_plans'], ' without:', d['n_failed']); print(d['candidate_reasons'])"
+```
+
+Molmo's answer for each photo and class is saved in `natural_points.jsonl`, and each planned
+photo records the settings it was planned with. Change a rule in the config (for example
+`box_rules.max_cover_real: 0.40`) and run `plan` again: every photo is re-checked with the new
+rules from the saved answers, in minutes rather than hours. Molmo is asked again only for a class
+it was never asked about (the class order can shift when other photos change). When the numbers
+are acceptable, start generation with `insert` (it uses the latest `plans.jsonl`).
+
 ## Viewing the detector results
 
 The detector viewer is a web page that shows each photo's COCO labels next to every detector's

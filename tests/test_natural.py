@@ -287,6 +287,7 @@ def test_natural_plan_resumes_with_identical_plans(cfg, tmp_path, monkeypatch):
     # simulate a crash after 3 photos, the last line cut off mid-write
     (wd / "natural_plan_progress.jsonl").write_text("\n".join(lines[:3]) + "\n" + lines[3][:20])
     (wd / "plans.jsonl").unlink()
+    (wd / "natural_points.jsonl").unlink()  # nor were the later photos' VLM answers saved
     calls = []
     real_point = scene.FakeVLM.point
 
@@ -301,3 +302,57 @@ def test_natural_plan_resumes_with_identical_plans(cfg, tmp_path, monkeypatch):
     n_done = len({json.loads(x)["source_id"] for x in lines[:3]})
     total = len({json.loads(x)["source_id"] for x in lines})
     assert 0 < len(calls) and n_done > 0 and total > n_done  # only the unfinished photos asked
+
+
+def test_rule_change_rechecks_saved_photos_without_asking_the_vlm(cfg, tmp_path, monkeypatch):
+    """After a planning run, changing a box rule re-checks every saved photo with the new rule
+    using the saved VLM answers (no new question), and gives the same plans as a fresh run with
+    the new rule."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    base = _natural_cfg(cfg)
+    sample.run(base)
+    plan.run(base)
+    loose = deep_merge(base, {"placement": {"natural": {"box_rules": {"max_cover_real": 0.9}}}})
+    calls = []
+    real_point = scene.FakeVLM.point
+
+    def counting_point(self, img, prompt):
+        calls.append(prompt)
+        return real_point(self, img, prompt)
+
+    monkeypatch.setattr(scene.FakeVLM, "point", counting_point)
+    summary = plan.run(loose)
+    assert calls == [] and summary["vlm_questions"]["asked"] == 0
+    assert summary["photos_rechecked"] > 0
+    rows = [json.loads(x) for x in (tmp_path / "work" / "natural_candidates.jsonl").open()]
+    real = [r["reason"] for r in rows if " of a real " in (r["reason"] or "")]
+    assert all(int(x.split()[1].rstrip("%")) > 90 for x in real)  # the new 90% limit applied
+
+    fresh = deep_merge(loose, {"paths": {"work": str(tmp_path / "fresh")}})
+    sample.run(fresh)
+    plan.run(fresh)
+    for name in ("plans.jsonl", "natural_candidates.jsonl"):
+        assert (tmp_path / "work" / name).read_text() == (tmp_path / "fresh" / name).read_text()
+    # the same settings again: every photo is reused as saved
+    again = plan.run(loose)
+    assert again["photos_rechecked"] == 0 and again["vlm_questions"] == {"asked": 0, "reused": 0}
+
+
+def test_saved_molmo_answers_are_read_back_from_old_progress_rows(tmp_path):
+    """Progress rows saved before the answer cache existed still spare the VLM question: the
+    Molmo answer text is parsed again (percent of width/height)."""
+    from inlayfake.stages.natural import _load_points, _point_key, _vlm_id
+
+    vcfg = {"backend": "molmo", "model_id": "m"}
+    row = {
+        "source_id": 7,
+        "category": "cup",
+        "prompt": "Point to a table",
+        "answer": '<point x="50.0" y="25.0" alt="x">x</point>',
+        "vlm": "molmo",
+    }
+    cache = _load_points(tmp_path, [row], {7: (200, 100)}, vcfg)
+    hit = cache[_point_key(7, "cup", "Point to a table", _vlm_id(vcfg))]
+    assert hit["points"] == [(100.0, 25.0)] and hit["vlm"] == "molmo"

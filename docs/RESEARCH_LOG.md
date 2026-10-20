@@ -7,6 +7,24 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-20: Planning first; saved VLM answers make rule changes cheap
+
+- **Author decision:** run the planning stage of the full natural run alone first, look at how
+  many of the 544 photos get a spot, then decide whether to loosen the rules before generating.
+- **Why a code change:** re-planning with other rules used to ask Molmo every question again
+  (~2.5–4.5 h), although Molmo's points do not depend on the rules. Now each answer is saved per
+  (photo, class, prompt, model) in `natural_points.jsonl`, and every planned photo stores the
+  settings it was planned with (rules, size limits, surface check, prompt file, depth model). A
+  photo saved with other settings is re-checked with the current ones from the saved answers
+  (depth model + box rules only); Molmo is asked only for a class it never answered. The 19
+  photos planned before the stop are re-checked once this way (their answers are read back from
+  the saved progress rows). Tests: a re-check gives the same plans as a fresh run with the new
+  rules and asks Molmo nothing. No results change.
+- **Next:** planning-only run of `configs/insertion_natural.yaml`; report photos with a spot and
+  the rejection reasons; author decides on the rules; then `insert`.
+
+---
+
 ## 2026-10-20: Full natural run started with looser rules (run `task2_insertion_natural`)
 
 - **Author decisions:** loosen three rules for coverage: an AI object may cover up to 30% of a
