@@ -19,6 +19,7 @@ Heavy imports happen inside the builders (tests and the CLI need neither model).
 from __future__ import annotations
 
 import re
+import sys
 
 import numpy as np
 from PIL import Image
@@ -72,6 +73,29 @@ class FakeVLM:
         return "no" if "seen through" in question else "yes"
 
 
+def _patch_molmo_embedding(module) -> None:
+    """Molmo's Embedding.forward concatenates its 152k-word table with the extra image tokens on
+    every call: a new 1.1 GB block per generated token, which fragmented the 8 GB GPU until
+    PyTorch reserved 8.4 GB and spilled into shared system memory (50-120 s per answer instead of
+    ~15 s, 20 Oct). Looking the two tables up separately gives exactly the same vectors."""
+    import torch.nn.functional as F
+
+    emb_cls = getattr(module, "Embedding", None)
+    if emb_cls is None or getattr(emb_cls, "_inlayfake_no_cat", False):
+        return
+
+    def forward(self, x):
+        n = self.embedding.shape[0]
+        out = F.embedding(x.clamp(max=n - 1), self.embedding)
+        new = x >= n
+        if bool(new.any()):
+            out[new] = F.embedding(x[new] - n, self.new_embedding).to(out.dtype)
+        return out
+
+    emb_cls.forward = forward
+    emb_cls._inlayfake_no_cat = True
+
+
 class MolmoVLM:
     name = "molmo"
 
@@ -107,6 +131,7 @@ class MolmoVLM:
             original = cls.tie_weights
             cls.tie_weights = lambda self, *a, **k: original(self)
             cls._inlayfake_patched = True
+            _patch_molmo_embedding(sys.modules[cls.__module__])
         from transformers import GenerationMixin
 
         if not issubclass(cls, GenerationMixin):
