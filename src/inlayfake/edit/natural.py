@@ -74,16 +74,37 @@ def pointing_prompt(prompts: dict, category: str) -> str:
     return prompts["template"].format(where=c["where"], how=c["how"], **{"class": category})
 
 
-def box_prompt(prompts: dict, category: str) -> str:
+def box_prompt(
+    prompts: dict, category: str, existing: list[list[float]] | None = None, W: int = 1, H: int = 1
+) -> str:
     """Box-mode question (``box_template``) for one class; ``where_short`` is the group's
-    ``where`` without the leading "empty spots on"."""
+    ``where`` without the leading "empty spots on"; ``existing`` = the photo's own objects of the
+    class ([x, y, w, h] pixels), given to the VLM on its 0-1000 grid so it does not box them."""
     c = prompts["classes"][category]
     where = c["where"]
     for lead in ("empty spots on the ", "empty spots on ", "empty spots in ", "empty spots "):
         if where.startswith(lead):
             where = "the " + where[len(lead) :] if lead.endswith("the ") else where[len(lead) :]
             break
-    return prompts["box_template"].format(where_short=where, how=c["how"], **{"class": category})
+    boxes = [
+        [
+            round(x / W * 1000),
+            round(y / H * 1000),
+            round((x + w) / W * 1000),
+            round((y + h) / H * 1000),
+        ]
+        for x, y, w, h in (existing or [])
+    ]
+    if not boxes:
+        listed, them = f"no {category}", "anything"
+    elif len(boxes) == 1:
+        listed, them = f"one {category} at bbox_2d {boxes[0]}", "it"
+    else:
+        listed = f"{len(boxes)} of them at bbox_2d " + ", ".join(str(b) for b in boxes)
+        them = "them"
+    return prompts["box_template"].format(
+        where_short=where, how=c["how"], existing=listed, them=them, **{"class": category}
+    )
 
 
 def dedupe_boxes(boxes: list[list[float]], max_n: int, max_iou: float = 0.5) -> list[list[float]]:

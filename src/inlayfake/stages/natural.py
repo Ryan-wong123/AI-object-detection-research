@@ -296,7 +296,11 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
             blocked = blocked_all & ~sky if (air and blocked_all is not None) else blocked_all
             same = [lb for lb in labels if lb["category"] == cat]
             refs = usable_references(same, labels, W, H)
-            prompt = box_prompt(prompts, cat) if box_mode else pointing_prompt(prompts, cat)
+            prompt = (
+                box_prompt(prompts, cat, [lb["bbox"] for lb in same], W, H)
+                if box_mode
+                else pointing_prompt(prompts, cat)
+            )
             key = _point_key(sid, cat, prompt, vid)
             if key in points_cache:  # asked before (this run or an earlier one): reuse
                 hit = points_cache[key]
