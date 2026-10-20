@@ -160,7 +160,6 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
         "stop_when_valid",
         "more_questions",
         "free",
-        "any_class_from",
         "check_point_surface",
         "min_box_frac",
         "min_box_side_px",
@@ -227,20 +226,6 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
     # box rules from the prompt file, overridden per run by placement.natural.box_rules
     rules = {**prompts["rules"], **(ncfg.get("box_rules") or {})}
     exclude = set(pcfg.get("exclude_classes", ["person"]))
-    # classes the any-class question may offer (author, 21 Oct): those labelled (COCO + week-1
-    # audit adds) in the photos of placement.natural.any_class_from, e.g. the 544 week-1 photos;
-    # default: every class of the prompt file
-    any_pool = None
-    if ncfg.get("any_class_from"):
-        from inlayfake.stages.common import read_jsonl
-        from inlayfake.stages.plan import audit_anns
-
-        week = {r["source_id"] for r in read_jsonl(Path(ncfg["any_class_from"]))}
-        adds = audit_anns(pcfg.get("audit_decisions"))
-        pool = set()
-        for s_id in week:
-            pool.update(present_classes(index, index.image_anns(s_id), adds.get(s_id, []), exclude))
-        any_pool = sorted(c for c in pool if c in prompts["classes"])
     spath = pcfg.get("support", {}).get("stuff_annotations")
     stuff = StuffIndex.load(spath) if spath and Path(spath).exists() else None
     settings = plan_settings(cfg, prompts, rules)
@@ -378,7 +363,6 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 sky=sky,
                 blocked_all=blocked_all,
                 exclude=exclude,
-                any_pool=any_pool,
                 more=sid in more_targets,
                 rejected=rejected_ids,
             )
@@ -593,7 +577,6 @@ def _box_mode_photo(
     sky,
     blocked_all,
     exclude: set,
-    any_pool: list[str] | None = None,
     more: bool = False,
     rejected: frozenset | set = frozenset(),
 ) -> list[dict]:
@@ -722,11 +705,7 @@ def _box_mode_photo(
         if valid and ncfg.get("stop_when_valid", False) and not more:
             break
     if ncfg.get("any_class", False) and (more or not valid):
-        allowed = any_pool or [c for c in prompts["classes"] if c not in exclude]
-        if ncfg.get("free", False):
-            # the photo's own classes were all asked already and got no place (author, 21 Oct:
-            # in the pilot Qwen offered the same toilet again, boxed on a hand)
-            allowed = [c for c in allowed if c not in order]
+        allowed = [c for c in prompts["classes"] if c not in exclude]
         for alt in (False, True) if more else (False,):
             prompt = any_class_prompt(prompts, allowed, taken_base + tried, min_side, W, H, alt)
             any_round(prompt, allowed, "any2" if alt else "any")
