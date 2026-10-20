@@ -7,6 +7,17 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Decision: no object replacement
+
+- In the no-rules pilot 2 photos get no box: each has one insertable class (train on a viaduct,
+  toilet close-up) and Qwen answered that no second one would look natural. Considered: erase
+  the real object and generate an AI one in its place ("replace"). **Author decision: not
+  implemented**, because replacing a COCO object by inpainting is what COinCO (CVPR 2026, closest
+  related work) does; InlayFake stays insertion-only. Such photos get no AI edit; classes stay
+  limited to the photo's own labels (COCO + week-1 audit adds), no other-class fallback.
+
+---
+
 ## 2026-10-21: Box mode without rules: 48 of 50 photos
 
 - **Author request:** "scrap all rules": Qwen takes a class from the photo's week-1 labels,
