@@ -240,6 +240,17 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         accepted = {int(k.split("|")[0]) for k, v in decisions.items() if v == "accept"}
         rejected_ids = {k for k, v in decisions.items() if v == "reject"}
         more_targets = {s["source_id"] for s in sources} - accepted
+        # once a photo had the extra questions it keeps them: otherwise accepting one of those
+        # spots would drop the questions that produced it (targets of earlier runs are in the
+        # saved settings of the progress file)
+        if (wd / PROGRESS).exists():
+            for line in (wd / PROGRESS).read_text(encoding="utf-8").splitlines():
+                try:
+                    more_targets |= set(
+                        json.loads(line).get("settings", {}).get("more_targets", [])
+                    )
+                except json.JSONDecodeError:
+                    continue
         settings["more_targets"] = sorted(more_targets)
     device = cfg["hardware"]["device"]
     depth_model = vlm = None  # loaded when first needed (the VLM only if an answer is not saved)

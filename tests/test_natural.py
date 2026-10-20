@@ -632,3 +632,37 @@ def test_more_questions_only_for_photos_without_an_accepted_spot(cfg, tmp_path, 
         r for r in before if r["source_id"] == good
     ]
     assert asked and any("empty areas" in p for p in asked)
+
+
+def test_more_question_photos_keep_their_questions_after_an_accept(cfg, tmp_path):
+    """A photo that got the extra questions keeps them after its new spot is accepted, so the
+    accepted spot is still a candidate (and the plan) on the next run."""
+    from inlayfake.stages import plan, sample
+    from inlayfake.stages.spots import spot_id
+
+    c = _natural_cfg(
+        cfg,
+        mode="box",
+        check_point_surface=False,
+        retry=True,
+        any_class=True,
+        stop_when_valid=True,
+        classes_per_photo=99,
+    )
+    sample.run(c)
+    plan.run(c)
+    wd = tmp_path / "work"
+    before = [json.loads(x) for x in (wd / "natural_candidates.jsonl").open()]
+    bad = sorted({r["source_id"] for r in before if r["ok"]})[0]
+    dec = {spot_id(r): "reject" for r in before if r["ok"] and r["source_id"] == bad}
+    (wd / "spot_review.json").write_text(json.dumps(dec))
+    more = deep_merge(c, {"placement": {"natural": {"more_questions": True}}})
+    plan.run(more)
+    mid = [json.loads(x) for x in (wd / "natural_candidates.jsonl").open()]
+    extra = next(r for r in mid if r["source_id"] == bad and r["ok"] and r["round"] == "any")
+    dec[spot_id(extra)] = "accept"
+    (wd / "spot_review.json").write_text(json.dumps(dec))
+    reviewed = deep_merge(more, {"placement": {"natural": {"review": {"enabled": True}}}})
+    plan.run(reviewed)
+    plans = {json.loads(x)["source_id"]: json.loads(x) for x in (wd / "plans.jsonl").open()}
+    assert plans[bad]["box_free"] == extra["box"]
