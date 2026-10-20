@@ -29,6 +29,17 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   (Depth-Anything-V2-Small) runs on the CPU (`placement.natural.depth.device: cpu`), and cached
   GPU memory is freed after every photo. Stopped at 28 photos and restarted; nothing was lost.
   Depth on CPU vs GPU differs only by rounding, so already saved photos are kept.
+- **That was not enough (still 50–120 s per Molmo answer); measured cause:** Molmo's own
+  `Embedding.forward` concatenates its 152k-word table with the image-token table on every call,
+  a fresh 1.1 GB GPU block per generated token. PyTorch then kept 8.4 GB reserved for 7.5 GB in
+  use, more than the GPU has. Fixes: look the two tables up separately (same vectors), and use
+  CUDA's own allocator (`backend:cudaMallocAsync`) for planning. On 6 real planning questions:
+  reserved 8.4 → 6.9 GB, peak use 7.5 → 6.8 GB, and **all 6 answers identical** to the saved
+  ones. Time per answer 50–120 s → 33–45 s.
+- **Remaining slowness is the CPU, not the GPU:** during Molmo the GPU is ~70% idle at ~600 MHz
+  and the CPU runs at 60–84% of its base clock (Windows "Balanced" power plan, laptop power
+  mode). Molmo generates one token at a time, each driven by Python on the CPU. A
+  high-performance power mode is the author's setting to change.
 
 ---
 

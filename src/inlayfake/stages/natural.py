@@ -17,6 +17,7 @@ Answers go to ``<work>/realism.jsonl``; ``verify.verify_state`` applies them.
 from __future__ import annotations
 
 import json
+import os
 from collections import Counter
 from pathlib import Path
 
@@ -265,6 +266,9 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 failed.append(rec["failed"])
             continue
         if depth_model is None:
+            # CUDA's own allocator fragments less: Molmo's reserved memory 7.3 -> 6.9 GB on the
+            # 8 GB GPU (20 Oct); read when CUDA first allocates, which happens after this point
+            os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "backend:cudaMallocAsync")
             depth_model = build_depth(ncfg["depth"], ncfg["depth"].get("device", device))
         n_rechecked += sid in seen
         n_rows = len(rows)
