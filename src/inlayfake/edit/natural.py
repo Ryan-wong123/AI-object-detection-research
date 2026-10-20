@@ -59,6 +59,7 @@ def load_prompts(path: str | Path) -> dict:
                 # allowed support under the point (fix 1): COCO-Stuff names and COCO classes
                 "surfaces": {n for k in sup.get("surfaces", []) for n in sets[k]},
                 "on_objects": set(sup.get("on_objects", [])),
+                "any_surface": bool(sup.get("any_surface", False)),
             }
     return {
         "template": y["template"],
@@ -147,6 +148,8 @@ def point_support(stuff_label: str | None, thing: str | None, entry: dict) -> tu
     file.) ``thing``: class of the labelled object under the point (None: no object);
     ``stuff_label``: COCO-Stuff class there ("other" marks object pixels; None: no COCO-Stuff
     labels for this photo, so nothing can be checked)."""
+    if entry.get("any_surface"):  # pole-mounted classes: no support check
+        return True, "ok"
     if thing is not None:
         if thing in entry["on_objects"]:
             return True, "ok"

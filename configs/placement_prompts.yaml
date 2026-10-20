@@ -67,9 +67,12 @@ surface_sets:
   wall: [wall-brick, wall-concrete, wall-other, wall-panel, wall-stone, wall-tile, wall-wood]
   sky: [sky-other, clouds]
   perch: [tree, branch, bush, leaves, railing, roof, fence]
+  # animals stand in bushes and tall plants (author, 21 Oct: elephants in tall grass were rejected
+  # as "on a bush" in the box-mode pilot)
+  vegetation: [bush, leaves, plant-other, flower, grass, straw]
 
 supports:   # group: {surfaces: [surface sets], on_objects: [COCO classes]}
-  ground_animal: {surfaces: [ground]}
+  ground_animal: {surfaces: [ground, vegetation]}
   bird: {surfaces: [ground, sky, perch], on_objects: [bench, boat, car, truck, fire hydrant, chair]}
   road_vehicle: {surfaces: [road]}
   bicycle: {surfaces: [road, ground]}
@@ -78,7 +81,9 @@ supports:   # group: {surfaces: [surface sets], on_objects: [COCO classes]}
   water_craft: {surfaces: [water, beach]}
   surfboard: {surfaces: [water, beach]}
   street_furniture: {surfaces: [road, ground]}
-  street_sign: {surfaces: [road, ground]}
+  # on a pole, so the box's bottom need not touch the ground in the photo (traffic lights over a
+  # road, against sky or a building; author, 21 Oct): no surface check
+  street_sign: {any_surface: true}
   floor_furniture: {surfaces: [ground]}
   wall_or_stand: {surfaces: [wall, table], on_objects: [dining table]}
   counter_appliance: {surfaces: [table], on_objects: [dining table, oven, refrigerator]}
