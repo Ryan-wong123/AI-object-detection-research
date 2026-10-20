@@ -64,6 +64,7 @@ object are dropped, never labelled.
 | Natural pilot v2 (fixes): verified AI object / on fitting surface / object size | 18 of 50 / 72% / 1.8% of image (random 0.8%); about 14 of 18 natural by eye <!-- run:task2_pilot_natural_v2, file:paper/results/task2_pilot_natural_three_way.json --> |
 | Natural pilot v3 (more spots/classes): verified AI object | 19 of 50, same quality as v2 <!-- run:task2_pilot_natural_v3 --> |
 | Full natural run: photos with a spot (overlap limit 30% / 50%, author chose 50%) | 349 / 389 of 544 <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->; with a verified AI edit [[TBD]] <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json --> |
+| Box mode (Qwen3-VL draws the box, author reviews), 50-photo pilot: photos with an accepted natural box | 26 of 50; 5 more pending review; the rest get no AI edit (author decision) <!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json --> |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss
