@@ -683,3 +683,41 @@ def test_free_mode_keeps_every_vlm_box(cfg, tmp_path, monkeypatch):
     assert rows and all(r["ok"] for r in rows if r.get("box"))  # tiny 4 px boxes included
     for sid in {r["source_id"] for r in rows}:  # the first class with a box is used
         assert len({r["category"] for r in rows if r["source_id"] == sid}) == 1
+
+
+def test_free_mode_other_class_from_week1_pool(cfg, tmp_path, monkeypatch):
+    """free + any_class: when the VLM finds no place for any of the photo's classes, it may pick
+    another class, offered only from the classes labelled in the any_class_from photos; the plan
+    is flagged class_in_photo false when that class is not in the photo."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    def boxes(self, img, prompt):
+        H, W = img.shape[:2]
+        if "Choose only from" not in prompt:
+            return [], "[]"
+        b = [0.35 * W, 0.8 * H, 0.3 * W, 0.15 * H]
+        g = [350, 800, 650, 950]
+        return [b], json.dumps([{"bbox_2d": g, "label": "chair"}])
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    c = _natural_cfg(cfg, mode="box", free=True, stop_when_valid=True, classes_per_photo=99)
+    sample.run(c)
+    wd = tmp_path / "work"
+    srcs = [json.loads(x) for x in (wd / "sources.jsonl").read_text().splitlines()]
+    week = tmp_path / "week1.jsonl"
+    week.write_text("".join(json.dumps({"source_id": s["source_id"]}) + "\n" for s in srcs))
+    c = deep_merge(c, {"placement": {"natural": {"any_class": True, "any_class_from": str(week)}}})
+    summary = plan.run(c)
+    rows = [json.loads(x) for x in (wd / "natural_candidates.jsonl").open()]
+    anyq = next(r for r in rows if r.get("round") == "any")
+    offered = anyq["prompt"].split("Choose only from: ")[1].split(". It must")[0].split(", ")
+    asked = {
+        r["category"] for r in rows if r["source_id"] == anyq["source_id"] and r.get("round") == 1
+    }
+    assert asked and not asked & set(offered)  # the photo's own classes failed: not offered again
+    assert "person" not in offered
+    if "chair" in offered:
+        plans = [json.loads(x) for x in (wd / "plans.jsonl").read_text().splitlines()]
+        assert summary["n_plans"] == len(plans) > 0
+        assert all(p["category"] == "chair" for p in plans)

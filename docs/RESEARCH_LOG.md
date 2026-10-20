@@ -7,6 +7,20 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Other-class fallback from the week-1 classes (no-rules pilot): 50 of 50, 2 poor
+
+- **Author request:** for close-ups and full scenes where Qwen finds no place for any of the
+  photo's classes, let it add another class, but one from the week-1 baseline (classes labelled
+  in the 544 week-1 photos, COCO + audit adds: 78 classes). `any_class_from:
+  data/inlayfake/plans.jsonl`; the photo's own classes are not offered again (in a first try Qwen
+  offered the same toilet). Flagged `class_in_photo: false`.
+- **Pilot** (`run_plan_2026-10-20T202716Z`, UTC): **50 of 50** photos have a box. The two
+  fallbacks are poor: three benches drawn on the viaduct's concrete pillars, and a bottle boxed
+  over the hand holding a toilet sprayer. For such scenes Qwen has no sensible free place; the
+  author's review is what keeps them out.
+
+---
+
 ## 2026-10-21: Decision: no object replacement
 
 - In the no-rules pilot 2 photos get no box: each has one insertable class (train on a viaduct,
