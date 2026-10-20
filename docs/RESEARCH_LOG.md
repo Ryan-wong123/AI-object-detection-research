@@ -7,6 +7,19 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Hand review of planned spots before generation
+
+- **Author decision:** keep all 33 pilot spots and review each one by hand before generation.
+- **Built:** `python -m inlayfake spots --serve` (`stages/spots.py`): a page with every valid spot
+  (planned + backups) and Accept/Reject buttons; a local server (127.0.0.1) saves each click to
+  `<work>/spot_review.json`. With `placement.natural.review.enabled`, `plan` keeps only accepted
+  spots (or, with `require_accept: false`, all but rejected ones); a photo uses its first
+  accepted spot and is dropped if none. Decisions are keyed by photo, class and box. The plans
+  are the author's choice from the VLM's candidates; the paper must say so.
+- **Next:** the author reviews the 33 pilot photos; then decide on the full 544-photo run.
+
+---
+
 ## 2026-10-21: Box mode, fixes A + B: 33 of 50, but the extra spots are mostly poor
 
 - **Why:** the author wants an AI object in every photo but no random fallback. Looking through

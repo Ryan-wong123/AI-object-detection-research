@@ -511,6 +511,13 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         _free_cuda_cache()
     progress.close()
     points_file.close()
+    rcfg = ncfg.get("review") or {}
+    if rcfg.get("enabled"):  # the author's spot review (stages/spots.py) decides the plans
+        from inlayfake.stages.spots import apply_review, read_review, review_path
+
+        plans, failed = apply_review(
+            rows, plans, failed, read_review(review_path(cfg)), rcfg.get("require_accept", True)
+        )
     with (wd / CANDIDATES).open("w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
