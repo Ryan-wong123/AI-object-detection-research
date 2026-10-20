@@ -7,6 +7,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Overlap limits raised to 50%: 389 of 544 photos have a natural spot
+
+- **Author decision:** after the planning-only pass (349 photos at 30%), raise both overlap
+  limits (person, any real object) to 50%; re-plan before generating.
+- **Re-plan** `run_plan_2026-10-20T161419Z` (UTC; 11 min, all 544 photos re-checked from saved
+  answers; 50 new Molmo questions where the class order shifted, 810 reused):
+  **389 of 544 photos (72%)** have a spot (30%: 349). 43 photos gained, 3 lost (the even class
+  balance gave them another class, which had no spot), 292 keep the same first spot, 54 changed
+  spot or class. 1,192 valid of 2,373 candidates (30%: 993 of 2,363). Within the earlier upper
+  bound (+62 photos at 50%). The 30% plan is kept as `plans_v4_30pct.jsonl` /
+  `natural_candidates_v4_30pct.jsonl`. `paper/results/task2_insertion_natural_plan_50pct.json`.
+- **Cost:** objects may now hide up to half of a person or a real object, so more edits occlude
+  real content; the human audit should watch for this.
+- **Next:** author's go-ahead for `insert` (generation + verification).
+
+---
+
 ## 2026-10-20: Full natural run, planning only: 349 of 544 photos have a natural spot
 
 - **Run** `task2_insertion_natural`, `run_plan_2026-10-20T145159Z` (v4 rules: up to 30% of a
