@@ -38,6 +38,36 @@ box_template: >-
   [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. Each box must tightly fit the whole
   new {class}. If no place would look natural, answer [].
 
+# Second round (placement.natural.retry; author, 2026-10-21) for a class whose first boxes all
+# broke a rule: the VLM is told every labelled object and person plus its own rejected boxes as
+# taken places, and a minimum size (0-1000 grid), so it looks for free space nearer the camera.
+# In the box-mode pilot, 15 of 28 photos without a spot had only far-away (too small) boxes and 9
+# only boxes on other real objects.
+box_retry_template: >-
+  Look at the whole photo and understand the scene. These places are already taken by people or
+  objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Find a different,
+  empty place where one more, new {class} could be added so that it looks completely natural and
+  makes sense in this exact scene. The new {class} should {how} on {where_short}, rest on a real
+  surface (or be in open sky if it can fly), have a realistic size and orientation for its
+  distance, and not overlap any taken place. Prefer places closer to the camera: the box must be
+  at least {min_side} wide and {min_side} high on the 0-1000 grid. Give up to 3 places, best
+  first, as JSON: [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. If no place would
+  look natural, answer [].
+
+# Any-class round (placement.natural.any_class; author, 2026-10-21): when no class of the photo
+# fits, the VLM may choose any everyday object from the list (never a person) that would look
+# natural here. Such plans are flagged class_in_photo: false and reported separately.
+any_class_template: >-
+  Look at the whole photo and understand the scene. These places are already taken by people or
+  objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Which everyday
+  object could be added to an empty place so that it looks completely natural and makes sense in
+  this exact scene? Choose only from: {class_list}. It must rest on a real surface (or be in open
+  sky if it can fly), have a realistic size and orientation for its distance, not overlap any
+  taken place, and its box must be at least {min_side} wide and {min_side} high on the 0-1000
+  grid. Give up to 3 options, best first, as JSON:
+  [{{"bbox_2d": [x1, y1, x2, y2], "label": "object name"}}]. If nothing would look natural,
+  answer [].
+
 # Box rules for a candidate spot (author, 2026-10-19). A real object = any labelled object of the
 # photo (COCO labels + week-1 audit "add" labels). Overlap is measured as the share of the real
 # object's area that the AI box covers. A spot that breaks a rule is skipped; if no spot or class

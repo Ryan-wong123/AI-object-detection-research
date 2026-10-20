@@ -18,6 +18,7 @@ Heavy imports happen inside the builders (tests and the CLI need neither model).
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 
@@ -48,6 +49,21 @@ def parse_bbox_2d(text: str, W: int, H: int, scale: float = 1000.0) -> list[list
         y1, y2 = sorted((min(max(y1, 0), 1) * H, min(max(y2, 0), 1) * H))
         if x2 - x1 >= 1 and y2 - y1 >= 1:
             out.append([x1, y1, x2 - x1, y2 - y1])
+    return out
+
+
+_OBJ = re.compile(r"\{[^{}]*\}")
+_LABEL = re.compile(r'"label"\s*:\s*"([^"]*)"')
+
+
+def parse_bbox_items(text: str, W: int, H: int) -> list[tuple[str, list[float]]]:
+    """(label, [x, y, w, h]) per JSON object with a ``bbox_2d`` (label "" if none given)."""
+    out = []
+    for obj in _OBJ.findall(text):
+        boxes = parse_bbox_2d(obj, W, H)
+        if boxes:
+            m = _LABEL.search(obj)
+            out.append((m.group(1).strip() if m else "", boxes[0]))
     return out
 
 
@@ -85,7 +101,18 @@ class FakeVLM:
         """Two flat boxes resting on the lower part of the image (box mode)."""
         H, W = img.shape[:2]
         bx = [[0.35 * W, 0.8 * H, 0.3 * W, 0.15 * H], [0.05 * W, 0.78 * H, 0.25 * W, 0.15 * H]]
-        return bx, "fake boxes"
+        label = "chair" if "Choose only from" in prompt else "new object"
+        grid = [
+            [
+                round(x / W * 1000),
+                round(y / H * 1000),
+                round((x + w) / W * 1000),
+                round((y + h) / H * 1000),
+            ]
+            for x, y, w, h in bx
+        ]
+        text = json.dumps([{"bbox_2d": g, "label": label} for g in grid])
+        return bx, text
 
     def ask(self, img: np.ndarray, question: str, record_id: str = "") -> str:
         """Answers as a judge that finds the edit natural ("no" only to the seen-through-glass

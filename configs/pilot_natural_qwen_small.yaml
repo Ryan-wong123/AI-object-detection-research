@@ -7,3 +7,10 @@ placement:
   natural:
     min_box_frac: 0.005
     min_box_side_px: 32
+    # A + B (author, 21 Oct): for a class whose boxes all fail, ask again with the taken places and
+    # a minimum size; try every class of the photo (stop at the first with a valid spot); then let
+    # Qwen pick any listed class (flagged class_in_photo: false). No random fallback.
+    retry: true
+    classes_per_photo: 99
+    stop_when_valid: true
+    any_class: true
