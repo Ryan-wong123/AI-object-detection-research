@@ -22,6 +22,13 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   rules and asks Molmo nothing. No results change.
 - **Next:** planning-only run of `configs/insertion_natural.yaml`; report photos with a spot and
   the rejection reasons; author decides on the rules; then `insert`.
+- **Slow planning fixed:** the planning-only run (started ~15:00) ran at ~80 s per photo (~11 h
+  for 544; before the laptop slept that morning it ran at ~16 s per photo). The planning process
+  held 7.8 GB of the GPU's 8 GB plus 1.2 GB in shared system memory, and the GPU was mostly idle
+  (6–24% use): Molmo had spilled out of GPU memory. Fix (author's go-ahead): the depth model
+  (Depth-Anything-V2-Small) runs on the CPU (`placement.natural.depth.device: cpu`), and cached
+  GPU memory is freed after every photo. Stopped at 28 photos and restarted; nothing was lost.
+  Depth on CPU vs GPU differs only by rounding, so already saved photos are kept.
 
 ---
 
