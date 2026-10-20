@@ -14,6 +14,9 @@ placement:
     classes_per_photo: 99
     stop_when_valid: true
     any_class: true
+    # more questions (author, 21 Oct) for photos the review left without an accepted spot: every
+    # class, the second question unless a class has an unrejected spot, two any-class wordings
+    more_questions: true
     # hand review (author, 21 Oct): python -m inlayfake spots --config <this> --serve, then set
     # enabled: true and run plan again (only accepted spots are used)
     review:

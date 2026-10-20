@@ -68,6 +68,20 @@ any_class_template: >-
   [{{"bbox_2d": [x1, y1, x2, y2], "label": "object name"}}]. If nothing would look natural,
   answer [].
 
+# More questions (placement.natural.more_questions; author, 2026-10-21) for photos the author's
+# spot review left without an accepted spot: every class of the photo is asked (no early stop),
+# the any-class question is asked with the rejected spots listed as taken, and this second
+# wording starts from free space instead of from an object.
+any_class_alt_template: >-
+  Look at the whole photo and understand the scene. These places are already taken by people or
+  objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Find up to 3
+  empty areas in this photo where a small or medium everyday object could rest naturally (on the
+  floor, ground, a table, a shelf, a bench, water or in open sky), at least {min_side} wide and
+  {min_side} high on the 0-1000 grid. For each area, choose the object from this list that would
+  most naturally be there in this kind of place: {class_list}. Give the box that tightly fits that
+  object, as JSON: [{{"bbox_2d": [x1, y1, x2, y2], "label": "object name"}}]. If no area would
+  look natural, answer [].
+
 # Box rules for a candidate spot (author, 2026-10-19). A real object = any labelled object of the
 # photo (COCO labels + week-1 audit "add" labels). Overlap is measured as the share of the real
 # object's area that the AI box covers. A spot that breaks a rule is skipped; if no spot or class

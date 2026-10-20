@@ -7,6 +7,27 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Author's spot review; more Qwen questions add little
+
+- **Review (author, 33 pilot photos):** 26 spots accepted, 8 rejected; **26 of 50 photos** have
+  an accepted spot (20 from the first question, 6 from the second); 7 photos had every spot
+  rejected and 17 never had a valid spot. Decisions: `data/inlayfake_pilot_natural_qwen/
+  spot_review.json` (copy `spot_review_round1.json`).
+- **Author decision:** every photo needs an AI object; ask Qwen more questions for the 24 photos
+  without an accepted spot and review the new spots (not hand-drawn boxes). `more_questions`:
+  every class of the photo, the second question for any class without an unrejected spot, and
+  two any-class wordings (one starting from free space); rejected spots are listed as taken.
+- **Result** (`run_plan_2026-10-20T193654Z`, UTC; 36 new questions): only **5 of the 24**
+  photos got new spots to review (9 spots: 5 second-question, 4 other-class), all among the 7
+  photos whose spots were rejected. **None of the 17 photos that never had a spot got one**:
+  their boxes are still too small (68), on people (12) or other objects, or Qwen answers that
+  nothing fits (12). So more questions cannot give every photo a natural AI object; at best 31
+  of 50 if the author accepts all 5.
+- **Next:** author reviews the 9 new spots and decides how the remaining ~19 photos get an AI
+  object (hand-drawn spot, a less natural fallback, or no AI edit).
+
+---
+
 ## 2026-10-21: Hand review of planned spots before generation
 
 - **Author decision:** keep all 33 pilot spots and review each one by hand before generation.

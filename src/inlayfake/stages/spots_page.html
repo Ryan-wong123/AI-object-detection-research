@@ -52,7 +52,7 @@ function render(){
       boxes += `<div class="bx ${d} ${i ? '' : 'first'}" style="left:${x / p.W * 100}%;` +
         `top:${y / p.H * 100}%;width:${w / p.W * 100}%;height:${h / p.H * 100}%"><b>${i + 1}</b></div>`;
       const tag = s.round === 2 ? '<span class="pill">2nd question</span>' :
-        s.round === 'any' ? '<span class="pill">other class' +
+        (s.round === 'any' || s.round === 'any2') ? '<span class="pill">other class' +
         (s.in_photo ? '' : ', not in photo') + '</span>' : '';
       list += `<div class="spot"><span class="lab"><b>${i + 1}.</b> ${s.cat} ${tag}</span>` +
         `<button class="a ${d === 'accept' ? 'on' : ''}" data-id="${s.id}" data-d="accept">Accept</button>` +

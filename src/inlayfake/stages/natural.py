@@ -158,6 +158,7 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
         "retry",
         "any_class",
         "stop_when_valid",
+        "more_questions",
         "check_point_surface",
         "min_box_frac",
         "min_box_side_px",
@@ -227,6 +228,19 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
     spath = pcfg.get("support", {}).get("stuff_annotations")
     stuff = StuffIndex.load(spath) if spath and Path(spath).exists() else None
     settings = plan_settings(cfg, prompts, rules)
+    # more questions (author, 21 Oct) for photos the spot review left without an accepted spot;
+    # the target photos are part of the settings, so a changed review re-checks every photo
+    # (from saved answers) and asks only the new questions
+    more_targets: set[int] = set()
+    rejected_ids: set[str] = set()
+    if ncfg.get("more_questions"):
+        from inlayfake.stages.spots import read_review, review_path
+
+        decisions = read_review(review_path(cfg))
+        accepted = {int(k.split("|")[0]) for k, v in decisions.items() if v == "accept"}
+        rejected_ids = {k for k, v in decisions.items() if v == "reject"}
+        more_targets = {s["source_id"] for s in sources} - accepted
+        settings["more_targets"] = sorted(more_targets)
     device = cfg["hardware"]["device"]
     depth_model = vlm = None  # loaded when first needed (the VLM only if an answer is not saved)
     rng = np.random.default_rng(derive_seed(cfg["seed"], "natural_plan"))
@@ -337,6 +351,8 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 sky=sky,
                 blocked_all=blocked_all,
                 exclude=exclude,
+                more=sid in more_targets,
+                rejected=rejected_ids,
             )
         for cat in [] if box_mode else order:
             air = prompts["classes"][cat]["air"]
@@ -549,6 +565,8 @@ def _box_mode_photo(
     sky,
     blocked_all,
     exclude: set,
+    more: bool = False,
+    rejected: frozenset | set = frozenset(),
 ) -> list[dict]:
     """Box mode for one photo; appends every candidate to ``rows`` and returns the valid ones.
 
@@ -556,8 +574,13 @@ def _box_mode_photo(
     ``retry`` is on, a second question that lists taken places (labelled objects, people, the
     rejected boxes) and a minimum size. With ``stop_when_valid`` the next class is asked only if
     this one found nothing. If no class of the photo works and ``any_class`` is on, one question
-    lets the VLM pick any listed class (plans flagged ``class_in_photo: false``)."""
+    lets the VLM pick any listed class (plans flagged ``class_in_photo: false``).
+
+    ``more`` (a photo the author's review left without an accepted spot; ``rejected`` = the spot
+    ids rejected there): every class is asked, a class gets the second question unless it has a
+    spot that was not rejected, and both any-class questions are asked."""
     from inlayfake.edit.scene import parse_bbox_items
+    from inlayfake.stages.spots import spot_id
 
     n_max = ncfg.get("max_candidates", rules.get("max_candidates", 5))
     min_side = ncfg.get("min_box_side_px", pcfg["min_side_px"])
@@ -611,21 +634,7 @@ def _box_mode_photo(
                 valid.append(row)
             rows.append(row)
 
-    for cat in order:
-        same = [lb["bbox"] for lb in labels if lb["category"] == cat]
-        prompt = box_prompt(prompts, cat, same, W, H)
-        boxes, answer, name = ask(prompt, cat)
-        n_before = len(valid)
-        evaluate(cat, boxes, prompt, answer, name, 1)
-        if len(valid) == n_before and ncfg.get("retry", False):
-            prompt = box_retry_prompt(prompts, cat, taken_base + tried, min_side, W, H)
-            boxes, answer, name = ask(prompt, cat)
-            evaluate(cat, boxes, prompt, answer, name, 2)
-        if valid and ncfg.get("stop_when_valid", False):
-            break
-    if not valid and ncfg.get("any_class", False):
-        allowed = [c for c in prompts["classes"] if c not in exclude]
-        prompt = any_class_prompt(prompts, allowed, taken_base + tried, min_side, W, H)
+    def any_round(prompt: str, allowed: list[str], tag: str) -> None:
         boxes, answer, name = ask(prompt)
         by_label: dict[str, list[list[float]]] = {}
         for lab, box in parse_bbox_items(answer, W, H):
@@ -639,7 +648,7 @@ def _box_mode_photo(
                     "prompt": prompt,
                     "answer": answer,
                     "vlm": name,
-                    "round": "any",
+                    "round": tag,
                     "rank": None,
                     "ok": False,
                     "reason": "no box in the answer",
@@ -655,14 +664,35 @@ def _box_mode_photo(
                         "prompt": prompt,
                         "answer": answer,
                         "vlm": name,
-                        "round": "any",
+                        "round": tag,
                         "rank": None,
                         "ok": False,
                         "reason": "class not allowed",
                     }
                 )
                 continue
-            evaluate(lab, bxs, prompt, answer, name, "any", in_photo=lab in in_photo)
+            evaluate(lab, bxs, prompt, answer, name, tag, in_photo=lab in in_photo)
+
+    def usable(rows_: list[dict]) -> list[dict]:
+        return [r for r in rows_ if spot_id(r) not in rejected]
+
+    for cat in order:
+        same = [lb["bbox"] for lb in labels if lb["category"] == cat]
+        prompt = box_prompt(prompts, cat, same, W, H)
+        boxes, answer, name = ask(prompt, cat)
+        n_before = len(valid)
+        evaluate(cat, boxes, prompt, answer, name, 1)
+        if not usable(valid[n_before:]) and ncfg.get("retry", False):
+            prompt = box_retry_prompt(prompts, cat, taken_base + tried, min_side, W, H)
+            boxes, answer, name = ask(prompt, cat)
+            evaluate(cat, boxes, prompt, answer, name, 2)
+        if valid and ncfg.get("stop_when_valid", False) and not more:
+            break
+    if ncfg.get("any_class", False) and (more or not valid):
+        allowed = [c for c in prompts["classes"] if c not in exclude]
+        for alt in (False, True) if more else (False,):
+            prompt = any_class_prompt(prompts, allowed, taken_base + tried, min_side, W, H, alt)
+            any_round(prompt, allowed, "any2" if alt else "any")
     return valid
 
 
