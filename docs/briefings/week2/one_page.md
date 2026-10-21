@@ -65,6 +65,8 @@ object are dropped, never labelled.
 | Natural pilot v3 (more spots/classes): verified AI object | 19 of 50, same quality as v2 <!-- run:task2_pilot_natural_v3 --> |
 | Full natural run: photos with a spot (overlap limit 30% / 50%, author chose 50%) | 349 / 389 of 544 <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->; with a verified AI edit [[TBD]] <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json --> |
 | Box mode (Qwen3-VL draws the box, author reviews), 50-photo pilot: photos with an accepted natural box | 26 of 50; 5 more pending review; the rest get no AI edit (author decision) <!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json --> |
+| Final placement (merged Qwen question, 3 checks, no gate), pilot: photos with a box | 44 of 50 <!-- run:task2_pilot_natural_qwen_free, run_plan_2026-10-21T091847Z, file:paper/results/task2_pilot_natural_qwen_merged_plan.json --> |
+| Qwen self-judge vs author's review | AUROC 0.44 / 0.50 (not used) <!-- file:paper/results/task2_judge_agreement.json --> |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss

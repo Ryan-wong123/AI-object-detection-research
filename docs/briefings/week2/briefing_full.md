@@ -207,6 +207,15 @@ cloud sandbox, so their first real run is the pilot.
   close-up or crowded photos <!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json -->.
   Qwen3-VL is from the same family as the week-3 origin judge (Qwen2.5-VL-3B): disclosed, and
   week 3 compares that judge on natural vs random placement.
+- **Final placement for the full run (21 Oct):** one merged question to Qwen3-VL-8B per class
+  (every labelled object and person as taken, size and proportions, order of preference: free
+  space, nearer the camera, cut off by the edge), three checks only (short side >= 15 px and
+  0.1% of the image, measured in a generation test; not > 3x thinner than the class; <= 30% of
+  any real object or person covered, so edits add rather than replace), one re-ask with the
+  failures, then the next class; no review gate (author), every C4 audited by hand afterwards.
+  Pilot: **44 of 50** photos with a box <!-- run:task2_pilot_natural_qwen_free, run_plan_2026-10-21T091847Z, file:paper/results/task2_pilot_natural_qwen_merged_plan.json -->. A Qwen self-judge did not agree with the
+  author's review (AUROC 0.44 / 0.50) and is not used <!-- file:paper/results/task2_judge_agreement.json -->.
+  Paper §4 rewritten (Box 1 prompt, Table 1c). Full run (`configs/insertion_natural_box.yaml`) [[TBD]].
 - **Decision (21 Oct):** photos without an accepted natural box get no AI edit (no forced or
   random fallback), so the AI condition covers a subset of the 544 photos; full-run coverage
   [[TBD]].

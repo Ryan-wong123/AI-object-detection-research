@@ -1,0 +1,141 @@
+{
+  "stage": "plan",
+  "utc": "2026-10-21T09:18:47Z",
+  "git_commit": "c927a90e23e5b8bae1393ad8bed6347c06430f6e",
+  "git_dirty": true,
+  "config_hash": "9da65fc65cfc",
+  "seed": 20261008,
+  "python": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU (8.0 GiB)",
+  "packages": {
+    "numpy": "2.4.6",
+    "pillow": "12.3.0",
+    "torch": "2.6.0+cu124",
+    "diffusers": "0.41.0",
+    "transformers": "5.19.0",
+    "ultralytics": "8.4.174",
+    "pycocotools": "2.0.11"
+  },
+  "n_plans": 44,
+  "n_failed": 6,
+  "failed_reasons": {
+    "no natural spot": 6
+  },
+  "categories": {
+    "cow": 1,
+    "traffic light": 2,
+    "surfboard": 3,
+    "handbag": 1,
+    "bicycle": 1,
+    "elephant": 1,
+    "train": 2,
+    "sheep": 1,
+    "cup": 1,
+    "frisbee": 2,
+    "wine glass": 1,
+    "sink": 1,
+    "carrot": 1,
+    "toilet": 1,
+    "bus": 1,
+    "motorcycle": 4,
+    "bottle": 1,
+    "horse": 1,
+    "car": 2,
+    "giraffe": 2,
+    "umbrella": 2,
+    "boat": 1,
+    "sports ball": 1,
+    "bed": 2,
+    "cat": 1,
+    "baseball glove": 1,
+    "truck": 1,
+    "dining table": 1,
+    "bowl": 1,
+    "chair": 1,
+    "spoon": 1,
+    "backpack": 1
+  },
+  "candidates": 203,
+  "candidates_valid": 109,
+  "candidate_reasons": {
+    "ok": 109,
+    "covers 100% of the existing sheep": 1,
+    "too thin": 5,
+    "covers 85% of the existing car": 1,
+    "covers 100% of the existing car": 10,
+    "covers 99% of the existing person": 2,
+    "covers 100% of the existing person": 9,
+    "covers 62% of the existing truck": 1,
+    "covers 86% of the existing person": 1,
+    "too small": 24,
+    "covers 99% of the existing car": 1,
+    "covers 98% of the existing car": 1,
+    "covers 63% of the existing dog": 1,
+    "covers 61% of the existing dog": 2,
+    "covers 60% of the existing dog": 1,
+    "covers 50% of the existing bicycle": 1,
+    "covers 53% of the existing dog": 1,
+    "covers 94% of the existing elephant": 1,
+    "covers 100% of the existing elephant": 2,
+    "covers 46% of the existing sheep": 1,
+    "covers 53% of the existing sheep": 2,
+    "covers 64% of the existing sheep": 1,
+    "covers 40% of the existing sheep": 1,
+    "covers 65% of the existing cup": 1,
+    "covers 36% of the existing sink": 1,
+    "covers 44% of the existing motorcycle": 1,
+    "covers 83% of the existing motorcycle": 1,
+    "covers 99% of the existing motorcycle": 1,
+    "covers 100% of the existing motorcycle": 3,
+    "covers 59% of the existing motorcycle": 1,
+    "covers 98% of the existing motorcycle": 1,
+    "covers 98% of the existing person": 1,
+    "covers 33% of the existing motorcycle": 1,
+    "covers 71% of the existing person": 1,
+    "covers 43% of the existing person": 1,
+    "covers 64% of the existing cup": 1,
+    "covers 88% of the existing truck": 1,
+    "covers 38% of the existing motorcycle": 1,
+    "covers 97% of the existing chair": 1,
+    "covers 100% of the existing chair": 1,
+    "covers 100% of the existing bed": 2,
+    "covers 36% of the existing person": 1,
+    "covers 60% of the existing zebra": 1,
+    "covers 75% of the existing zebra": 1
+  },
+  "size_from": {
+    "vlm": 109
+  },
+  "vlm_questions": {
+    "asked": 73,
+    "reused": 0
+  },
+  "photos_rechecked": 50,
+  "failed_sources": [
+    {
+      "source_id": 31050,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 74457,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 273715,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 314251,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 477441,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 562443,
+      "reason": "no natural spot"
+    }
+  ]
+}
