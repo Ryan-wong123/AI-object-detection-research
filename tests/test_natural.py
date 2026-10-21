@@ -929,3 +929,64 @@ def test_box_mode_run_resumes_after_cut_off_lines(cfg, tmp_path):
     out = insert.run(c)
     assert out["final"]["needs_retry"] == 0
     assert len(list(read_ledger(wd / "ledger.jsonl"))) == n_before
+
+
+def test_edit_audit_page_saves_clicks_into_the_csv(cfg, tmp_path):
+    """editaudit builds the clickable page from the run's ledger; a click is saved into
+    audit_edits.csv and survives the next verify rewrite of the sheet."""
+    import csv
+    import threading
+    import urllib.request
+
+    from inlayfake.ledger import read_ledger
+    from inlayfake.stages import editaudit, insert, plan, sample
+    from inlayfake.stages.verify import audit_sheet
+
+    sc = {"min_side_px": 15, "min_area_frac": 0.001, "max_cover_labelled": 0.3, "retries": 1}
+    c = _natural_cfg(cfg, mode="box", free=True, merged=True, classes_per_photo=99, shape_check=sc)
+    c = deep_merge(c, {"verify": {"audit_all_conditions": ["C4"], "audit_only_conditions": ["C4"]}})
+    sample.run(c)
+    plan.run(c)
+    insert.run(c)
+    res = editaudit.run(c)
+    wd = tmp_path / "work"
+    page = Path(res["page"]).read_text(encoding="utf-8")
+    cards = json.loads(page.split("const CARDS = ")[1].split(";\nconst QS")[0])
+    assert cards and res["edits"] == len(cards)
+
+    import http.server as hs
+
+    real, started = hs.ThreadingHTTPServer, {}
+
+    class Grab(real):
+        def __init__(self, addr, handler):
+            super().__init__(("127.0.0.1", 0), handler)
+            started["srv"] = self
+
+    hs.ThreadingHTTPServer = Grab
+    try:
+        threading.Thread(target=editaudit.serve, args=(c,), daemon=True).start()
+        while "srv" not in started:
+            pass
+        port = started["srv"].server_address[1]
+        iid = cards[0]["image_id"]
+        for field, value in (("object_ok", "y"), ("realistic", "n"), ("notes", "too dark")):
+            body = json.dumps({"id": iid, "field": field, "value": value}).encode()
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/audit-click", data=body, method="POST"
+            )
+            assert urllib.request.urlopen(req).read() == b"ok"
+        got = json.loads(
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/audit-clicks.json").read()
+        )
+        assert got[iid] == {"object_ok": "y", "realistic": "n", "notes": "too dark"}
+    finally:
+        hs.ThreadingHTTPServer = real
+        started["srv"].shutdown()
+    final = list(read_ledger(wd / "ledger.jsonl"))
+    audit_sheet(wd, final, 0.1, c["seed"] + 7, c["verify"])  # as the next verify round does
+    rows = {
+        r["image_id"]: r for r in csv.DictReader((wd / "audit_edits.csv").open(encoding="utf-8"))
+    }
+    assert rows[iid]["object_ok"] == "y" and rows[iid]["realistic"] == "n"
+    assert rows[iid]["notes"] == "too dark"

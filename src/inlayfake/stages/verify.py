@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import csv
 import html
+import io
 import json
 from collections import Counter, defaultdict
 from dataclasses import replace
@@ -47,7 +48,14 @@ from inlayfake.edit.verify import (
 from inlayfake.forensics.instance_scores import bbox_mask
 from inlayfake.ledger import Condition, ImageRecord, Origin, read_ledger, write_ledger
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import load_coco, open_append, read_jsonl, work_dir, write_text_atomic
+from inlayfake.stages.common import (
+    derive_seed,
+    load_coco,
+    open_append,
+    read_jsonl,
+    work_dir,
+    write_text_atomic,
+)
 from inlayfake.stages.replan import (
     ADOPT,
     FREE,
@@ -328,60 +336,101 @@ AUDIT_COLUMNS = [
 ]
 
 
+AUDIT_CLICKS = "audit_edits_clicks.json"  # decisions made on the clickable audit page
+
+
+def in_audit_sample(image_id: str, seed: int, fraction: float) -> bool:
+    """Is this edit in the random audit sample? Fixed per edit (a hash of its id and the seed),
+    so it does not depend on which verify round the edit passed in (author, 2026-10-22: the
+    sample used to be drawn from the first round's edits only, biasing the verifier's error
+    estimate towards edits that pass at once)."""
+    return np.random.default_rng(derive_seed(seed, "audit", image_id)).random() < fraction
+
+
+def read_audit_clicks(wd: Path) -> dict[str, dict[str, str]]:
+    p = wd / AUDIT_CLICKS
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def write_audit_csv(wd: Path, rows: list[dict]) -> None:
+    """The audit CSV with the clicks from the audit page merged in (crash-safe write)."""
+    clicks = read_audit_clicks(wd)
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=AUDIT_COLUMNS, extrasaction="ignore", lineterminator="\n")
+    w.writeheader()
+    for r in rows:
+        w.writerow({k: r.get(k, "") for k in AUDIT_COLUMNS} | clicks.get(r["image_id"], {}))
+    write_text_atomic(wd / "audit_edits.csv", buf.getvalue())
+
+
 def audit_sheet(
     wd: Path, records: list[ImageRecord], fraction: float, seed: int, vcfg: dict | None = None
 ) -> int:
-    """HTML + CSV for the human check of the edits. Never overwrites the CSV.
+    """HTML + CSV (+ audit_cards.json for the clickable page) for the human check of the edits.
 
-    A random ``fraction`` of the edits (C2, C4) is drawn with ``seed`` (``in_random_sample: y``,
-    the unbiased estimate of the verifier's error rate). Conditions in
-    ``verify.audit_all_conditions`` are added in full (author, 2026-10-18: every C4 is checked).
-    ``verify.audit_only_conditions`` keeps only those conditions on the sheet (author,
-    2026-10-18: C4 only; the random draw is unchanged, so its C4 rows stay a random sample).
-    If the CSV exists, the HTML is built from its rows, so page and sheet always list the same
-    edits in the same order (before, the page was redrawn with a new sample at every verify).
-    """
+    Rows already in the CSV stay in place with their decisions; edits that passed since are
+    appended (author, 2026-10-22: the sheet used to stay at the first verify round's edits).
+    An edit is in the random sample (``in_random_sample: y``, the unbiased estimate of the
+    verifier's error rate) by ``in_audit_sample``. Conditions in ``verify.audit_all_conditions``
+    are added in full (author, 2026-10-18: every C4 is checked); ``verify.audit_only_conditions``
+    keeps only those conditions on the sheet. Clicks from the audit page
+    (``audit_edits_clicks.json``) are merged into the CSV."""
+    vcfg = vcfg or {}
     by_id = {r.image_id: r for r in records}
     csv_path = wd / "audit_edits.csv"
+    rows: list[dict] = []
     if csv_path.exists():
         with csv_path.open(encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
-        sample = [by_id[r["image_id"]] for r in rows if r["image_id"] in by_id]
-        in_random = {r["image_id"]: r.get("in_random_sample", "y") == "y" for r in rows}
-    else:
-        edits = sorted(
-            (r for r in records if r.condition.value in EDITED), key=lambda r: r.image_id
+    have = {r["image_id"] for r in rows}
+    full = set(vcfg.get("audit_all_conditions") or [])
+    only = vcfg.get("audit_only_conditions")
+    order = ["C4", "C5", "C2"]  # AI insertions first
+    edits = sorted(
+        (r for r in records if r.condition.value in EDITED and r.image_id not in have),
+        key=lambda r: (order.index(r.condition.value), r.source_id, r.image_id),
+    )
+    for r in edits:
+        rand = in_audit_sample(r.image_id, seed, fraction)
+        if only and r.condition.value not in only:
+            continue
+        if not (rand or r.condition.value in full):
+            continue
+        rows.append(
+            {
+                "image_id": r.image_id,
+                "condition": r.condition.value,
+                "generator": r.generator,
+                "category": r.edit.target_category,
+            }
         )
-        if not edits:
-            return 0
-        rng = np.random.default_rng(seed)
-        k = max(1, int(round(fraction * len(edits))))
-        drawn = [edits[i] for i in sorted(rng.choice(len(edits), size=k, replace=False))]
-        in_random = {r.image_id: True for r in drawn}
-        full = set((vcfg or {}).get("audit_all_conditions") or [])
-        extra = [r for r in edits if r.condition.value in full and r.image_id not in in_random]
-        only = (vcfg or {}).get("audit_only_conditions")
-        if only:
-            drawn = [r for r in drawn if r.condition.value in only]
-        order = ["C4", "C5", "C2"]  # AI insertions first
-        sample = sorted(drawn + extra, key=lambda r: (order.index(r.condition.value), r.source_id))
-        with csv_path.open("w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(AUDIT_COLUMNS)
-            for r in sample:
-                flag = "y" if in_random.get(r.image_id) else "n"
-                w.writerow(
-                    [r.image_id, r.condition.value, r.generator, r.edit.target_category, flag]
-                    + [""] * 4
-                )
+    for row in rows:  # the sample is a fixed function of the edit
+        row["in_random_sample"] = "y" if in_audit_sample(row["image_id"], seed, fraction) else "n"
+    if not rows:
+        return 0
+    write_audit_csv(wd, rows)
+
     c1 = {r.source_id: r for r in records if r.condition.value == "C1"}
     crops = wd / "audit_crops"
     crops.mkdir(exist_ok=True)
-    cards = []
-    for k, r in enumerate(sample, 1):  # k = row k of audit_edits.csv (after the header)
+    cards, data = [], []
+    for k, row in enumerate(rows, 1):  # k = row k of audit_edits.csv (after the header)
+        r = by_id.get(row["image_id"])
+        if r is None:  # no longer in the benchmark: keep the row, no card
+            continue
         ref = c1.get(r.source_id)
-        x0, y0, x1, y1 = verify_window(r, r.width, r.height, vcfg or {})
-        figs = []
+        x0, y0, x1, y1 = verify_window(r, r.width, r.height, vcfg)
+        figs, item = (
+            [],
+            {
+                "k": k,
+                "image_id": r.image_id,
+                "condition": r.condition.value,
+                "category": r.edit.target_category,
+                "random": row["in_random_sample"] == "y",
+                "figs": [],
+            },
+        )
         for tag, path in (("before", ref.path if ref else r.path), ("after", r.path)):
             out = crops / f"{r.image_id}_{tag}.jpg"
             if not out.exists():
@@ -395,14 +444,17 @@ def audit_sheet(
                 f'<figure><span class="w"><img src="audit_crops/{html.escape(out.name)}" '
                 f'loading="lazy">{boxes}</span><figcaption>{tag}</figcaption></figure>'
             )
-        rand = " · random sample" if in_random.get(r.image_id) else ""
+            item["figs"].append({"tag": tag, "src": f"audit_crops/{out.name}", "boxes": boxes})
+        rand = " · random sample" if row["in_random_sample"] == "y" else ""
         cards.append(
             f"<section><h3>{k}. {html.escape(r.image_id)}</h3><p>{r.condition.value} · "
             f"{r.generator} · target: {html.escape(r.edit.target_category)}{rand}</p>"
             f"<div>{''.join(figs)}</div></section>"
         )
-    (wd / "audit_edits.html").write_text(AUDIT_PAGE_HEAD + "".join(cards), encoding="utf-8")
-    return len(sample)
+        data.append(item)
+    write_text_atomic(wd / "audit_edits.html", AUDIT_PAGE_HEAD + "".join(cards))
+    write_text_atomic(wd / "audit_cards.json", json.dumps(data))
+    return len(rows)
 
 
 def run(cfg: dict) -> dict:

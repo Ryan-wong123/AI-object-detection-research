@@ -243,7 +243,10 @@ def test_audit_sheet_all_c4_plus_random_sample(tmp_path):
     assert n == len(rows)
     c4 = [r for r in rows if r["condition"] == "C4"]
     assert len(c4) == 20  # every C4
-    assert sum(r["in_random_sample"] == "y" for r in rows) == 4  # 10% of 40 edits
+    from inlayfake.stages.verify import in_audit_sample
+
+    for r in rows:  # the sample is a fixed function of the edit id (seed 7, 10%)
+        assert (r["in_random_sample"] == "y") == in_audit_sample(r["image_id"], 7, 0.1)
     assert all(r["in_random_sample"] == "y" for r in rows if r["condition"] == "C2")
     page = (tmp_path / "audit_edits.html").read_text(encoding="utf-8")
     ids = [r["image_id"] for r in rows]
@@ -251,7 +254,7 @@ def test_audit_sheet_all_c4_plus_random_sample(tmp_path):
         line.split(". ", 1)[1] for line in __import__("re").findall(r"<h3>([^<]+)</h3>", page)
     ] == ids
     # a later call (e.g. after a new verify round) keeps the sheet and redraws the page from it
-    assert audit_sheet(tmp_path, recs, 0.5, 99, vcfg) == n
+    assert audit_sheet(tmp_path, recs, 0.1, 7, vcfg) == n
     page2 = (tmp_path / "audit_edits.html").read_text(encoding="utf-8")
     assert page2 == page
 
@@ -308,3 +311,56 @@ def test_audit_box_overlay_hand_example():
     clipped = _box_span([100, 60, 50, 50], 10, 20, 110, 70, "plan")  # runs past the crop
     assert "width:10.00%" in clipped and "height:20.00%" in clipped
     assert _box_span([200, 200, 5, 5], 10, 20, 110, 70, "plan") == ""  # outside the crop
+
+
+def test_audit_sheet_grows_and_keeps_decisions(tmp_path):
+    """Edits that pass in a later verify round are appended; rows already on the sheet keep their
+    place and decisions; clicks from the audit page are merged into the CSV."""
+    import json
+
+    import numpy as np
+    from PIL import Image
+
+    from inlayfake.ledger import EditInfo, ImageRecord, Instance
+    from inlayfake.stages.verify import AUDIT_CLICKS, audit_sheet
+
+    img = tmp_path / "x.jpg"
+    Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(img)
+
+    def recs(n):
+        out = []
+        for sid in range(n):
+            out.append(ImageRecord(f"{sid}__C1", sid, "test", "C1", str(img), 64, 64))
+            inst = [Instance(f"ins:{sid}", "cup", [10, 10, 20, 20], Origin.AI_INSERTED)]
+            out.append(
+                ImageRecord(
+                    f"{sid}__C4",
+                    sid,
+                    "test",
+                    "C4",
+                    str(img),
+                    64,
+                    64,
+                    "G1",
+                    edit=EditInfo("cup", 0, [10, 10, 20, 20]),
+                    instances=inst,
+                )
+            )
+        return out
+
+    vcfg = {
+        "window_scale": 2.5,
+        "window_min_px": 32,
+        "audit_all_conditions": ["C4"],
+        "audit_only_conditions": ["C4"],
+    }
+    assert audit_sheet(tmp_path, recs(3), 0.1, 7, vcfg) == 3
+    (tmp_path / AUDIT_CLICKS).write_text(
+        json.dumps({"1__C4": {"object_ok": "n", "notes": "smudge"}})
+    )
+    assert audit_sheet(tmp_path, recs(5), 0.1, 7, vcfg) == 5  # two more passed later
+    rows = list(csv.DictReader((tmp_path / "audit_edits.csv").open(encoding="utf-8")))
+    assert [r["image_id"] for r in rows] == [f"{i}__C4" for i in range(5)]
+    assert rows[1]["object_ok"] == "n" and rows[1]["notes"] == "smudge"
+    cards = json.loads((tmp_path / "audit_cards.json").read_text())
+    assert [c["k"] for c in cards] == [1, 2, 3, 4, 5]

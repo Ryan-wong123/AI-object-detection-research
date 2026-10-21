@@ -1,0 +1,97 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edit audit</title><style>__CSS__
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+.figs{display:flex;gap:8px}
+.figs figure{margin:0;flex:1}
+.figs figcaption{font-size:12px;color:var(--muted)}
+.w{position:relative;display:block;line-height:0}
+.w img{width:100%;display:block;border-radius:4px}
+.b{position:absolute;border:2px solid}
+.b.plan{border-color:var(--plan);border-style:dashed}
+.b.ins{border-color:var(--ins)}
+.q{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px}
+.q .lab{flex:1}
+.q button.on.y{background:var(--tp);color:#fff}
+.q button.on.n{background:var(--fp);color:#fff}
+.notes{width:100%;margin-top:4px}
+.pill{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}
+.card.done{opacity:.75}
+</style></head><body>
+<header><h1>__TITLE__ <span>· edit audit</span></h1>
+<span id="count" class="muted"></span>
+<label>show <select id="flt">
+<option value="todo">not yet audited</option><option value="all">all</option>
+<option value="random">random sample</option><option value="problem">with a problem</option>
+<option value="done">audited</option>
+</select></label><span id="save" class="muted"></span></header>
+<main>
+<p class="note">For each AI edit (before = matched resave C1, after = the edit C4): is the target
+object there and recognisable, does it look realistic in the scene, and did anything else change
+outside the box? Dashed box: planned box; solid box: the object as verified. Every click is saved
+at once into audit_edits.csv; click a chosen answer again to clear it. An edit counts as audited
+when the three questions are answered.</p>
+<div class="grid" id="grid"></div></main>
+<script>
+const CARDS = __DATA__;
+const QS = [["object_ok", "object present"], ["realistic", "looks realistic"],
+            ["other_change", "other change outside the box"]];
+let DEC = {};
+const grid = document.getElementById('grid');
+function done(c){ const d = DEC[c.image_id] || {}; return QS.every(([f]) => d[f]); }
+function problem(c){ const d = DEC[c.image_id] || {};
+  return d.object_ok === 'n' || d.realistic === 'n' || d.other_change === 'y'; }
+function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+function render(){
+  const f = document.getElementById('flt').value; grid.innerHTML = '';
+  let nDone = 0, nRand = 0, nRandDone = 0;
+  for (const c of CARDS){
+    const isDone = done(c); if (isDone) nDone++;
+    if (c.random){ nRand++; if (isDone) nRandDone++; }
+    if (f === 'todo' && isDone) continue;
+    if (f === 'done' && !isDone) continue;
+    if (f === 'random' && !c.random) continue;
+    if (f === 'problem' && !problem(c)) continue;
+    const d = DEC[c.image_id] || {};
+    const el = document.createElement('div'); el.className = 'card' + (isDone ? ' done' : '');
+    const figs = c.figs.map(g => `<figure><span class="w"><img loading="lazy" src="${g.src}">` +
+      `${g.boxes}</span><figcaption>${g.tag}</figcaption></figure>`).join('');
+    const qs = QS.map(([fld, lab]) => `<div class="q"><span class="lab">${lab}</span>` +
+      `<button class="y ${d[fld] === 'y' ? 'on' : ''}" data-id="${c.image_id}" data-f="${fld}" data-v="y">yes</button>` +
+      `<button class="n ${d[fld] === 'n' ? 'on' : ''}" data-id="${c.image_id}" data-f="${fld}" data-v="n">no</button></div>`).join('');
+    el.innerHTML = `<h2>${c.k}. ${esc(c.category)} <span>${esc(c.image_id)}</span> ` +
+      `${c.random ? '<span class="pill">random sample</span>' : ''}</h2>` +
+      `<div class="figs">${figs}</div>${qs}` +
+      `<input class="notes" placeholder="notes" data-id="${c.image_id}" value="${esc(d.notes || '')}">`;
+    grid.appendChild(el);
+  }
+  document.getElementById('count').textContent =
+    `${nDone} of ${CARDS.length} audited · random sample ${nRandDone} of ${nRand}`;
+}
+async function save(id, field, value){
+  const msg = document.getElementById('save');
+  try {
+    const r = await fetch('audit-click', {method: 'POST',
+      headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, field, value})});
+    if (!r.ok) throw new Error(r.status);
+    DEC[id] = DEC[id] || {};
+    if (value) DEC[id][field] = value; else delete DEC[id][field];
+    msg.textContent = 'saved';
+    return true;
+  } catch (e) {
+    msg.textContent = 'NOT saved: start the page with  python -m inlayfake editaudit --serve';
+    return false;
+  }
+}
+grid.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-id]'); if (!b) return;
+  const cur = (DEC[b.dataset.id] || {})[b.dataset.f];
+  if (await save(b.dataset.id, b.dataset.f, cur === b.dataset.v ? '' : b.dataset.v)) render();
+});
+grid.addEventListener('change', e => {
+  const t = e.target; if (t.classList.contains('notes')) save(t.dataset.id, 'notes', t.value.trim());
+});
+document.getElementById('flt').onchange = render;
+fetch('audit-clicks.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}))
+  .then(d => { DEC = d || {}; render(); });
+</script></body></html>

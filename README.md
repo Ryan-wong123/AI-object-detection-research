@@ -382,6 +382,21 @@ saves every photo as it finishes (`natural_plan_progress.jsonl`), generation eve
 verification every check, so at most the photo or image in progress is redone. Files are written
 crash-safely (a cut-off last log line is skipped; records and plans are replaced in one step).
 
+### Auditing the AI edits (clickable)
+
+Every verified AI edit (C4) plus a random sample is on the audit sheet. To audit by clicking:
+
+```powershell
+python -m inlayfake editaudit --config configs/insertion_natural_box.yaml --serve
+```
+
+Open http://127.0.0.1:8769/ . Each card shows the matched resave (before) and the edit (after)
+with the planned box (dashed) and the verified object (solid), and asks: object present,
+looks realistic, other change outside the box (yes/no), plus notes. Every click is saved at once
+into `<work>udit_edits.csv` (via `<work>udit_edits_clicks.json`), also while the run is still
+verifying. Filters: not yet audited, random sample, with a problem, audited. Run the command
+again after the run (or a verify round) to add the edits that passed since; decisions are kept.
+
 ### Reviewing the planned spots by hand
 
 Before generation, every planned natural spot can be accepted or rejected on a web page (one card
