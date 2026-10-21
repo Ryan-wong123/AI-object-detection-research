@@ -4,8 +4,8 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-18 |
-> | Natural placement in §4 | 2026-10-21: method rewritten for box mode (Qwen3-VL-8B draws the box; author reviews every box; more questions for photos without an accepted box; photos without one get no AI edit, author decision); Table 1c has a box-mode column; pilot: 26 of 50 with an accepted box, 5 more pending review; full run [[TBD]]. Earlier (Molmo version, replaced): 2026-10-20: rule set (Table 1c) with pilot-v2 and full-run values written into §4; full run (run task2_insertion_natural, looser person/overlap/fill rules) started 05:42, stopped after 19 photos (laptop slept); planning only: 349 of 544 photos with a natural spot at 30% overlap; author raised both overlap limits to 50% (21 Oct): 389 of 544 <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->; 30% pass: <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json -->; earlier note: restarting as planning only first, so the author can decide on the rules from the number of photos with a spot before generating (saved Molmo answers make a rule change a re-check of minutes); results [[TBD]] |
+> | Last updated | 2026-10-21 |
+> | Natural placement in §4 | 2026-10-21: rewritten for the benchmark version: Qwen3-VL-8B box mode with one merged placement question (Box 1, full prompt), three checks only (15 px / 0.1% measured; elongation ≤ 3× the class's; ≤ 30% of any labelled object or person), one re-ask with the failures, next class, no fallback; no review gate (author), hand audit of every C4 afterwards; self-judge AUROC 0.44/0.50 (dropped). Table 1c replaced by the benchmark's rules. Pilot 44 of 50 (run task2_pilot_natural_qwen_free). Full run configs/insertion_natural_box.yaml not started [[TBD]]. Box 1 (~250 words) may move to the supplementary for the page limit. Earlier Molmo and rule-based versions are in docs/RESEARCH_LOG.md |
 > | Natural-placement pilot v3 | 2026-10-20 (run task2_pilot_natural_v3): more spots/classes per photo: 19 of 50 photos (v2 18), same quality (paper/results/task2_pilot_natural_four_way.json) |
 > | Natural-placement pilot v2 | 2026-10-20 (run task2_pilot_natural_v2): with surface rule, larger boxes and box-fill rule: 18 of 50 photos with a verified AI edit, 72% on a fitting surface (random 46%), objects median 1.8% of the image (random 0.8%) (paper/results/task2_pilot_natural_three_way.json; pilot, not yet a paper result) |
 > | Natural-placement pilot | 2026-10-19 (run task2_pilot_natural, 50 photos): VLM-pointed, depth-scaled boxes; 33/50 photos get a natural spot; VLM realism check unusable (off); 28 of 50 photos with a verified natural AI edit; vs random placement on the same photos: on a fitting surface 64% vs 46%, objects smaller (median 0.5% vs 0.8% of the image) (paper/results/task2_pilot_natural_vs_random.json; pilot, not yet a paper result). If adopted, §4 placement text and a new full run follow |
@@ -195,34 +195,18 @@ The benchmark therefore under-represents close-up, frame-filling shots (§8). Of
 admitted a controlled-occlusion box <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) -->.
 These 544 photographs are the benchmark's photograph set: the real-only baseline and the
 insertion run use exactly the same photographs, so results on unedited and edited images are
-comparable. For the insertion run they are planned again with the rules below.
-For each source we insert a class that is **already present** in that photograph's audited
-ground truth (any COCO class except *person*), so every edited photograph contains a photographed
-and an AI-generated instance of the same class. Among the classes present, the one used least so
-far is chosen, which keeps classes as balanced as the photographs allow. The box size follows that
-class's COCO size distribution, and the box is placed either in free space or overlapping 20–50% of
-one original object. One plan is shared by every condition of a source. The insertion run uses
-the same 544 photographs as the real-only baseline; with the same-class rule all 544 receive a
-plan, 474 with a free-space box and 407 with an occluding box (70 occlusion-only)
-<!-- run:task2_insertion (plan), file:paper/results/task2_insertion_plan.json -->; the 363 above
-is the week-1 plan with ten fixed categories. Because the main search tries a single occluding
-box size, a second pass gives an occluding box to plans without one: it tries several sizes,
-then a box sized from the covered object, and accepts covered objects of at least 32 px (instead
-of 64 px), with the other occlusion rules unchanged. This adds an occluding box to 128 of the
-137 photographs that lacked one, for 535 of 544 in total, without changing any other plan
-<!-- run:task2_insertion (plan with occlusion_fill, 2026-10-18), file:paper/results/task2_insertion_plan_occlusion_fill.json -->.
-The same single-size search left 70 photographs without a free-space box; trying several box
-sizes (and, if needed, another class present in the photograph) under unchanged free-space rules
-gives 57 of them one, for 531 of 544 with C2–C4 and 13 occlusion-only photographs
-<!-- run:task2_insertion (plan with occlusion_fill and free_fill, 2026-10-18), file:paper/results/task2_insertion_plan_fills.json -->.
+comparable. For each photograph the insertion run adds one object of a class that is
+**already present** in that photograph's audited ground truth (any COCO class except *person*),
+so every edited photograph contains a photographed and an AI-generated instance of the same
+class. Among the classes present, the one used least so far is tried first, which keeps classes
+as balanced as the photographs allow. Where the new object goes, and how large it is, is decided
+by the natural placement described below; one plan (class and box) is shared by every condition
+of a photograph.
 
 **Conditions.** (Table 1) C0 untouched; C1 matched resave; C2 sham edit; C3 real-object paste; C4 AI
-insertion of a class already in the photograph. The design originally placed AI objects under two separate
-rules, free space (touching no real object) and occlusion (covering 20–50% of one real object). Under those
-separate placement rules, 44 of 544 photographs still had no verified AI object after seven
-checked generation rounds <!-- run:task2_insertion (state after the round-7 check, 2026-10-18), file:paper/results/task2_insertion_merge_decision.json -->,
-so the two were merged into one AI condition whose only placement rule is the class (see
-"Merged AI condition" below).
+insertion of a class already in the photograph, at a place chosen by natural placement. An
+earlier rule-based placement of the same photographs is kept as a comparison (see
+*Random-placement comparison run* below).
 
 *Why each condition.* The conditions form a ladder in which neighbouring rungs differ in roughly
 one factor, so that any change in detector or forensic output can be attributed to one cause.
@@ -232,7 +216,7 @@ where the label audit is done. It is not used as the reference for edits, becaus
 differs from that of every edited image. C1 applies only the benchmark's decode–encode pipeline
 and is therefore the reference for every contrast (re-encoding alone already shifts every
 hand-crafted forensic score, §7.1); C0 versus C1 measures that re-encoding effect. C4 adds an AI-generated
-object in free space. Three controls isolate what in C4 is specific to *AI origin*:
+object at a natural place in the scene. Three controls isolate what in C4 is specific to *AI origin*:
 
 - *C2 (sham edit)* runs the same generator on the same box with the same pipeline, but with the
   prompt "empty background" (and the object class as a negative prompt); a verifier confirms that
@@ -278,102 +262,107 @@ could only be claimed as "pasted-real versus AI-inserted", not as evidence that 
 to AI origin.
 
 C2, C3 and C4 share **one box** per photograph, so they differ only in what fills it: nothing
-(C2), a real object (C3) or an AI object (C4). When the AI insertion fails and is re-planned to a
-new box, C2 and C3 are regenerated at the new box to keep the triple matched.
+(C2), a real object (C3) or an AI object (C4). When the AI insertion fails verification and moves
+to the placement model's next box, C2 and C3 are regenerated at that box to keep the triple matched.
 
-*Merged AI condition.* Each photograph has exactly one AI edit, chosen in this order: its
-verified free-space insertion; otherwise its verified insertion covering 20–50% of
-one real object; otherwise a new insertion of one of the photograph's own classes
-placed anywhere in the image, with no overlap rule (up to six boxes with three seeds each, and
-the verifier must still confirm the object). When a photograph had both a free-space and an
-occluding insertion, the free-space one is used because its matched C2 and C3 already exist; the
-occluding one leaves the benchmark. C2 and C3 are always generated at the box of the chosen AI
-edit, so the triple stays matched. The ledger records the origin of every AI edit (free space,
-occluding, or anywhere): 464, 38 and 42 of the 544
-<!-- run:task2_insertion (final verify 2026-10-18 15:02), file:paper/results/task2_insertion_final.json -->.
-
-This merge has a cost that we state openly. The separate occlusion rule isolated occlusion as a controlled
-factor: H2 asked whether insertions disturb untouched real objects beyond resaving, sham
-editing, real pasting *and* occlusion. With one AI condition, AI edits that cover a real object
-and those that do not are no longer assigned by design. We therefore evaluate H2 on original
-objects that the AI object does not cover, and analyse covered objects separately, stratified by
-their recomputed visible fraction. That analysis is observational: which photographs received an
-occluding edit depends on where the rules could place a box and on which edits the verifier
-accepted. Occluding AI edits remain the hardest case for origin estimation, because AI and
-photographed pixels meet along the occluding edge and the partly covered real object is where a
-false "AI" accusation is most likely, so origin metrics are also reported per AI-edit origin.
-When the AI object covers part of a real object, so does the C2 sham at the same box: the sham
-repaints part of that object, which is then marked *mixed/modified*.
+*Covered real objects.* A new object may cover up to 30% of a labelled real object or person
+(Table 1c), as when one object stands partly in front of another; it never covers more, so every
+edit adds an object rather than replacing or hiding one. Whether an AI object covers part of a
+real object is therefore not assigned by design. We evaluate H2 on original objects that the AI
+object does not cover, and analyse covered objects separately, stratified by their recomputed
+visible fraction; that analysis is observational, because which photographs received a covering
+edit depends on where the placement model put the box and on which edits the verifier accepted.
+Partly covered real objects are where a false "AI" accusation is most likely, so origin metrics
+are also reported for covered and uncovered real objects. When the AI object covers part of a
+real object, so does the C2 sham at the same box: the sham repaints part of that object, which is
+then marked *mixed/modified*.
 
 *Natural placement.* Random free-space boxes produced implausible edits (a skateboard in mid-air,
-a bird inside a window pane), so the insertion run uses a scene-aware placement checked by hand.
-A vision–language model (Qwen3-VL-8B [[verify: citation]]) receives the whole photograph and one
-fixed question per class, filled from one of 22 class groups (where the class rests and how, e.g.
-"lie on the ground, grass, floor or a bench" for a tennis racket), together with the positions of
-the photograph's own objects of that class, and draws up to three boxes for one more, new object
-at an empty place where it would look natural; the question wording is identical for every
-photograph of a class, so placement involves no per-image tuning. Each box must satisfy the rules
-in Table 1c (its base on a surface the class rests on, size limits, limited overlap with people
-and labelled objects). If no box of a class passes, the model is asked once more with every
-labelled object and every rejected box listed as taken and a minimum size; every class of the
-photograph is tried, then a question that lets the model choose any listed class. Finally the
-first author accepted or rejected every remaining box by eye, and photographs with only rejected
-boxes received further questions; a photograph uses its first accepted box, and a photograph
-without one receives no AI edit (there is no random or forced fallback). The placements are
-therefore the author's choice among the model's proposals. Week 3 evaluates Qwen2.5-VL-3B as an
-origin judge (§6); the placement model is a later, larger model of the same family that only
-chooses the location, which we disclose, and §6 compares that judge on natural and random
-placements [[TBD: week-3 check]]. An earlier version let Molmo-7B-D point at a spot and sized a
-box from the photograph's own object and monocular depth; it gave upright boxes for objects that
-should lie flat (39 of 73 such plans; a tennis racket standing in mid-air) and was replaced
+a bird inside a window pane), so the insertion run lets a vision–language model place each new
+object where it makes sense in the scene. For every photograph, the classes already present in
+its labels (COCO annotations and audited additions, never *person*) are tried in order, the class
+used least often so far first. For the first class, Qwen3-VL-8B [[verify: citation]] receives the
+whole photograph and one fixed question (Box 1) that lists every labelled object and person as an
+occupied place, names the photograph's own objects of the class, states where the class rests and
+how (one of 22 class groups, e.g. "lie on the ground, grass, floor or a bench" for a tennis
+racket), asks for the whole object at its normal proportions and a minimum size, and gives an
+order of preference: a whole object in free space; a place nearer the camera if it would
+otherwise be very small; and only when no free space remains, an object cut off by the image
+border or partly behind something. The model returns three boxes, best first. The wording is
+identical for every photograph of a class, so placement involves no per-image tuning. Each box
+is then checked against three limits only (Table 1c): it must be large enough to generate and
+verify, not much thinner than the class usually is, and cover at most 30% of any labelled object
+or person, so that every edit adds an object instead of replacing or hiding a real one. If all
+three boxes fail, the model is asked once more with the failed boxes and the reasons ("covers 85%
+of the existing car"); if that fails too, the next class is tried, and a photograph without a
+usable box receives no AI edit (there is no random or forced fallback). The first box is
+generated; the next ones are used only if the verifier rejects it. No automatic plausibility
+filter is applied after placement: asking the same model whether an object in a drawn box would
+look natural did not agree with the first author's judgement on the pilot boxes (AUROC 0.44 and
+0.50 for two wordings) <!-- run:task2_pilot_natural_qwen_free, file:paper/results/task2_judge_agreement.json -->,
+and a yes/no realism check after generation was dropped for the same reason (§7.6
+[[TBD: limitation text]]); instead every C4 edit is audited by hand (see *Verification* below). The VLM origin-claim study (§5, Table 6) uses Qwen2.5-VL-3B; the placement model is a
+later, larger model of the same family that only chooses the location, which we disclose, and we
+compare that judge on natural and random placements [[TBD: VLM check on natural vs random
+placement]]. An earlier version let Molmo-7B-D point at a spot and sized the box from the
+photograph's own object and monocular depth; its boxes were often upright for objects that should
+lie flat (39 of 73 such plans, e.g. a tennis racket standing in mid-air) and it was replaced
 <!-- run:task2_insertion_natural, file:paper/results/task2_insertion_natural_plan_50pct.json; count from data/inlayfake_v3/natural_candidates.jsonl, 2026-10-21 -->.
-A VLM yes/no realism check after generation was tested and dropped because its answers did not
-separate plausible from implausible edits (§7.6 [[TBD: limitation text]]).
 
-**Table 1c.** Rules of the natural placement. *Pilot v2* and *Molmo full run* are the earlier
-point-based version (Molmo + depth; replaced); *box mode* is the version used for the benchmark
-(Qwen3-VL draws the box; author review). Rows marked – do not apply.
+> **Box 1. Placement question** (one per photograph and class; braces are filled per photograph:
+> occupied places and the class's own objects as boxes on a 0–1000 grid, the minimum size of
+> 15 px on that grid, *where* and *how* from the class group).
+>
+> *Look at the whole photo and understand the scene: what is happening, where the surfaces are,
+> and how big things are at each distance. These places are already taken by people and objects
+> (bbox_2d, 0-1000 grid): {taken}. The photo already shows {existing}. Add one more, new {class}
+> so that it looks completely natural and makes sense in this exact scene. It should {how} on
+> {where}, rest on a real surface (or be in open sky if it can fly), have a realistic size and
+> orientation for its distance, fit what is happening in the photo, and not overlap any taken
+> place. Draw each box around the whole new {class} with its normal proportions (not a thin
+> strip), at least {min} wide and {min} high on the 0-1000 grid. Choose places in this order of
+> preference: (1) a whole {class} in free space; (2) if it would be smaller than that there, a
+> place closer to the camera, in the lower part of the photo, where it appears larger; (3) only if
+> there is no free space at all, a {class} partly cut off by the edge of the photo or partly behind
+> something, with the box covering only its visible part. Give 3 different places, best first, as
+> JSON: [{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}]. Always give 3 places.*
+>
+> If all three boxes fail a check, the same question is asked again with: *Your earlier boxes for
+> the new {class} cannot be used: {box} {reason}; … Give different boxes that follow these
+> instructions.*
 
-| Step | Rule | Pilot v2 | Molmo full run | Box mode |
-|---|---|---|---|---|
-| class | already in the photograph (COCO labels and audited additions), never *person*; least-used first | same | same | same; then any listed class, flagged |
-| class | classes asked per photograph | 2 | 2 | until one has a valid box; all for photos without an accepted box |
-| spot | fixed question per class group (22 groups) | point | point | box, with the photo's own objects of the class; second question with taken places and a minimum size |
-| spot | spots kept per class | 5 (≥ 10% of the diagonal apart) | 5 | 3 (boxes with IoU > 0.5 merged) |
-| spot | the base point lies on a surface the class rests on (COCO-Stuff classes per group) or on an object that carries it (e.g. a dining table under a cup); never on another object | yes | yes | yes; animals also on plants; signs on poles unchecked |
-| spot | the box's base does not rest on window, mirror, ceiling or sky (sky allowed for flying classes) | yes | yes | yes |
-| size | reference: the photograph's own object of the class (not cut off, ≤ 30% hidden), else the class's typical COCO size; its shape is kept | same | same | – (the model's box) |
-| size | depth-based size change relative to the reference | ×0.7–1.4 | ×0.7–1.4 | – |
-| size | minimum box | 2% of the image, 64 px short side | same | 15 px short side, 0.1% of the image (measured, see text) |
-| size | maximum box | 25% of the image | same | same |
-| overlap | share of a person the box may cover | 0% | 50% | 30% (re-asked if more) |
-| overlap | share of any other real object the box may cover | 15% | 50% | 30% (re-asked if more) |
-| review | the first author accepts the box by eye | – | – | yes |
-| verify | the verifier finds the class at the box (score ≥ 0.2; IoU ≥ 0.3 or ≥ 80% inside; not the photo's own object) | yes | yes | yes |
-| verify | the object's outline box fills at least this share of the planned box | 35% | 25% | 25% |
-| retry | seeds per spot / spots tried | 3 / 9 | 3 / 9 | 3 / accepted boxes |
+**Table 1c.** Placement and verification rules of the benchmark (Qwen3-VL box mode). Every other
+judgement of plausibility is left to the model's reading of the scene and to the hand audit.
 
-On the 50 pilot photographs, the strict version (pilot v2) placed a verified AI object in 18
-photographs, 72% of them resting on ground, a table or water and none on a wall, with a median
-object size of 1.8% of the image, against 50, 46%, 10 and 0.8% for random free-space placement
-on the same photographs <!-- run:task2_pilot_natural_v2, run:task2_pilot_inphoto, file:paper/results/task2_pilot_natural_three_way.json -->.
-Giving each photograph more classes and spots added one photograph (19 of 50)
-<!-- run:task2_pilot_natural_v3, file:paper/results/task2_pilot_natural_four_way.json -->; most
-photographs without an edit are close-ups or scenes where people and other objects occupy the
-plausible spots. On the same 50 photographs, box mode with review gave an accepted natural box
-for 26 photographs (20 from the first question, 6 from the second); more questions for the other
-24 proposed new boxes for 5 of them [[TBD: author's review of those 9 boxes]] and none for the 17
-photographs that never had a valid box (far-away views, close-ups, crowded scenes)
-<!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json -->.
-By the first author's decision, photographs without an accepted box receive no AI edit, so the AI
-condition covers a subset of the photographs (C0 and C1 cover all); the full run's coverage is
-[[TBD: full natural run]].
+| Step | Rule | Value |
+|---|---|---|
+| class | already in the photograph (COCO labels and audited additions), never *person*; least-used class first | next class only if no usable box |
+| question | one fixed question per class group (22 groups), Box 1 | three boxes, best first |
+| check | minimum box (what the generator and verifier handle; measured, see below) | short side ≥ 15 px and ≥ 0.1% of the image |
+| check | not thinner than the class usually is (long/short side, either orientation) | ≤ 3 × the class's median COCO elongation |
+| check | share of any labelled object or person the box may cover (insertion, not replacement) | ≤ 30% |
+| check | maximum box | 25% of the image |
+| re-ask | if all three boxes fail a check: the same question plus the failed boxes and reasons | once per class |
+| generate | box 1 first; boxes 2 and 3 only after the verifier rejects the previous one | 3 seeds per box |
+| verify | the verifier finds the class at the box: score ≥ 0.2; IoU ≥ 0.3 or ≥ 80% inside; not the photograph's own object of the class (IoU ≥ 0.5 ignored) | yes |
+| verify | the object's segmented outline fills at least this share of the box | 25% |
+| audit | every C4 edit checked by hand after generation | yes |
+
+On the 50 pilot photographs, this procedure gave a usable box for 44 photographs; 36 were settled
+by one question and 37 plans come from the first answer, 7 from the re-ask <!-- run:task2_pilot_natural_qwen_free, run_plan_2026-10-21T091847Z, file:paper/results/task2_pilot_natural_qwen_merged_plan.json -->. The six
+photographs without a box are crowded or framed tightly (a vase display, a surfer holding a
+board, a ski race, a busy motorcycle street, an airplane seen through a window, a zebra herd).
 The minimum box size was set from a test rather than assumed: on 42 boxes the model drew in the
 pilot (short sides 10–48 px, 3 seeds each), the share of boxes whose edit passed verification did
 not fall with size (4–5 of 6 per band from 10–16 px to 40–48 px), and passing edits down to about
-15 px were recognisable by eye; the minimum is therefore 15 px
-<!-- run:task2_pilot_natural_qwen_free, file:paper/results/task2_size_limit_test.json -->
-[[TBD: confirm on the full run's verification rates by object size]].
+15 px were recognisable by eye <!-- run:task2_pilot_natural_qwen_free, file:paper/results/task2_size_limit_test.json -->
+[[TBD: confirm on the full run's verification rates by object size]]. For comparison on the same
+photographs, the earlier point-based version placed a verified object in 18 of 50 (72% resting on
+ground, a table or water, median 1.8% of the image) and random free-space placement in 50 (46%,
+0.8%) <!-- run:task2_pilot_natural_v2, run:task2_pilot_inphoto, file:paper/results/task2_pilot_natural_three_way.json -->.
+Photographs without a usable box receive no AI edit, so the AI condition covers a subset of the
+photographs (C0 and C1 cover all); the full run's coverage is [[TBD: full natural run
+(configs/insertion_natural_box.yaml)]].
 
 **Table 1b.** What each condition tests.
 
@@ -383,7 +372,7 @@ not fall with size (4–5 of 6 per band from 10–16 px to 40–48 px), and pass
 | C1 | re-encoding with the benchmark pipeline | C1 vs C0 | effect of re-encoding alone | reference for all edits |
 | C2 | AI repainting of the box, no object | C2 vs C1 | effect of AI editing without a new object; false "AI" flags on edited background | H2, H3 (control) |
 | C3 | a real object composited into the box | C3 vs C2, C4 | compositing a photographed object; real-object negatives in the same box as C4 | H1, H3 (control) |
-| C4 | an AI object of a class in the photo, anywhere (free-space, occluding or anywhere placement) | C4 vs C1, C2, C3; covered vs not covered | origin of an AI object; occlusion effects (observational) | H1, H2, H3, H4 |
+| C4 | an AI object of a class in the photo, at a natural place (natural placement, ≤ 30% of any real object covered) | C4 vs C1, C2, C3; covered vs not covered | origin of an AI object; occlusion effects (observational) | H1, H2, H3, H4 |
 
 **Generator.** All insertions use SDXL-Inpainting [Podell et al. 2024]. A second seen generator and
 a held-out generator were planned but are left to future work (§8). Inpainting operates on a square
@@ -407,39 +396,32 @@ pipeline, so file format cannot reveal origin.
 not among the evaluated detectors, confirms each insertion: it must find the target class around the edit with score ≥ 0.2 and
 either IoU ≥ 0.3 to the planned box or at least 80% of the detection inside it (inserted objects
 are often smaller than the box); a detection that coincides with a same-class original object
-does not count. A sham edit (C2) passes only if the verifier finds no such object; since a sham
-box may now cover part of a real object of the class, a detection lying for at least a quarter of
-its area on that real object is attributed to it, not to the sham. Failed
-edits are regenerated with a new seed, up to three attempts per box; if all fail, the edit is
-re-planned with a new box resting on a supporting surface and sized like the photograph's own
-instance of the class (the sham and paste controls move with it), up to three new boxes, then
-switched to another class already present in the photograph; a photograph with no verified
-object of its own classes may, as a last resort, receive one of the ten original categories that
-it does not contain (flagged and excluded from same-class analyses), and if no box satisfies
-the placement rules at all, an occluding box may be placed anywhere (flagged). After the merge
-into one AI condition, a photograph still without a verified AI object receives boxes of its own
-classes placed anywhere (six boxes, three seeds each). This gives a verified AI object for 537
-of 544 photographs (464 from the free-space rule, 38 from the occlusion rule, 35 placed anywhere)
-<!-- run:task2_insertion (merged run, verify 2026-10-18 06:23), file:paper/results/task2_insertion_merged_round_final.json -->.
-The remaining 7 are close-ups of a single large object (bed, train, toilet) whose box landed on
-the real object, which the verifier never accepts, or cluttered scenes whose small classes it did
-not recognise; they receive six more boxes that cover at most 30% of their area with a real object
-of the same class; five of the seven then pass. The last two, close-ups of a single bed and a
-single train, pass only with boxes in the image's bottom-left corner, at verifier scores at the
-threshold, and are flagged for the human audit. Four sham edits whose box partly covered a real
-object of the class were rejected because the verifier detected that real object; with
-detections lying mostly on a real object attributed to it, they pass on a new seed. All 544
-photographs thus have all five conditions; their 544 AI edits come from the free-space rule
-(464), the occlusion rule (38) or placement anywhere (42)
-<!-- run:task2_insertion (final verify 2026-10-18 15:02), file:paper/results/task2_insertion_final.json -->. SAM [Kirillov et al. 2023], prompted with the
+does not count, and the object's segmented outline must fill at least a quarter of the box. A sham
+edit (C2) passes only if the verifier finds no such object; a detection lying for at least a
+quarter of its area on a real object of the class is attributed to that object, not to the sham.
+A failed edit is regenerated with a new seed, up to three attempts per box; then the next of the
+model's boxes for the photograph is used (the sham and paste controls move with it). A photograph
+whose boxes all fail receives no AI edit; there is no fallback to random boxes, other classes or
+placement anywhere. Coverage of the natural run: [[TBD: photographs with a verified AI edit,
+attempts per edit, by object size]]. SAM [Kirillov et al. 2023], prompted with the
 verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
 objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
 become ignore regions. We record the actual changed region separately from the intended mask, and
 we mark original objects overlapped by more than 10% as *mixed/modified*. A person audits
-every AI insertion (544), judging object presence, realism and changes outside the box; a
-random subset of 52 gives an unbiased estimate of the verifier's error rate
-[[TBD: audit results]]. Insertions the auditor rejects are removed from the benchmark. Sham
-edits are checked by the verifier only.
+every AI insertion, judging object presence, realism, placement and changes outside the box; a
+random subset gives an unbiased estimate of the verifier's error rate [[TBD: audit results]].
+Insertions the auditor rejects are removed from the benchmark. Sham edits are checked by the
+verifier only.
+
+*Random-placement comparison run.* Before natural placement, the same 544 photographs were edited
+with boxes placed by rules alone (free space or occluding a real object, then anywhere). With
+re-planning, every photograph received a verified AI object: 464 from the free-space rule, 38 from
+the occlusion rule and 42 placed anywhere; close-ups of a single bed and a single train passed only
+with boxes in the image corner, at verifier scores at the threshold
+<!-- run:task2_insertion (final verify 2026-10-18 15:02), file:paper/results/task2_insertion_final.json -->.
+Many of these edits were implausible (objects in mid-air or inside windows), which motivated the
+natural placement above; the run is kept to compare detection and forensics on natural and random
+placements [[TBD: decide whether it is reported as a separate condition]].
 
 **Table 1.** Conditions and statistics. [[TBD: images, instances per origin, per condition]]
 
