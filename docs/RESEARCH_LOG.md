@@ -7,6 +7,19 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Foreground re-ask does not rescue the wide sports scenes
+
+- **Author request:** cover wide scenes by asking, on the last size re-ask, for the foreground
+  near the camera (`shape_check.foreground_last`, `foreground_hint_template`).
+- **Pilot** (`run_plan_2026-10-21T065854Z`, UTC; 24 new questions): still **45 of 50**; the 5
+  wide sports photos still have no box. Qwen does move the boxes to the bottom of the photo, but
+  keeps them at a realistic size for the class there: frisbees 31 x 22 and 28 x 35 px, gloves
+  25 x 36 px, skis 65 x 19 px, a surfboard 58 x 15 px; all just under the 32 px / 0.5% limit (one
+  "frisbee" box is a 205 x 28 strip). So the size limit, not Qwen's placement, excludes these
+  photos; whether SDXL and the verifier can handle 20-30 px objects has not been measured.
+
+---
+
 ## 2026-10-21: Size/shape check with re-asking (no-rules pilot): 45 of 50, no tiny boxes
 
 - **Author request:** no too-thin or tiny boxes. Built `shape_check`: a size hint in every

@@ -65,6 +65,12 @@ size_hint_template: >-
   Draw each box around the whole new {class} with its normal proportions (not a thin strip),
   at least {min_side} wide and {min_side} high on the 0-1000 grid; if the {class} would be
   smaller there, choose a place closer to the camera.
+# Last size re-ask (shape_check.foreground_last; author, 2026-10-21): in wide scenes (a frisbee
+# field, a ski race) Qwen kept drawing tiny far-away boxes; there is usually free ground near
+# the camera where the object appears large.
+foreground_hint_template: >-
+  Place the new {class} in the foreground, in the lower part of the photo close to the camera,
+  where it appears large.
 size_retry_template: >-
   Your earlier boxes for the new {class} cannot be used: {feedback}. Give different boxes that
   follow these instructions.

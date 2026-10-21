@@ -92,6 +92,17 @@ def apply_review(
 PAGE_FILE = Path(__file__).with_name("spots_page.html")
 
 
+_ROUND_ORDER = {1: 0, 2: 1, "edge": 2, "any": 3, "any2": 4}
+
+
+def _spot_order(r: dict) -> tuple:
+    """Spots in the order planning tries them: first question, second, last resort, any class;
+    re-asked ("1+size2") after the round they came from."""
+    rd = str(r.get("round", 1))
+    base = rd.split("+")[0]
+    return (_ROUND_ORDER.get(int(base) if base.isdigit() else base, 5), rd, r.get("rank") or 0)
+
+
 def build_page(cfg: dict) -> dict:
     """Write ``<work>/spot_review/`` (page + downscaled photos) from the current candidates."""
     wd = work_dir(cfg)
@@ -107,13 +118,7 @@ def build_page(cfg: dict) -> dict:
             by_sid.setdefault(r["source_id"], []).append(r)
     photos = []
     for n, (sid, spots) in enumerate(sorted(by_sid.items()), 1):
-        order = {1: 0, 2: 1, "edge": 2, "any": 3, "any2": 4}
-        def rank_key(r: dict) -> tuple:
-            rd = str(r.get("round", 1))  # e.g. "1", "edge", "1+size2" (re-asked for size)
-            base = rd.split("+")[0]
-            return (order.get(int(base) if base.isdigit() else base, 4), rd, r.get("rank") or 0)
-
-        spots.sort(key=rank_key)
+        spots.sort(key=_spot_order)
         s = src[sid]
         p = out / "img" / f"{sid}.jpg"
         if not p.exists():

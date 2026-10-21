@@ -683,6 +683,9 @@ def _box_mode_photo(
             if len(valid) > n_before or not failed:
                 break
             p2 = prompt + " " + size_retry_text(prompts, cat, failed, W, H)
+            if k == sc.get("retries", 2) and sc.get("foreground_last", False):
+                # last try: ask for the foreground, where the object appears large
+                p2 += " " + prompts["foreground_hint_template"].format(**{"class": cat})
             boxes, answer, name = ask(p2, cat)
             failed += evaluate(cat, boxes, p2, answer, name, f"{tag}+size{k}")
 

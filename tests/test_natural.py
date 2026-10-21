@@ -762,3 +762,25 @@ def test_size_check_reasks_with_feedback(cfg, tmp_path, monkeypatch):
     assert any(r["reason"] == "too small" and r["round"] == 1 for r in rows)
     assert all("normal proportions" in p for p in asked)
     assert any("too small" in p and "cannot be used" in p for p in asked)
+
+
+def test_last_size_reask_asks_for_the_foreground(cfg, tmp_path, monkeypatch):
+    """shape_check.foreground_last: only the last size re-ask adds the foreground sentence."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    asked = []
+
+    def boxes(self, img, prompt):
+        asked.append(prompt)
+        H, W = img.shape[:2]
+        return [[0.5 * W, 0.9 * H, 6.0, 6.0]], '[{"bbox_2d": [500, 900, 510, 912]}]'
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    sc = {"min_side_px": 32, "retries": 2, "foreground_last": True}
+    c = _natural_cfg(cfg, mode="box", free=True, classes_per_photo=1, shape_check=sc)
+    sample.run(c)
+    plan.run(c)
+    fg = [p for p in asked if "in the foreground" in p]
+    retry1 = [p for p in asked if "cannot be used" in p and "in the foreground" not in p]
+    assert fg and retry1 and len(fg) == len(retry1)

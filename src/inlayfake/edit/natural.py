@@ -68,6 +68,7 @@ def load_prompts(path: str | Path) -> dict:
         "last_resort_template": y.get("last_resort_template"),
         "size_hint_template": y.get("size_hint_template"),
         "size_retry_template": y.get("size_retry_template"),
+        "foreground_hint_template": y.get("foreground_hint_template"),
         "any_class_template": y.get("any_class_template"),
         "any_class_alt_template": y.get("any_class_alt_template"),
         "check": y["check"],
