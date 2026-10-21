@@ -7,6 +7,24 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-22: Edit review per photo: accept/reject C2, C3, C4; rejected images are redone
+
+- **Author request:** the review page should show C2, C3 and C4 per photo with Accept/Reject for
+  each, save to a CSV, and rejected images should be rerun.
+- **Built:** `editaudit` now shows one card per photo (C1 before, C2, C3, C4 cropped around the
+  box), Accept/Reject per image, notes per photo; clicks go to `condition_review_clicks.json` and
+  `condition_review.csv` (one row per current or reviewed image; rejected rows stay with
+  `current: n`). The three-question audit page is replaced.
+- **Redo:** `verify_state` turns a rejected C2/C4 into a failed verification, so the next
+  `insert` makes a new seed at the same box (after 3, the next of Qwen's boxes; C2/C3 follow the
+  C4 box); a rejected C3 gets another donor (new seed); rejected images are kept out of the final
+  ledger. Test: rejecting all three of a photo and running `insert` again gives three new images
+  and none of the rejected ones in the ledger. 131 tests pass.
+- **Note:** the running full run's `insert` process has the old code; rejections take effect when
+  the pipeline is run again after it finishes (`python scripts/run_stages.py ...`).
+
+---
+
 ## 2026-10-22: Clickable edit audit; audit sheet grows with the run
 
 - **Author request:** a clickable audit page for all AI edits that saves into audit_edits.csv,

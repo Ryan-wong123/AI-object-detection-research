@@ -931,28 +931,34 @@ def test_box_mode_run_resumes_after_cut_off_lines(cfg, tmp_path):
     assert len(list(read_ledger(wd / "ledger.jsonl"))) == n_before
 
 
-def test_edit_audit_page_saves_clicks_into_the_csv(cfg, tmp_path):
-    """editaudit builds the clickable page from the run's ledger; a click is saved into
-    audit_edits.csv and survives the next verify rewrite of the sheet."""
+def test_edit_review_accept_reject_and_redo(cfg, tmp_path):
+    """editaudit: one card per photo with C2/C3/C4; clicks are saved to condition_review.csv;
+    a rejected C2/C3/C4 is redone by the next insert (new seed / another donor) and the rejected
+    image leaves the final ledger; the new image shows up for review."""
     import csv
     import threading
     import urllib.request
 
     from inlayfake.ledger import read_ledger
     from inlayfake.stages import editaudit, insert, plan, sample
-    from inlayfake.stages.verify import audit_sheet
 
     sc = {"min_side_px": 15, "min_area_frac": 0.001, "max_cover_labelled": 0.3, "retries": 1}
     c = _natural_cfg(cfg, mode="box", free=True, merged=True, classes_per_photo=99, shape_check=sc)
-    c = deep_merge(c, {"verify": {"audit_all_conditions": ["C4"], "audit_only_conditions": ["C4"]}})
     sample.run(c)
     plan.run(c)
     insert.run(c)
-    res = editaudit.run(c)
     wd = tmp_path / "work"
+    res = editaudit.run(c)
     page = Path(res["page"]).read_text(encoding="utf-8")
-    cards = json.loads(page.split("const CARDS = ")[1].split(";\nconst QS")[0])
-    assert cards and res["edits"] == len(cards)
+    cards = json.loads(page.split("const CARDS = ")[1].split(";\nconst LABEL")[0])
+
+    def review_rows():
+        with (wd / "condition_review.csv").open(encoding="utf-8") as f:
+            return {r["image_id"]: r for r in csv.DictReader(f)}
+
+    card = next(k for k in cards if all(not f.get("missing") for f in k["figs"]))
+    ids = {f["cond"]: f["id"] for f in card["figs"] if f.get("id")}
+    assert set(ids) == {"C2", "C3", "C4"}
 
     import http.server as hs
 
@@ -969,24 +975,31 @@ def test_edit_audit_page_saves_clicks_into_the_csv(cfg, tmp_path):
         while "srv" not in started:
             pass
         port = started["srv"].server_address[1]
-        iid = cards[0]["image_id"]
-        for field, value in (("object_ok", "y"), ("realistic", "n"), ("notes", "too dark")):
-            body = json.dumps({"id": iid, "field": field, "value": value}).encode()
-            req = urllib.request.Request(
-                f"http://127.0.0.1:{port}/audit-click", data=body, method="POST"
-            )
+
+        def click(key, field, value):
+            body = json.dumps({"id": key, "field": field, "value": value}).encode()
+            url = f"http://127.0.0.1:{port}/review-click"
+            req = urllib.request.Request(url, data=body, method="POST")
             assert urllib.request.urlopen(req).read() == b"ok"
-        got = json.loads(
-            urllib.request.urlopen(f"http://127.0.0.1:{port}/audit-clicks.json").read()
-        )
-        assert got[iid] == {"object_ok": "y", "realistic": "n", "notes": "too dark"}
+
+        for cond in ("C2", "C3", "C4"):
+            click(ids[cond], "decision", "reject")
+        click(card["photo"], "notes", "object floats")
     finally:
         hs.ThreadingHTTPServer = real
         started["srv"].shutdown()
+    rows = review_rows()
+    assert all(rows[ids[k]]["decision"] == "reject" for k in ids)
+    assert rows[ids["C4"]]["notes"] == "object floats"
+
+    insert.run(c)  # the next run of the pipeline redoes the rejected images
     final = list(read_ledger(wd / "ledger.jsonl"))
-    audit_sheet(wd, final, 0.1, c["seed"] + 7, c["verify"])  # as the next verify round does
-    rows = {
-        r["image_id"]: r for r in csv.DictReader((wd / "audit_edits.csv").open(encoding="utf-8"))
-    }
-    assert rows[iid]["object_ok"] == "y" and rows[iid]["realistic"] == "n"
-    assert rows[iid]["notes"] == "too dark"
+    now = {r.condition.value: r.image_id for r in final if r.source_id == card["sid"]}
+    for cond in ("C2", "C3", "C4"):
+        assert ids[cond] not in {r.image_id for r in final}  # the rejected image is out
+        assert now.get(cond) and now[cond] != ids[cond]  # a new one is in
+    res2 = editaudit.run(c)
+    rows2 = review_rows()
+    assert rows2[ids["C4"]]["current"] == "n" and rows2[ids["C4"]]["decision"] == "reject"
+    assert rows2[now["C4"]]["current"] == "y" and rows2[now["C4"]]["decision"] == ""
+    assert res2["photos"] == res["photos"]

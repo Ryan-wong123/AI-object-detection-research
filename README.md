@@ -382,20 +382,27 @@ saves every photo as it finishes (`natural_plan_progress.jsonl`), generation eve
 verification every check, so at most the photo or image in progress is redone. Files are written
 crash-safely (a cut-off last log line is skipped; records and plans are replaced in one step).
 
-### Auditing the AI edits (clickable)
-
-Every verified AI edit (C4) plus a random sample is on the audit sheet. To audit by clicking:
+### Reviewing the edits: accept or reject C2, C3, C4 (clickable)
 
 ```powershell
 python -m inlayfake editaudit --config configs/insertion_natural_box.yaml --serve
 ```
 
-Open http://127.0.0.1:8769/ . Each card shows the matched resave (before) and the edit (after)
-with the planned box (dashed) and the verified object (solid), and asks: object present,
-looks realistic, other change outside the box (yes/no), plus notes. Every click is saved at once
-into `<work>udit_edits.csv` (via `<work>udit_edits_clicks.json`), also while the run is still
-verifying. Filters: not yet audited, random sample, with a problem, audited. Run the command
-again after the run (or a verify round) to add the edits that passed since; decisions are kept.
+Open http://127.0.0.1:8769/ . One card per photo: C1 (before), C2 (sham), C3 (real paste) and C4
+(AI object), cropped around the box, each with Accept / Reject, and notes per photo. Every click
+is saved at once to `<work>\condition_review.csv`. Filters: to review, with a reject, random
+sample, reviewed.
+
+Rejected images are redone by the next run of the pipeline:
+
+```powershell
+python scripts/run_stages.py configs/insertion_natural_box.yaml
+```
+
+A rejected C2 or C4 counts as a failed verification (new seed at the same box; after 3 the next
+of Qwen's boxes, and C2/C3 follow the C4 box); a rejected C3 is re-pasted with another donor.
+Rejected images never enter the final ledger. Run `editaudit` again afterwards: the new images
+appear as "to review", the rejected ones stay in the CSV (`current: n`).
 
 ### Reviewing the planned spots by hand
 

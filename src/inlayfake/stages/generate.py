@@ -28,7 +28,13 @@ from inlayfake.edit.paste import choose_donor, paste_instance
 from inlayfake.edit.placement import box_area, intersection
 from inlayfake.ledger import EditInfo, ImageRecord, Instance, Origin
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import load_coco, read_jsonl, work_dir, write_text_atomic
+from inlayfake.stages.common import (
+    derive_seed,
+    load_coco,
+    read_jsonl,
+    work_dir,
+    write_text_atomic,
+)
 from inlayfake.stages.replan import (
     ADOPT,
     FREE,
@@ -41,6 +47,7 @@ from inlayfake.stages.replan import (
     next_job,
     track_version,
 )
+from inlayfake.stages.verify import rejected_images
 
 
 def _original_instances(index, source_id: int) -> list[Instance]:
@@ -124,6 +131,12 @@ def _non_generative(cfg, index, plan, src, wd, enc) -> int:
         version = plan.get("free_version", 0)  # C3 follows the C4 box (re-plan on failure)
         seed = job_seed(cfg, sid, "C3", None, 0, version)
         rid = ImageRecord.make_id(sid, "C3", None, seed)
+        rejected = rejected_images(wd)
+        redo = 0
+        while rid in rejected:  # rejected in the author's review: another donor (new seed)
+            redo += 1
+            seed = derive_seed(cfg["seed"], sid, "C3", f"v{version}", "review", redo)
+            rid = ImageRecord.make_id(sid, "C3", None, seed)
         if not _exists(wd, rid):
             rng = np.random.default_rng(seed)
             donor = choose_donor(index, plan["category"], sid, plan["box_free"], rng)
