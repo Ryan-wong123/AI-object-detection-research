@@ -1,0 +1,193 @@
+{
+ "note": "size-limit test, no-rules box-mode pilot, 2026-10-21; scripts/size_limit_test.py; a box passes if any of 3 seeds passes the C4 verification",
+ "bands": {
+  "10-16": {
+   "boxes": 6,
+   "box_passed_any_seed": 4,
+   "seed_pass_rate": 0.444,
+   "median_area_pct": 0.28
+  },
+  "16-20": {
+   "boxes": 6,
+   "box_passed_any_seed": 3,
+   "seed_pass_rate": 0.333,
+   "median_area_pct": 0.56
+  },
+  "20-24": {
+   "boxes": 6,
+   "box_passed_any_seed": 4,
+   "seed_pass_rate": 0.333,
+   "median_area_pct": 0.35
+  },
+  "24-28": {
+   "boxes": 6,
+   "box_passed_any_seed": 5,
+   "seed_pass_rate": 0.611,
+   "median_area_pct": 0.44
+  },
+  "28-32": {
+   "boxes": 6,
+   "box_passed_any_seed": 4,
+   "seed_pass_rate": 0.444,
+   "median_area_pct": 1.08
+  },
+  "32-40": {
+   "boxes": 6,
+   "box_passed_any_seed": 5,
+   "seed_pass_rate": 0.5,
+   "median_area_pct": 0.66
+  },
+  "40-48": {
+   "boxes": 6,
+   "box_passed_any_seed": 4,
+   "seed_pass_rate": 0.444,
+   "median_area_pct": 1.29
+  }
+ },
+ "wide_photos": [
+  {
+   "source_id": 153229,
+   "category": "frisbee",
+   "side": 15.1,
+   "passed": false
+  },
+  {
+   "source_id": 273715,
+   "category": "skis",
+   "side": 15.7,
+   "passed": true
+  },
+  {
+   "source_id": 273715,
+   "category": "skis",
+   "side": 15.7,
+   "passed": true
+  },
+  {
+   "source_id": 273715,
+   "category": "skis",
+   "side": 15.7,
+   "passed": false
+  },
+  {
+   "source_id": 408774,
+   "category": "baseball glove",
+   "side": 14.7,
+   "passed": true
+  },
+  {
+   "source_id": 408774,
+   "category": "baseball glove",
+   "side": 14.7,
+   "passed": true
+  },
+  {
+   "source_id": 153229,
+   "category": "frisbee",
+   "side": 17.8,
+   "passed": true
+  },
+  {
+   "source_id": 153229,
+   "category": "frisbee",
+   "side": 17.8,
+   "passed": false
+  },
+  {
+   "source_id": 273715,
+   "category": "skis",
+   "side": 16.0,
+   "passed": true
+  },
+  {
+   "source_id": 273715,
+   "category": "skis",
+   "side": 16.0,
+   "passed": false
+  },
+  {
+   "source_id": 273715,
+   "category": "skis",
+   "side": 16.0,
+   "passed": false
+  },
+  {
+   "source_id": 273715,
+   "category": "skis",
+   "side": 16.0,
+   "passed": true
+  },
+  {
+   "source_id": 153229,
+   "category": "frisbee",
+   "side": 21.9,
+   "passed": false
+  },
+  {
+   "source_id": 428218,
+   "category": "frisbee",
+   "side": 20.2,
+   "passed": true
+  },
+  {
+   "source_id": 428218,
+   "category": "frisbee",
+   "side": 22.1,
+   "passed": true
+  },
+  {
+   "source_id": 441286,
+   "category": "surfboard",
+   "side": 20.7,
+   "passed": true
+  },
+  {
+   "source_id": 153229,
+   "category": "frisbee",
+   "side": 25.0,
+   "passed": true
+  },
+  {
+   "source_id": 153229,
+   "category": "frisbee",
+   "side": 25.6,
+   "passed": true
+  },
+  {
+   "source_id": 153229,
+   "category": "frisbee",
+   "side": 27.5,
+   "passed": true
+  },
+  {
+   "source_id": 408774,
+   "category": "baseball glove",
+   "side": 25.0,
+   "passed": true
+  },
+  {
+   "source_id": 408774,
+   "category": "baseball glove",
+   "side": 25.0,
+   "passed": false
+  },
+  {
+   "source_id": 408774,
+   "category": "baseball glove",
+   "side": 25.0,
+   "passed": true
+  },
+  {
+   "source_id": 428218,
+   "category": "frisbee",
+   "side": 28.3,
+   "passed": true
+  },
+  {
+   "source_id": 428218,
+   "category": "frisbee",
+   "side": 28.3,
+   "passed": true
+  }
+ ]
+}
