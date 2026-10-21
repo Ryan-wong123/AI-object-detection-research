@@ -361,8 +361,7 @@ photographs, the earlier point-based version placed a verified object in 18 of 5
 ground, a table or water, median 1.8% of the image) and random free-space placement in 50 (46%,
 0.8%) <!-- run:task2_pilot_natural_v2, run:task2_pilot_inphoto, file:paper/results/task2_pilot_natural_three_way.json -->.
 Photographs without a usable box receive no AI edit, so the AI condition covers a subset of the
-photographs (C0 and C1 cover all); the full run's coverage is [[TBD: full natural run
-(configs/insertion_natural_box.yaml)]].
+photographs (C0 and C1 cover all); in the full run, 518 of the 544 photographs received a box <!-- run:task2_insertion_natural_box, run_plan_2026-10-21T115944Z, file:paper/results/task2_insertion_natural_box_plan.json --> (451 from the first answer, 67 after the re-ask); photographs with a verified AI edit: [[TBD: full natural run, after verification]].
 
 **Table 1b.** What each condition tests.
 

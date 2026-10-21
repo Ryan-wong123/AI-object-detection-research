@@ -22,6 +22,11 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   (sample, plan, insert, preview as separate processes; idle sleep blocked); the same command
   resumes. Work dir `data/inlayfake_v4`. Planning ~12 s per photo (~1.8 h); generation and
   verification expected ~6-9 h more [[TBD: actual]].
+- **Planning finished** 19:59 (2 h 8 min; 779 Qwen questions; `run_plan_2026-10-21T115944Z`,
+  UTC): **518 of 544** photos have a box, 26 none; 451 plans from the first answer, 67 after the
+  re-ask; 77 classes; median box 1.45% of the image
+  (`paper/results/task2_insertion_natural_box_plan.json`). Generation round 1: 1036 SDXL images
+  (C4 + C2 for 518 photos) at ~17 s each (~4.6 h), then verification and retry rounds.
 
 ---
 

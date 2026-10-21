@@ -215,7 +215,7 @@ cloud sandbox, so their first real run is the pilot.
   failures, then the next class; no review gate (author), every C4 audited by hand afterwards.
   Pilot: **44 of 50** photos with a box <!-- run:task2_pilot_natural_qwen_free, run_plan_2026-10-21T091847Z, file:paper/results/task2_pilot_natural_qwen_merged_plan.json -->. A Qwen self-judge did not agree with the
   author's review (AUROC 0.44 / 0.50) and is not used <!-- file:paper/results/task2_judge_agreement.json -->.
-  Paper §4 rewritten (Box 1 prompt, Table 1c). Full run (`configs/insertion_natural_box.yaml`) [[TBD]].
+  Paper §4 rewritten (Box 1 prompt, Table 1c). Full run (`configs/insertion_natural_box.yaml`): planning gave **518 of 544** photos a box <!-- run:task2_insertion_natural_box, run_plan_2026-10-21T115944Z, file:paper/results/task2_insertion_natural_box_plan.json -->; verified AI edits [[TBD]].
 - **Decision (21 Oct):** photos without an accepted natural box get no AI edit (no forced or
   random fallback), so the AI condition covers a subset of the 544 photos; full-run coverage
   [[TBD]].
