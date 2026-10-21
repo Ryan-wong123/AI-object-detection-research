@@ -7,6 +7,29 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Size limit measured: 15 px; no-rules pilot 50 of 50
+
+- **Author request:** measure which box sizes survive generation + verification instead of the
+  estimated 32 px / 0.5% limit. `scripts/size_limit_test.py`: 42 of Qwen's real boxes from the
+  no-rules pilot (6 per short-side band 10-16 ... 40-48 px; 24 from the 5 wide sports photos;
+  boxes on an existing object of the same class left out), SDXL C4 with the pilot settings,
+  3 seeds each, the pipeline's C4 verification (OWLv2 + SAM, fill >= 25%).
+- **Result** (`paper/results/task2_size_limit_test.json`): boxes passing on any seed per band:
+  10-16 px 4/6, 16-20 3/6, 20-24 4/6, 24-28 5/6, 28-32 4/6, 32-40 5/6, 40-48 4/6; per-seed pass
+  rate 0.33-0.61 with no trend in size. Failures: 61 not found, 9 fill too low (of 126). All 5 wide
+  photos have a passing box. **By eye** (zoomed), passing edits at 15-22 px look like the object
+  (skis on snow, frisbees on grass and in the air, surfboards on water and a beach); two gloves
+  are weak (a gold lump, a glove drawn on a player's hand). Small sample (6 per band, 5 photos
+  dominate): no size effect detected, not proof of none.
+- **Decision (author's request to set the limit from the test):** shape_check minimum 15 px short
+  side and 0.1% of the image (was 32 px / 0.5%); 15 px is the smallest size checked by eye; the
+  too-thin check stays.
+- **Pilot** (`run_plan_2026-10-21T075954Z`, UTC; 55 new questions since the size hint changed):
+  **50 of 50** photos have a box (49 first answer, 1 after a size re-ask); median box 1.4% of the
+  image; 11 with a short side under 24 px. (At 16 px: 49, the ski boxes are 15.7 px.)
+
+---
+
 ## 2026-10-21: Foreground re-ask does not rescue the wide sports scenes
 
 - **Author request:** cover wide scenes by asking, on the last size re-ask, for the foreground

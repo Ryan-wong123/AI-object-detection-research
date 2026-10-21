@@ -26,8 +26,11 @@ placement:
     # is are re-asked with the reason, up to 2 times per question
     shape_check:
       hint: true
-      min_side_px: 32
-      min_area_frac: 0.005
+      # measured (author request, 21 Oct; scripts/size_limit_test.py, 42 boxes x 3 seeds): edits
+      # pass the verifier as often at 10-16 px as at 32-48 px; tiny passes look like the object
+      # down to ~15 px by eye (skis 15.7 px, glove 15 px). Was 32 px / 0.5% (an estimate).
+      min_side_px: 15
+      min_area_frac: 0.001
       max_elongation_factor: 3.0
       retries: 2
       foreground_last: true      # last re-ask: in the foreground, near the camera (author, 21 Oct)

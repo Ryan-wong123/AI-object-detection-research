@@ -344,7 +344,7 @@ point-based version (Molmo + depth; replaced); *box mode* is the version used fo
 | spot | the box's base does not rest on window, mirror, ceiling or sky (sky allowed for flying classes) | yes | yes | yes |
 | size | reference: the photograph's own object of the class (not cut off, ≤ 30% hidden), else the class's typical COCO size; its shape is kept | same | same | – (the model's box) |
 | size | depth-based size change relative to the reference | ×0.7–1.4 | ×0.7–1.4 | – |
-| size | minimum box | 2% of the image, 64 px short side | same | 0.5% of the image, 32 px |
+| size | minimum box | 2% of the image, 64 px short side | same | 15 px short side, 0.1% of the image (measured, see text) |
 | size | maximum box | 25% of the image | same | same |
 | overlap | share of a person the box may cover | 0% | 50% | 50% |
 | overlap | share of any other real object the box may cover | 15% | 50% | 50% |
@@ -368,6 +368,12 @@ photographs that never had a valid box (far-away views, close-ups, crowded scene
 By the first author's decision, photographs without an accepted box receive no AI edit, so the AI
 condition covers a subset of the photographs (C0 and C1 cover all); the full run's coverage is
 [[TBD: full natural run]].
+The minimum box size was set from a test rather than assumed: on 42 boxes the model drew in the
+pilot (short sides 10–48 px, 3 seeds each), the share of boxes whose edit passed verification did
+not fall with size (4–5 of 6 per band from 10–16 px to 40–48 px), and passing edits down to about
+15 px were recognisable by eye; the minimum is therefore 15 px
+<!-- run:task2_pilot_natural_qwen_free, file:paper/results/task2_size_limit_test.json -->
+[[TBD: confirm on the full run's verification rates by object size]].
 
 **Table 1b.** What each condition tests.
 
