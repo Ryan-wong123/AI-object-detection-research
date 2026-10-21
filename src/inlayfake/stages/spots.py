@@ -107,7 +107,7 @@ def build_page(cfg: dict) -> dict:
             by_sid.setdefault(r["source_id"], []).append(r)
     photos = []
     for n, (sid, spots) in enumerate(sorted(by_sid.items()), 1):
-        order = {1: 0, 2: 1, "any": 2, "any2": 3}
+        order = {1: 0, 2: 1, "edge": 2, "any": 3, "any2": 4}
         spots.sort(key=lambda r: (order.get(r.get("round", 1), 4), r.get("rank") or 0))
         s = src[sid]
         p = out / "img" / f"{sid}.jpg"

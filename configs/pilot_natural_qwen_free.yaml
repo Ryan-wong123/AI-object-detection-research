@@ -18,6 +18,9 @@ placement:
     stop_when_valid: true
     retry: false
     any_class: false
+    # close-ups and full scenes where every class got no place (author, 21 Oct): ask the same
+    # classes again, allowing the new object cut off by the photo's edge or further back
+    last_resort: true
     more_questions: false
     review:
       enabled: false

@@ -37,6 +37,7 @@ from inlayfake.edit.natural import (
     check_questions,
     dedupe_boxes,
     fit_inside,
+    last_resort_prompt,
     load_prompts,
     point_support,
     pointing_prompt,
@@ -160,6 +161,7 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
         "stop_when_valid",
         "more_questions",
         "free",
+        "last_resort",
         "check_point_surface",
         "min_box_frac",
         "min_box_side_px",
@@ -704,6 +706,16 @@ def _box_mode_photo(
             evaluate(cat, boxes, prompt, answer, name, 2)
         if valid and ncfg.get("stop_when_valid", False) and not more:
             break
+    if not valid and ncfg.get("last_resort", False):
+        # close-ups and full scenes (author, 21 Oct): the same classes again, allowing a new
+        # object cut off by the photo's edge or further back; no "no place" answer
+        for cat in order:
+            same = [lb["bbox"] for lb in labels if lb["category"] == cat]
+            prompt = last_resort_prompt(prompts, cat, same, W, H)
+            boxes, answer, name = ask(prompt, cat)
+            evaluate(cat, boxes, prompt, answer, name, "edge")
+            if valid:
+                break
     if ncfg.get("any_class", False) and (more or not valid):
         allowed = [c for c in prompts["classes"] if c not in exclude]
         for alt in (False, True) if more else (False,):

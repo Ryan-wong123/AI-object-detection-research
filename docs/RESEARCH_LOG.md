@@ -7,6 +7,20 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Last-resort question for close-ups (same class, edge or further back)
+
+- **Author request:** for close-ups where every class of the photo got no place, ask Qwen once
+  more for the same class, allowing the new object to be cut off by the photo's edge, further
+  back or partly behind something; no "no place" answer (`last_resort: true`,
+  `last_resort_template`; boxes tagged "last resort" on the review page).
+- **Pilot** (no-rules mode, `run_plan_2026-10-21T061019Z`, UTC; 2 new questions): **50 of 50**
+  photos have a box. Both last-resort boxes are poor: a 16 px strip along the viaduct railing
+  across the whole photo (not a train shape) and a 32 px box in the floor corner of the toilet
+  close-up. These scenes have no sensible place for another object of the class; the author's
+  review decides.
+
+---
+
 ## 2026-10-21: Other-class fallback tried and reverted
 
 - An other-class fallback for close-ups (Qwen picks a class labelled in the 544 week-1 photos when

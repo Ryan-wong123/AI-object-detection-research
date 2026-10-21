@@ -43,6 +43,21 @@ box_template: >-
 # taken places, and a minimum size (0-1000 grid), so it looks for free space nearer the camera.
 # In the box-mode pilot, 15 of 28 photos without a spot had only far-away (too small) boxes and 9
 # only boxes on other real objects.
+# Last resort (placement.natural.last_resort; author, 2026-10-21) for close-ups and full scenes
+# where every class of the photo got no place: the same class again, but the new object may be
+# partly cut off by the edge of the photo or further back in the scene, as real photos often
+# show; this question has no "no place" answer. Boxes still go to the author's review.
+last_resort_template: >-
+  Look at the whole photo and understand the scene. The photo already shows {existing}. Do not
+  mark {them}. One more, new {class} must be added somewhere in this photo so that it looks as
+  natural as possible. If there is no free space for a whole {class}, it may be partly cut off by
+  the edge of the photo (as if it continues outside the frame), or further back in the scene and
+  therefore smaller, or partly behind something. It should {how} on {where_short} where possible,
+  have a realistic size and orientation for its distance, and not be on or in front of a person.
+  Give up to 3 different places, best first, as JSON:
+  [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. The box covers only the visible part
+  of the new {class}, inside the photo. Always give at least one place.
+
 box_retry_template: >-
   Look at the whole photo and understand the scene. These places are already taken by people or
   objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Find a different,
