@@ -7,6 +7,24 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-22: Clickable edit audit; audit sheet grows with the run
+
+- **Author request:** a clickable audit page for all AI edits that saves into audit_edits.csv,
+  with filters and a progress counter. `python -m inlayfake editaudit --serve` (port 8769):
+  before/after crops with planned and verified boxes, yes/no for object present, realistic and
+  other change, notes; each click goes to `audit_edits_clicks.json` and is merged into the CSV.
+- **Two audit-sheet problems found and fixed while building it:** (1) the sheet never grew after
+  the first verify round (the CSV was never rewritten), so edits passing in retry rounds would
+  have been missing; (2) the random sample was drawn from the first round's edits only, biasing
+  the verifier error estimate towards easy edits. Now new edits are appended (existing rows keep
+  their place and decisions) and sample membership is a fixed hash of the edit id (seed, 10%).
+  Clicks survive a verify rewrite of the sheet (tests). The running full run's `insert` process
+  still has the old code loaded, so its verify rounds leave the sheet as it is; `editaudit`
+  (new code) adds the newly passed edits when run again.
+- **State at start:** 242 edits on the page (round-1 passes), 23 in the random sample.
+
+---
+
 ## 2026-10-21: Full natural run started (run `task2_insertion_natural_box`)
 
 - **Author decision:** start the full run with the merged-question box mode (the author found
