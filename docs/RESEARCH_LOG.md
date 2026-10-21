@@ -7,6 +7,24 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Qwen cannot judge its own boxes: no agreement with the author's review
+
+- **Question (author):** can a second Qwen pass replace the author's review as the full-run gate?
+  `scripts/judge_agreement.py`: each of the 93 pilot spots shown with the box drawn in red, two
+  fixed wordings ("full": surface, size, scene, people/objects; "short": would the photo still
+  look natural), Qwen3-VL-8B's P(yes) from the first answer token.
+- **Author's review** (`data/inlayfake_pilot_natural_qwen_free/spot_review.json`): 59 of 93 spots
+  reviewed, 35 accepted, 24 rejected; 35 of 48 photos have an accepted spot; box 1: 22 accepted,
+  15 rejected, 11 not reviewed.
+- **Agreement** (`paper/results/task2_judge_agreement.json`): AUROC **0.44** ("full") and **0.50**
+  ("short"), i.e. chance; best agreement over all cut-offs 0.59 and 0.63 against 0.59 for
+  accepting everything. At 0.5 the "full" judge catches 8 of 24 rejects and keeps 23 of 35
+  accepts. **Negative result:** Qwen's yes/no on a drawn box does not separate the boxes the
+  author finds natural from those they reject (as Molmo's realism check before).
+- **Consequence:** an automatic judge cannot be the full-run gate; the author's review is.
+
+---
+
 ## 2026-10-21: Overlap limit back (30%): insertion, not replacement; pilot 48 of 50
 
 - **Author's finding:** in the no-rules pilot some boxes covered real objects (three "truck"

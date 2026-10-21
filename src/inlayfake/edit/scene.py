@@ -264,7 +264,7 @@ class InternVLVLM:
         self.model = AutoModelForImageTextToText.from_pretrained(model_id, **kw)
         self.model.eval()
 
-    def _generate(self, img: np.ndarray, text: str, max_new_tokens: int) -> str:
+    def _inputs(self, img: np.ndarray, text: str):
         import torch
 
         messages = [
@@ -285,6 +285,12 @@ class InternVLVLM:
         ).to(self.model.device)
         if "pixel_values" in inputs:
             inputs["pixel_values"] = inputs["pixel_values"].to(torch.float16)
+        return inputs
+
+    def _generate(self, img: np.ndarray, text: str, max_new_tokens: int) -> str:
+        import torch
+
+        inputs = self._inputs(img, text)
         with torch.inference_mode():
             out = self.model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
         return self.processor.decode(
@@ -333,6 +339,21 @@ class QwenVLM(InternVLVLM):
 
     def point(self, img: np.ndarray, prompt: str) -> tuple[list[tuple[float, float]], str]:
         raise NotImplementedError("Qwen is used in box mode (placement.natural.mode: box)")
+
+    def yes_prob(self, img: np.ndarray, question: str) -> float:
+        """P(yes) / (P(yes) + P(no)) for the first answer token (judge of a drawn box): a score
+        instead of a hard yes/no, so a cut-off can be chosen against the author's review."""
+        import torch
+
+        inputs = self._inputs(img, question + " Answer yes or no.")
+        with torch.inference_mode():
+            logits = self.model(**inputs).logits[0, -1].float()
+        tok = self.processor.tokenizer
+        ids = {w: tok.encode(w, add_special_tokens=False)[0] for w in ("yes", "Yes", "no", "No")}
+        p = torch.softmax(logits, dim=-1)
+        y = float(p[ids["yes"]] + p[ids["Yes"]])
+        n = float(p[ids["no"]] + p[ids["No"]])
+        return y / max(y + n, 1e-9)
 
     def ask(self, img: np.ndarray, question: str, record_id: str = "") -> str:
         return self._generate(img, question + " Answer yes or no.", 8)
