@@ -7,6 +7,28 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Size/shape check with re-asking (no-rules pilot): 45 of 50, no tiny boxes
+
+- **Author request:** no too-thin or tiny boxes. Built `shape_check`: a size hint in every
+  question ("whole object, normal proportions, at least N on the 0-1000 grid, else closer to the
+  camera"); a box under 32 px / 0.5% of the image, or more than 3x as elongated as the class
+  usually is in COCO (orientation-free, so a lying bottle passes), is re-asked with the failed
+  boxes and reasons, up to 2 times per question. Limits come from what SDXL and the verifier can
+  handle, not from naturalness.
+- **Pilot** (`run_plan_2026-10-21T064902Z`, UTC; 111 new questions, the hint changed every
+  question): **45 of 50** photos with a box (before 50, of which many tiny). No planned box under
+  0.5% of the image or 32 px (median 1.8%). 40 from the first answer, 3 after re-asking, 2 from
+  the last resort after re-asking. **Lost 5 photos**: wide sports scenes (frisbee field and
+  garden, ski race, baseball field, surfing) where Qwen kept drawing tiny boxes in 3 tries
+  (148 boxes too small in total).
+- **By eye, the 5 re-asked boxes are mixed:** a giraffe near the herd and a traffic light in a
+  dark street corner are plausible; a surfboard box on the surfer's own board, a motorcycle box
+  on the bus front and an airplane box on the jet bridge are not. Train and toilet close-ups now
+  get a first-answer box (a train on the ground below the viaduct; a sliver of floor in the
+  toilet corner), still poor.
+
+---
+
 ## 2026-10-21: Last-resort question for close-ups (same class, edge or further back)
 
 - **Author request:** for close-ups where every class of the photo got no place, ask Qwen once

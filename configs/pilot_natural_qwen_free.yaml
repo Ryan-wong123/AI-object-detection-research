@@ -21,6 +21,15 @@ placement:
     # close-ups and full scenes where every class got no place (author, 21 Oct): ask the same
     # classes again, allowing the new object cut off by the photo's edge or further back
     last_resort: true
+    # size and shape the generator and verifier can handle (author, 21 Oct): a hint in every
+    # question, and boxes under 32 px / 0.5% of the image or > 3x thinner than the class usually
+    # is are re-asked with the reason, up to 2 times per question
+    shape_check:
+      hint: true
+      min_side_px: 32
+      min_area_frac: 0.005
+      max_elongation_factor: 3.0
+      retries: 2
     more_questions: false
     review:
       enabled: false

@@ -714,3 +714,51 @@ def test_last_resort_same_class_when_no_place(cfg, tmp_path, monkeypatch):
     assert {(r["source_id"], r["category"]) for r in ok} <= asked1  # same classes as before
     off = deep_merge(c, {"placement": {"natural": {"last_resort": False}}})
     assert plan.run(off)["n_plans"] == 0
+
+
+def test_shape_problem_small_and_thin():
+    """Too small: short side or area under the limits; too thin: much more elongated than the
+    class usually is, whichever way round (a lying bottle is fine)."""
+    from inlayfake.edit.natural import shape_problem
+
+    sc = {"min_side_px": 32, "min_area_frac": 0.005, "max_elongation_factor": 3.0}
+    assert shape_problem([0, 0, 20, 100], 640, 480, 1.0, sc) == "too small"
+    assert shape_problem([0, 0, 36, 36], 640, 480, 1.0, sc) == "too small"  # 0.42% of the image
+    assert shape_problem([0, 222, 630, 34], 640, 480, 2.0, sc) == "too thin"  # railing strip
+    assert shape_problem([0, 0, 160, 60], 640, 480, 0.4, sc) is None  # lying bottle (2.7 vs 2.5)
+    assert shape_problem([0, 0, 120, 100], 640, 480, None, sc) is None
+
+
+def test_size_check_reasks_with_feedback(cfg, tmp_path, monkeypatch):
+    """shape_check: a tiny box is rejected and the same class is asked again with the failed box
+    and reason; a good box from the re-ask becomes the plan (round '1+size1'); the question
+    carries the size hint."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    asked = []
+
+    def boxes(self, img, prompt):
+        asked.append(prompt)
+        H, W = img.shape[:2]
+        if "cannot be used" in prompt:
+            return [[0.3 * W, 0.6 * H, 0.3 * W, 0.25 * H]], '[{"bbox_2d": [300, 600, 600, 850]}]'
+        return [[0.5 * W, 0.9 * H, 6.0, 6.0]], '[{"bbox_2d": [500, 900, 510, 912]}]'
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    c = _natural_cfg(
+        cfg,
+        mode="box",
+        free=True,
+        stop_when_valid=True,
+        classes_per_photo=99,
+        shape_check={"min_side_px": 32, "min_area_frac": 0.005, "retries": 2},
+    )
+    sample.run(c)
+    summary = plan.run(c)
+    rows = [json.loads(x) for x in (tmp_path / "work" / "natural_candidates.jsonl").open()]
+    assert summary["n_plans"] > 0
+    assert all(r["round"] == "1+size1" for r in rows if r["ok"])
+    assert any(r["reason"] == "too small" and r["round"] == 1 for r in rows)
+    assert all("normal proportions" in p for p in asked)
+    assert any("too small" in p and "cannot be used" in p for p in asked)

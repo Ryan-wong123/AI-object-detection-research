@@ -58,6 +58,17 @@ last_resort_template: >-
   [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. The box covers only the visible part
   of the new {class}, inside the photo. Always give at least one place.
 
+# Size and shape (placement.natural.shape_check; author, 2026-10-21): boxes too small for SDXL
+# and the verifier, or much thinner than the class's usual proportions (the no-rules pilot drew a
+# 630 x 16 px "train" along a railing), are re-asked with this feedback, up to `retries` times.
+size_hint_template: >-
+  Draw each box around the whole new {class} with its normal proportions (not a thin strip),
+  at least {min_side} wide and {min_side} high on the 0-1000 grid; if the {class} would be
+  smaller there, choose a place closer to the camera.
+size_retry_template: >-
+  Your earlier boxes for the new {class} cannot be used: {feedback}. Give different boxes that
+  follow these instructions.
+
 box_retry_template: >-
   Look at the whole photo and understand the scene. These places are already taken by people or
   objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Find a different,
