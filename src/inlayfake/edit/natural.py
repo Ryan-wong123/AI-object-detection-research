@@ -65,6 +65,7 @@ def load_prompts(path: str | Path) -> dict:
         "template": y["template"],
         "box_template": y.get("box_template"),
         "box_retry_template": y.get("box_retry_template"),
+        "last_resort_template": y.get("last_resort_template"),
         "any_class_template": y.get("any_class_template"),
         "any_class_alt_template": y.get("any_class_alt_template"),
         "check": y["check"],
@@ -86,8 +87,21 @@ def _where_short(where: str) -> str:
     return where
 
 
+def last_resort_prompt(
+    prompts: dict, category: str, existing: list[list[float]], W: int, H: int
+) -> str:
+    """Last-resort question: same class, may be cut off by the photo's edge or further back; no
+    "no place" answer."""
+    return box_prompt(prompts, category, existing, W, H, key="last_resort_template")
+
+
 def box_prompt(
-    prompts: dict, category: str, existing: list[list[float]] | None = None, W: int = 1, H: int = 1
+    prompts: dict,
+    category: str,
+    existing: list[list[float]] | None = None,
+    W: int = 1,
+    H: int = 1,
+    key: str = "box_template",
 ) -> str:
     """Box-mode question (``box_template``) for one class; ``where_short`` is the group's
     ``where`` without the leading "empty spots on"; ``existing`` = the photo's own objects of the
@@ -110,7 +124,7 @@ def box_prompt(
     else:
         listed = f"{len(boxes)} of them at bbox_2d " + ", ".join(str(b) for b in boxes)
         them = "them"
-    return prompts["box_template"].format(
+    return prompts[key].format(
         where_short=where, how=c["how"], existing=listed, them=them, **{"class": category}
     )
 

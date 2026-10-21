@@ -683,3 +683,34 @@ def test_free_mode_keeps_every_vlm_box(cfg, tmp_path, monkeypatch):
     assert rows and all(r["ok"] for r in rows if r.get("box"))  # tiny 4 px boxes included
     for sid in {r["source_id"] for r in rows}:  # the first class with a box is used
         assert len({r["category"] for r in rows if r["source_id"] == sid}) == 1
+
+
+def test_last_resort_same_class_when_no_place(cfg, tmp_path, monkeypatch):
+    """last_resort: when every class of the photo got no box, the same classes are asked again
+    (cut off by the edge or further back allowed); the box is tagged round 'edge' and the class
+    stays one of the photo's own."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    def boxes(self, img, prompt):
+        H, W = img.shape[:2]
+        if "cut off by" not in prompt:
+            return [], "[]"
+        return [[0.0, 0.5 * H, 0.2 * W, 0.3 * H]], '[{"bbox_2d": [0, 500, 200, 800]}]'
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    c = _natural_cfg(
+        cfg, mode="box", free=True, stop_when_valid=True, classes_per_photo=99, last_resort=True
+    )
+    sample.run(c)
+    summary = plan.run(c)
+    wd = tmp_path / "work"
+    rows = [json.loads(x) for x in (wd / "natural_candidates.jsonl").open()]
+    plans = [json.loads(x) for x in (wd / "plans.jsonl").read_text().splitlines()]
+    assert summary["n_plans"] == len(plans) > 0
+    ok = [r for r in rows if r["ok"]]
+    assert ok and all(r["round"] == "edge" and r["class_in_photo"] for r in ok)
+    asked1 = {(r["source_id"], r["category"]) for r in rows if r.get("round") == 1}
+    assert {(r["source_id"], r["category"]) for r in ok} <= asked1  # same classes as before
+    off = deep_merge(c, {"placement": {"natural": {"last_resort": False}}})
+    assert plan.run(off)["n_plans"] == 0
