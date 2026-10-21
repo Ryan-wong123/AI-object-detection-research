@@ -1,69 +1,170 @@
-"""Clickable human audit of the AI edits (author request, 2026-10-22).
+"""Clickable review of every edited photo: accept or reject C2, C3 and C4 (author request,
+2026-10-22).
 
-``python -m inlayfake editaudit --config X --serve`` rebuilds the audit sheet from the current
-ledger (``verify.audit_sheet``: every C4 edit plus the random sample, crops before/after with the
-planned and verified boxes), writes ``<work>/edit_audit.html`` and serves the work folder on
-127.0.0.1. Each card has buttons for the sheet's columns (object present, realistic, other change)
-and a notes field; every click is saved at once into ``<work>/audit_edits_clicks.json`` and merged
-into ``audit_edits.csv`` (the pipeline's audit sheet), so the review can stop and continue at any
-time, also while the run is still verifying (``audit_sheet`` merges the clicks whenever it rewrites
-the CSV).
+``python -m inlayfake editaudit --config X --serve`` builds ``<work>/edit_audit.html`` from the
+current final ledger: one card per photo with the matched resave (C1, before) and the photo's
+current sham (C2), real paste (C3) and AI insertion (C4), cropped around the box, each with
+Accept and Reject; notes per photo. It serves the work folder on 127.0.0.1 and saves every click
+at once to ``<work>/condition_review_clicks.json`` and ``<work>/condition_review.csv`` (one row
+per reviewed or current image; rejected images stay listed).
+
+A rejected image is redone by the next ``insert`` (``verify.apply_review_rejections``): C2/C4
+count as a failed verification (new seed at the same box; after max_attempts the next box, and
+C2/C3 follow the C4 box); C3 is re-pasted with another donor. Rejected images never enter the
+final ledger. New images appear on the page as "to review" when it is built again.
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import threading
+from collections import defaultdict
 from pathlib import Path
 
-from inlayfake.ledger import read_ledger
+from PIL import Image
+
+from inlayfake.edit.encode import load_rgb
+from inlayfake.ledger import Origin, read_ledger
 from inlayfake.site import SITE_CSS, page_title
 from inlayfake.stages.common import work_dir, write_text_atomic
 from inlayfake.stages.verify import (
-    AUDIT_CLICKS,
-    audit_sheet,
-    read_audit_clicks,
-    write_audit_csv,
+    REVIEW_CLICKS,
+    _box_span,
+    in_audit_sample,
+    read_review,
+    verify_window,
 )
 
 PAGE_FILE = Path(__file__).with_name("editaudit_page.html")
-FIELDS = ("object_ok", "realistic", "other_change", "notes")
+CSV_NAME = "condition_review.csv"
+COLUMNS = [
+    "source_id",
+    "condition",
+    "image_id",
+    "category",
+    "plan_version",
+    "in_random_sample",
+    "current",
+    "decision",
+    "notes",
+]
+REVIEWED = ("C2", "C3", "C4")
 _LOCK = threading.Lock()
+
+
+def _photo_key(sid: int) -> str:
+    return f"photo:{sid}"
+
+
+def write_review_csv(wd: Path, current: dict[str, dict]) -> int:
+    """One row per current C2/C3/C4 image and per image reviewed before (rejected ones stay)."""
+    review = read_review(wd)
+    rows = dict(current)
+    old = wd / CSV_NAME
+    if old.exists():  # keep images reviewed before that are no longer current
+        with old.open(encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                if r["image_id"] not in rows and r["image_id"] in review:
+                    rows[r["image_id"]] = r | {"current": "n"}
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=COLUMNS, extrasaction="ignore", lineterminator="\n")
+    w.writeheader()
+    for iid, r in sorted(rows.items(), key=lambda kv: (int(kv[1]["source_id"]), kv[0])):
+        d = review.get(iid, {})
+        notes = review.get(_photo_key(int(r["source_id"])), {}).get("notes", "")
+        w.writerow(r | {"decision": d.get("decision", ""), "notes": notes})
+    write_text_atomic(wd / CSV_NAME, buf.getvalue())
+    return len(rows)
 
 
 def build_page(cfg: dict) -> dict:
     wd = work_dir(cfg)
     vcfg = cfg["verify"]
+    seed, frac = cfg["seed"] + 7, vcfg.get("audit_fraction", 0.1)
     final = list(read_ledger(wd / "ledger.jsonl"))
-    n = audit_sheet(wd, final, vcfg.get("audit_fraction", 0.1), cfg["seed"] + 7, vcfg)
-    cards = json.loads((wd / "audit_cards.json").read_text(encoding="utf-8")) if n else []
+    by_sid: dict[int, dict[str, object]] = defaultdict(dict)
+    for r in final:
+        by_sid[r.source_id][r.condition.value] = r
+    crops = wd / "audit_crops"
+    crops.mkdir(exist_ok=True)
+    cards, current = [], {}
+    for sid in sorted(by_sid):
+        conds = by_sid[sid]
+        edits = {c: conds[c] for c in REVIEWED if c in conds}
+        if not edits:
+            continue
+        lead = edits.get("C4") or next(iter(edits.values()))
+        x0, y0, x1, y1 = verify_window(lead, lead.width, lead.height, vcfg)
+        figs = []
+        for cond in ("C1",) + REVIEWED:
+            r = conds.get(cond)
+            if r is None:
+                figs.append({"cond": cond, "missing": True})
+                continue
+            out = crops / f"{r.image_id}_crop.jpg"
+            if not out.exists():
+                Image.fromarray(load_rgb(r.path)[y0:y1, x0:x1]).save(out, quality=90)
+            boxes = _box_span(lead.edit.plan_box, x0, y0, x1, y1, "plan")
+            for i in r.instances:
+                if i.origin in (Origin.AI_INSERTED, Origin.REAL_PASTED):
+                    boxes += _box_span(i.bbox, x0, y0, x1, y1, "ins")
+            fig = {"cond": cond, "src": f"audit_crops/{out.name}", "boxes": boxes}
+            if cond in REVIEWED:
+                rand = cond == "C4" and in_audit_sample(r.image_id, seed, frac)
+                fig |= {"id": r.image_id, "random": rand}
+                current[r.image_id] = {
+                    "source_id": str(sid),
+                    "condition": cond,
+                    "image_id": r.image_id,
+                    "category": r.edit.target_category if r.edit else "",
+                    "plan_version": str(r.edit.plan_version if r.edit else 0),
+                    "in_random_sample": "y" if rand else "n",
+                    "current": "y",
+                }
+            figs.append(fig)
+        cards.append(
+            {
+                "sid": sid,
+                "category": lead.edit.target_category,
+                "photo": _photo_key(sid),
+                "figs": figs,
+            }
+        )
+    n_rows = write_review_csv(wd, current)
     page = (
         PAGE_FILE.read_text(encoding="utf-8")
         .replace("__CSS__", SITE_CSS)
-        .replace("__TITLE__", page_title(cfg, "Edit audit"))
+        .replace("__TITLE__", page_title(cfg, "Edit review"))
         .replace("__DATA__", json.dumps(cards))
     )
     write_text_atomic(wd / "edit_audit.html", page)
-    return {"page": str(wd / "edit_audit.html"), "edits": len(cards)}
+    return {"page": str(wd / "edit_audit.html"), "photos": len(cards), "csv_rows": n_rows}
 
 
-def save_click(wd: Path, image_id: str, field: str, value: str) -> dict:
-    """Store one decision and merge all clicks into audit_edits.csv."""
-    import csv
-
-    if field not in FIELDS:
+def save_click(wd: Path, key: str, field: str, value: str) -> dict:
+    """Store one decision (accept/reject of an image, or notes of a photo) and rewrite the CSV."""
+    if field not in ("decision", "notes"):
         raise ValueError(f"unknown field {field!r}")
+    if field == "decision" and value not in ("", "accept", "reject"):
+        raise ValueError(f"unknown decision {value!r}")
     with _LOCK:
-        clicks = read_audit_clicks(wd)
-        row = clicks.setdefault(image_id, {})
+        review = read_review(wd)
+        row = review.setdefault(key, {})
         if value:
             row[field] = value
         else:
             row.pop(field, None)
-        write_text_atomic(wd / AUDIT_CLICKS, json.dumps(clicks, indent=1, sort_keys=True))
-        with (wd / "audit_edits.csv").open(encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
-        write_audit_csv(wd, rows)
+        if not row:
+            review.pop(key)
+        write_text_atomic(wd / REVIEW_CLICKS, json.dumps(review, indent=1, sort_keys=True))
+        current = {}
+        p = wd / CSV_NAME
+        if p.exists():
+            with p.open(encoding="utf-8") as f:
+                current = {r["image_id"]: r for r in csv.DictReader(f) if r["current"] == "y"}
+        write_review_csv(wd, current)
     return row
 
 
@@ -78,8 +179,8 @@ def serve(cfg: dict, port: int = 8769) -> None:
             path = self.path.split("?")[0]
             if path in ("/", "/index.html"):
                 self.path = "/edit_audit.html"
-            if path.endswith("/audit-clicks.json"):
-                body = json.dumps(read_audit_clicks(wd)).encode()
+            if path.endswith("/review.json"):
+                body = json.dumps(read_review(wd)).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Cache-Control", "no-store")
@@ -89,7 +190,7 @@ def serve(cfg: dict, port: int = 8769) -> None:
             super().do_GET()
 
         def do_POST(self):  # noqa: N802
-            if not self.path.endswith("/audit-click"):
+            if not self.path.endswith("/review-click"):
                 self.send_error(404)
                 return
             n = int(self.headers.get("Content-Length", 0))
@@ -108,7 +209,7 @@ def serve(cfg: dict, port: int = 8769) -> None:
 
     handler = functools.partial(Handler, directory=str(wd))
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
-    print(f"Edit audit: http://127.0.0.1:{port}/  (clicks -> {wd / 'audit_edits.csv'})", flush=True)
+    print(f"Edit review: http://127.0.0.1:{port}/  (decisions -> {wd / CSV_NAME})", flush=True)
     srv.serve_forever()
 
 

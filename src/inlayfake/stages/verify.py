@@ -124,6 +124,7 @@ def verify_state(wd: Path) -> dict[str, list[dict]]:
     from inlayfake.stages.natural import apply_realism
 
     apply_realism(wd, state)  # natural placement: edits the VLM judged implausible count as failed
+    apply_review_rejections(wd, state)  # the author's review: rejected images are redone
     return state
 
 
@@ -277,11 +278,14 @@ def build_final_ledger(
     re-plans, C3 and every job count only on the source's current box version."""
     final = []
     versions = load_versions(wd)
+    rejected = rejected_images(wd)
     for r in generated:
         cond = r.condition.value
         if cond in ("C0", "C1"):
             final.append(r)
         elif cond == "C3":
+            if r.image_id in rejected:
+                continue  # rejected in the author's review: re-pasted with another donor
             v = track_version(cfg, state, r.source_id, FREE, versions) if cfg else 0
             if r.edit.plan_version != v:
                 continue  # pasted at a box that was later re-planned
@@ -337,6 +341,31 @@ AUDIT_COLUMNS = [
 
 
 AUDIT_CLICKS = "audit_edits_clicks.json"  # decisions made on the clickable audit page
+REVIEW_CLICKS = "condition_review_clicks.json"  # editaudit: accept/reject per C2/C3/C4 image
+
+
+def read_review(wd: Path) -> dict[str, dict[str, str]]:
+    """The author's per-image review ({image_id: {"decision": "accept"|"reject", ...}})."""
+    p = Path(wd) / REVIEW_CLICKS
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def rejected_images(wd: Path) -> set[str]:
+    return {k for k, v in read_review(wd).items() if v.get("decision") == "reject"}
+
+
+def apply_review_rejections(wd: Path, state: dict) -> None:
+    """Images the author rejected in the review count as failed verifications (author,
+    2026-10-22), so the next `insert` regenerates them: a new seed at the same box, or the next
+    box after max_attempts failures."""
+    rejected = rejected_images(wd)
+    if not rejected:
+        return
+    for rows in state.values():
+        for r in rows:
+            if r["image_id"] in rejected:
+                r["passed"] = False
+                r["reason"] = "rejected in review"
 
 
 def in_audit_sample(image_id: str, seed: int, fraction: float) -> bool:
