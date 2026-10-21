@@ -7,6 +7,23 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Overlap limit back (30%): insertion, not replacement; pilot 48 of 50
+
+- **Author's finding:** in the no-rules pilot some boxes covered real objects (three "truck"
+  boxes on parked cars; an elephant box on the existing elephant). Painting there would replace
+  or hide a real object, which is COinCO's edit, not InlayFake's, and breaks the real/AI labels.
+- **Change (author: 30%):** `shape_check.max_cover_labelled: 0.30`: a box may cover at most 30% of
+  any labelled object or person (COCO + audit adds); otherwise it is re-asked with the reason
+  ("covers 85% of the existing car"), up to 2 times, then the next class. Unlabelled objects are
+  not seen; the author's review covers them.
+- **Pilot** (`run_plan_2026-10-21T082757Z`, UTC; 57 new questions): **48 of 50**; the first box
+  moved in 14 photos; 26+11+8+7 boxes rejected for covering 83-100% of a real object. Lost: a
+  crowded sheep field and a packed motorcycle museum (every box over sheep, a person or
+  motorcycles). The truck photo now gets a car on the pavement corner (off the road: doubtful);
+  the elephant photo gets boxes in the grass beside the herd (plausible).
+
+---
+
 ## 2026-10-21: Size limit measured: 15 px; no-rules pilot 50 of 50
 
 - **Author request:** measure which box sizes survive generation + verification instead of the

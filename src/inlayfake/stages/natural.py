@@ -35,6 +35,7 @@ from inlayfake.edit.natural import (
     box_retry_prompt,
     check_box,
     check_questions,
+    cover_problem,
     dedupe_boxes,
     fit_inside,
     last_resort_prompt,
@@ -646,6 +647,8 @@ def _box_mode_photo(
             # (if on) and the verifier after generation can reject it
             if sc:  # size and shape the generator and verifier can handle (author, 21 Oct)
                 why = shape_problem(box, W, H, (typical_aspect or {}).get(cat), sc)
+                if why is None and sc.get("max_cover_labelled") is not None:
+                    why = cover_problem(box, labels, sc["max_cover_labelled"])
                 if why:
                     ok, reason = False, why
                     failed.append((box, why))

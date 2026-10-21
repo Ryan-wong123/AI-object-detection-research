@@ -111,6 +111,22 @@ def shape_problem(
     return None
 
 
+def cover_problem(box: list[float], labels: list[dict], max_cover: float) -> str | None:
+    """A box covering more than ``max_cover`` of any labelled object or person (COCO + audit
+    adds) would hide or replace a real object (author, 21 Oct: insertion, not replacement)."""
+    worst, what = 0.0, None
+    for a in labels:
+        area = box_area(a["bbox"])
+        if area <= 0:
+            continue
+        frac = intersection(box, a["bbox"]) / area
+        if frac > worst:
+            worst, what = frac, a["category"]
+    if worst > max_cover + 1e-6:
+        return f"covers {worst:.0%} of the existing {what}"
+    return None
+
+
 def size_hint(prompts: dict, category: str, min_side_px: float, W: int, H: int) -> str:
     return prompts["size_hint_template"].format(
         min_side=min_side_grid(min_side_px, W, H), **{"class": category}

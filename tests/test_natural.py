@@ -784,3 +784,33 @@ def test_last_size_reask_asks_for_the_foreground(cfg, tmp_path, monkeypatch):
     fg = [p for p in asked if "in the foreground" in p]
     retry1 = [p for p in asked if "cannot be used" in p and "in the foreground" not in p]
     assert fg and retry1 and len(fg) == len(retry1)
+
+
+def test_cover_problem_and_reask(cfg, tmp_path, monkeypatch):
+    """max_cover_labelled: a box covering more than 30% of a labelled object or person is
+    re-asked with the reason; small partial overlaps pass."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.edit.natural import cover_problem
+    from inlayfake.stages import plan, sample
+
+    labels = [{"category": "car", "bbox": [0, 0, 100, 100]}]
+    assert cover_problem([0, 0, 100, 50], labels, 0.3) == "covers 50% of the existing car"
+    assert cover_problem([80, 0, 100, 100], labels, 0.3) is None  # 20% overlap: allowed
+
+    asked = []
+
+    def boxes(self, img, prompt):
+        asked.append(prompt)
+        H, W = img.shape[:2]
+        if "cannot be used" in prompt:  # re-ask: a box in a corner
+            return [[0, 0, 40.0, 40.0]], '[{"bbox_2d": [0, 0, 60, 80]}]'
+        return [[0, 0, float(W), float(H)]], '[{"bbox_2d": [0, 0, 1000, 1000]}]'  # whole photo
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    sc = {"min_side_px": 15, "min_area_frac": 0.001, "retries": 2, "max_cover_labelled": 0.3}
+    c = _natural_cfg(cfg, mode="box", free=True, classes_per_photo=1, shape_check=sc)
+    sample.run(c)
+    plan.run(c)
+    rows = [json.loads(x) for x in (tmp_path / "work" / "natural_candidates.jsonl").open()]
+    assert any(r["reason"].startswith("covers") and r["round"] == 1 for r in rows)
+    assert any("covers" in p and "cannot be used" in p for p in asked)
