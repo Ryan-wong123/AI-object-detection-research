@@ -346,8 +346,8 @@ point-based version (Molmo + depth; replaced); *box mode* is the version used fo
 | size | depth-based size change relative to the reference | ×0.7–1.4 | ×0.7–1.4 | – |
 | size | minimum box | 2% of the image, 64 px short side | same | 15 px short side, 0.1% of the image (measured, see text) |
 | size | maximum box | 25% of the image | same | same |
-| overlap | share of a person the box may cover | 0% | 50% | 50% |
-| overlap | share of any other real object the box may cover | 15% | 50% | 50% |
+| overlap | share of a person the box may cover | 0% | 50% | 30% (re-asked if more) |
+| overlap | share of any other real object the box may cover | 15% | 50% | 30% (re-asked if more) |
 | review | the first author accepts the box by eye | – | – | yes |
 | verify | the verifier finds the class at the box (score ≥ 0.2; IoU ≥ 0.3 or ≥ 80% inside; not the photo's own object) | yes | yes | yes |
 | verify | the object's outline box fills at least this share of the planned box | 35% | 25% | 25% |

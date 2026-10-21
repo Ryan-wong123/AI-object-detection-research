@@ -32,6 +32,9 @@ placement:
       min_side_px: 15
       min_area_frac: 0.001
       max_elongation_factor: 3.0
+      # insertion, not replacement (author, 21 Oct): a box may cover at most 30% of any labelled
+      # object or person (COCO + audit adds); otherwise re-asked with the reason
+      max_cover_labelled: 0.30
       retries: 2
       foreground_last: true      # last re-ask: in the foreground, near the camera (author, 21 Oct)
     more_questions: false
