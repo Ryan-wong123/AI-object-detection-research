@@ -42,6 +42,21 @@ def write_text_atomic(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
+def open_append(path: Path):
+    """Open a JSON-lines file for appending, crash-safely. A power cut while appending can leave
+    a cut-off last line without a newline; appending after it would glue the next row onto that
+    line, which ``read_jsonl`` then cannot read (a broken line that is no longer the last one).
+    So a cut-off last line is removed first (that item is redone)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        data = path.read_bytes()
+        if data and not data.endswith(b"\n"):
+            with path.open("r+b") as f:
+                f.truncate(data.rfind(b"\n") + 1)  # 0 if the only line was cut off
+    return path.open("a", encoding="utf-8")
+
+
 def write_jsonl(rows: Iterable[dict], path: Path) -> int:
     lines = [json.dumps(r) + "\n" for r in rows]
     write_text_atomic(path, "".join(lines))

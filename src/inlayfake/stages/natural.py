@@ -49,6 +49,7 @@ from inlayfake.edit.natural import (
     spread_points,
     usable_references,
 )
+from inlayfake.stages.common import open_append
 
 CANDIDATES = "natural_candidates.jsonl"
 PROGRESS = "natural_plan_progress.jsonl"  # one line per planned photo, so planning can resume
@@ -290,8 +291,8 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
     vid = _vlm_id(ncfg["vlm"])
     points_cache = _load_points(wd, old_rows, sizes, ncfg["vlm"])
     n_asked = n_reused = n_rechecked = 0
-    points_file = (wd / POINTS).open("a", encoding="utf-8")
-    progress = (wd / PROGRESS).open("a", encoding="utf-8")
+    points_file = open_append(wd / POINTS)
+    progress = open_append(wd / PROGRESS)
     for src in tqdm(sources, desc="natural placement"):
         sid, W, H = src["source_id"], src["width"], src["height"]
         labels = _labels(index, sid, extra.get(sid, []))
@@ -853,7 +854,7 @@ def realism_pass(cfg: dict, wd: Path, state: dict) -> dict:
     prompts = load_prompts(ncfg["prompts"])
     vlm = build_vlm(ncfg["vlm"], cfg["hardware"]["device"])
     rejected = 0
-    with (wd / REALISM).open("a", encoding="utf-8") as f:
+    with open_append(wd / REALISM) as f:
         for row in tqdm(todo, desc="realism check"):
             p = wd / "verified" / f"{row['image_id']}.json"
             if not p.exists():

@@ -47,7 +47,7 @@ from inlayfake.edit.verify import (
 from inlayfake.forensics.instance_scores import bbox_mask
 from inlayfake.ledger import Condition, ImageRecord, Origin, read_ledger, write_ledger
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import load_coco, read_jsonl, work_dir, write_text_atomic
+from inlayfake.stages.common import load_coco, open_append, read_jsonl, work_dir, write_text_atomic
 from inlayfake.stages.replan import (
     ADOPT,
     FREE,
@@ -423,7 +423,7 @@ def run(cfg: dict) -> dict:
     if todo:
         index = load_coco(cfg)
         finder, segmenter = build_verifier(vcfg, cfg["hardware"]["device"])
-        with (wd / "verify.jsonl").open("a", encoding="utf-8") as f:
+        with open_append(wd / "verify.jsonl") as f:
             for r in tqdm(todo, desc="verify"):
                 done_here = rows_at(state.get(job_key(r), []), r.edit.plan_version)
                 limit = attempts_for(cfg, r.condition.value, r.edit.plan_version)

@@ -887,3 +887,45 @@ def test_merged_prompt_one_reask_then_next_class(cfg, tmp_path, monkeypatch):
     assert all(r["round"] == "merged+size1" for r in rows if r["ok"])
     assert all("order of preference" in p and "already taken" in p for p in asked)
     assert not any("cut off by the edge of the photo (as if" in p for p in asked)  # no last resort
+
+
+def test_open_append_drops_a_cut_off_last_line(tmp_path):
+    from inlayfake.stages.common import open_append, read_jsonl
+
+    p = tmp_path / "log.jsonl"
+    p.write_text('{"a": 1}\n{"a": 2}\n{"a": 3, "b"', encoding="utf-8")  # power cut mid-line
+    with open_append(p) as f:
+        f.write('{"a": 4}\n')
+    assert [r["a"] for r in read_jsonl(p)] == [1, 2, 4]  # the cut-off row is redone, not glued
+    q = tmp_path / "one.jsonl"
+    q.write_text('{"a"', encoding="utf-8")
+    with open_append(q) as f:
+        f.write('{"a": 5}\n')
+    assert read_jsonl(q) == [{"a": 5}]
+
+
+def test_box_mode_run_resumes_after_cut_off_lines(cfg, tmp_path):
+    """A power cut that leaves a half-written line in Qwen's saved answers, the planning progress
+    and the verification log: running the same commands again finishes with the same plans and a
+    complete ledger."""
+    from inlayfake.ledger import read_ledger
+    from inlayfake.stages import insert, plan, sample
+
+    sc = {"min_side_px": 15, "min_area_frac": 0.001, "max_cover_labelled": 0.3, "retries": 1}
+    c = _natural_cfg(cfg, mode="box", free=True, merged=True, classes_per_photo=99, shape_check=sc)
+    sample.run(c)
+    plan.run(c)
+    wd = tmp_path / "work"
+    plans_before = (wd / "plans.jsonl").read_text()
+    for name in ("natural_points.jsonl", "natural_plan_progress.jsonl"):
+        p = wd / name
+        p.write_bytes(p.read_bytes()[:-15])  # cut the last line mid-way
+    plan.run(c)
+    assert (wd / "plans.jsonl").read_text() == plans_before
+    insert.run(c)
+    n_before = len(list(read_ledger(wd / "ledger.jsonl")))
+    v = wd / "verify.jsonl"
+    v.write_bytes(v.read_bytes()[:-10])
+    out = insert.run(c)
+    assert out["final"]["needs_retry"] == 0
+    assert len(list(read_ledger(wd / "ledger.jsonl"))) == n_before

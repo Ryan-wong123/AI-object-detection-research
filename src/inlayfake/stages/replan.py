@@ -38,7 +38,7 @@ from inlayfake.edit.placement import (
     sample_size,
     size_stats,
 )
-from inlayfake.stages.common import derive_seed, read_jsonl
+from inlayfake.stages.common import derive_seed, open_append, read_jsonl
 
 FREE, OCC = "free", "occ"
 
@@ -599,7 +599,7 @@ def _ensure_merged(cfg, index, sources, plans, state, wd: Path, versions: dict) 
                 versions[(sid, FREE, ver)] = row
                 new.append(row)
     if new:
-        with (wd / "replans.jsonl").open("a", encoding="utf-8") as f:
+        with open_append(wd / "replans.jsonl") as f:
             for r in new:
                 f.write(json.dumps(r) + "\n")
     return versions
@@ -626,7 +626,7 @@ def _ensure_natural(cfg, plans, state, wd: Path, versions: dict) -> dict:
                 versions[(sid, FREE, ver)] = row
                 new.append(row)
     if new:
-        with (wd / "replans.jsonl").open("a", encoding="utf-8") as f:
+        with open_append(wd / "replans.jsonl") as f:
             for r in new:
                 f.write(json.dumps(r) + "\n")
     return versions
@@ -683,7 +683,7 @@ def ensure_versions(cfg, index, sources, plans, state, wd: Path) -> dict:
                     versions[(sid, track, ver)] = row
                     new.append(row)
     if new:
-        with (wd / "replans.jsonl").open("a", encoding="utf-8") as f:
+        with open_append(wd / "replans.jsonl") as f:
             for r in new:
                 f.write(json.dumps(r) + "\n")
     return versions

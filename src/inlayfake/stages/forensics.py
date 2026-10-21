@@ -17,7 +17,7 @@ from inlayfake.edit.encode import load_rgb
 from inlayfake.forensics.handcrafted import METHODS
 from inlayfake.forensics.instance_scores import bbox_mask, image_score, instance_score
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import done_ids, load_coco, load_records, run_dir
+from inlayfake.stages.common import done_ids, load_coco, load_records, open_append, run_dir
 
 
 def _instance_masks(rec, index, shape) -> dict[str, np.ndarray]:
@@ -45,7 +45,7 @@ def run(cfg: dict) -> dict:
     keep_maps = set(cfg["forensics"].get("save_maps_for") or [])
     done = {m: done_ids(rd / f"{m}.jsonl") for m in methods}
     todo = [r for r in recs if any(r.image_id not in done[m] for m in methods)]
-    files = {m: (rd / f"{m}.jsonl").open("a", encoding="utf-8") for m in methods}
+    files = {m: open_append(rd / f"{m}.jsonl") for m in methods}
     try:
         for rec in tqdm(todo, desc="forensics"):
             img = load_rgb(rec.path)
