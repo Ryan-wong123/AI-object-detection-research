@@ -66,6 +66,8 @@ def load_prompts(path: str | Path) -> dict:
         "box_template": y.get("box_template"),
         "box_retry_template": y.get("box_retry_template"),
         "last_resort_template": y.get("last_resort_template"),
+        "size_hint_template": y.get("size_hint_template"),
+        "size_retry_template": y.get("size_retry_template"),
         "any_class_template": y.get("any_class_template"),
         "any_class_alt_template": y.get("any_class_alt_template"),
         "check": y["check"],
@@ -85,6 +87,41 @@ def _where_short(where: str) -> str:
         if where.startswith(lead):
             return "the " + where[len(lead) :] if lead.endswith("the ") else where[len(lead) :]
     return where
+
+
+def elongation(w: float, h: float) -> float:
+    """Long side / short side (orientation-free: a lying and a standing bottle are alike)."""
+    return max(w, h) / max(min(w, h), 1e-6)
+
+
+def shape_problem(
+    box: list[float], W: int, H: int, typical_aspect: float | None, sc: dict
+) -> str | None:
+    """Why a box cannot be generated well (None: fine): ``too small`` (short side under
+    ``min_side_px`` or area under ``min_area_frac`` of the image) or ``too thin`` (elongation more
+    than ``max_elongation_factor`` x the class's typical COCO elongation)."""
+    _, _, w, h = box
+    if min(w, h) < sc.get("min_side_px", 32) or w * h < sc.get("min_area_frac", 0.005) * W * H:
+        return "too small"
+    if typical_aspect:
+        typ = elongation(typical_aspect, 1.0)
+        if elongation(w, h) > sc.get("max_elongation_factor", 3.0) * typ:
+            return "too thin"
+    return None
+
+
+def size_hint(prompts: dict, category: str, min_side_px: float, W: int, H: int) -> str:
+    return prompts["size_hint_template"].format(
+        min_side=min_side_grid(min_side_px, W, H), **{"class": category}
+    )
+
+
+def size_retry_text(
+    prompts: dict, category: str, failed: list[tuple[list[float], str]], W: int, H: int
+) -> str:
+    """Feedback sentence listing the failed boxes (0-1000 grid) and why."""
+    fb = "; ".join(f"{grid_box(b, W, H)} {why}" for b, why in failed)
+    return prompts["size_retry_template"].format(feedback=fb, **{"class": category})
 
 
 def last_resort_prompt(

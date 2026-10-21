@@ -108,7 +108,12 @@ def build_page(cfg: dict) -> dict:
     photos = []
     for n, (sid, spots) in enumerate(sorted(by_sid.items()), 1):
         order = {1: 0, 2: 1, "edge": 2, "any": 3, "any2": 4}
-        spots.sort(key=lambda r: (order.get(r.get("round", 1), 4), r.get("rank") or 0))
+        def rank_key(r: dict) -> tuple:
+            rd = str(r.get("round", 1))  # e.g. "1", "edge", "1+size2" (re-asked for size)
+            base = rd.split("+")[0]
+            return (order.get(int(base) if base.isdigit() else base, 4), rd, r.get("rank") or 0)
+
+        spots.sort(key=rank_key)
         s = src[sid]
         p = out / "img" / f"{sid}.jpg"
         if not p.exists():

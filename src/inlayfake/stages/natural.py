@@ -41,6 +41,9 @@ from inlayfake.edit.natural import (
     load_prompts,
     point_support,
     pointing_prompt,
+    shape_problem,
+    size_hint,
+    size_retry_text,
     spread_points,
     usable_references,
 )
@@ -162,6 +165,7 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
         "more_questions",
         "free",
         "last_resort",
+        "shape_check",
         "check_point_surface",
         "min_box_frac",
         "min_box_side_px",
@@ -367,6 +371,7 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
                 exclude=exclude,
                 more=sid in more_targets,
                 rejected=rejected_ids,
+                typical_aspect={c: float(np.median(stats[c][:, 1])) for c in order if c in stats},
             )
         for cat in [] if box_mode else order:
             air = prompts["classes"][cat]["air"]
@@ -581,6 +586,7 @@ def _box_mode_photo(
     exclude: set,
     more: bool = False,
     rejected: frozenset | set = frozenset(),
+    typical_aspect: dict[str, float] | None = None,
 ) -> list[dict]:
     """Box mode for one photo; appends every candidate to ``rows`` and returns the valid ones.
 
@@ -602,7 +608,11 @@ def _box_mode_photo(
     tried: list[list[float]] = []
     taken_base = [lb["bbox"] for lb in labels]
 
-    def evaluate(cat, boxes, prompt, answer, vlm_name, round_tag, in_photo=True) -> None:
+    sc = ncfg.get("shape_check") or {}
+
+    def evaluate(cat, boxes, prompt, answer, vlm_name, round_tag, in_photo=True) -> list:
+        """Check the boxes, append rows; returns [(box, reason)] of boxes failing shape_check."""
+        failed: list[tuple[list[float], str]] = []
         entry = prompts["classes"][cat]
         air = entry["air"]
         blocked = blocked_all & ~sky if (air and blocked_all is not None) else blocked_all
@@ -611,7 +621,7 @@ def _box_mode_photo(
         base |= {"vlm": vlm_name, "round": round_tag, "class_in_photo": in_photo}
         if not boxes:
             rows.append(base | {"rank": None, "ok": False, "reason": "no box in the answer"})
-            return
+            return failed
         for rank, box in enumerate(boxes):
             box = [float(v) for v in box]
             tried.append(box)
@@ -634,7 +644,12 @@ def _box_mode_photo(
             ok, reason = True, "ok"
             # free (author, 21 Oct): no rules; Qwen's box is used as drawn, and only the review
             # (if on) and the verifier after generation can reject it
-            if not ncfg.get("free", False):
+            if sc:  # size and shape the generator and verifier can handle (author, 21 Oct)
+                why = shape_problem(box, W, H, (typical_aspect or {}).get(cat), sc)
+                if why:
+                    ok, reason = False, why
+                    failed.append((box, why))
+            if ok and not ncfg.get("free", False):
                 if surface is not None:
                     stuff_map, stuff_names, things = surface
                     label = _label_below(stuff_map, stuff_names, px, py)
@@ -651,6 +666,25 @@ def _box_mode_photo(
                 row["valid_rank"] = len(valid)
                 valid.append(row)
             rows.append(row)
+        return failed
+
+    def hinted(prompt: str, cat: str) -> str:
+        if sc.get("hint", True) and sc:
+            return prompt + " " + size_hint(prompts, cat, sc.get("min_side_px", 32), W, H)
+        return prompt
+
+    def ask_with_size_retries(cat: str, prompt: str, tag) -> None:
+        """Ask; while the boxes all fail the size/shape check, ask again with the feedback
+        (up to shape_check.retries times)."""
+        boxes, answer, name = ask(prompt, cat)
+        n_before = len(valid)
+        failed = evaluate(cat, boxes, prompt, answer, name, tag)
+        for k in range(1, (sc.get("retries", 2) if sc else 0) + 1):
+            if len(valid) > n_before or not failed:
+                break
+            p2 = prompt + " " + size_retry_text(prompts, cat, failed, W, H)
+            boxes, answer, name = ask(p2, cat)
+            failed += evaluate(cat, boxes, p2, answer, name, f"{tag}+size{k}")
 
     def any_round(prompt: str, allowed: list[str], tag: str) -> None:
         boxes, answer, name = ask(prompt)
@@ -696,10 +730,9 @@ def _box_mode_photo(
 
     for cat in order:
         same = [lb["bbox"] for lb in labels if lb["category"] == cat]
-        prompt = box_prompt(prompts, cat, same, W, H)
-        boxes, answer, name = ask(prompt, cat)
+        prompt = hinted(box_prompt(prompts, cat, same, W, H), cat)
         n_before = len(valid)
-        evaluate(cat, boxes, prompt, answer, name, 1)
+        ask_with_size_retries(cat, prompt, 1)
         if not usable(valid[n_before:]) and ncfg.get("retry", False):
             prompt = box_retry_prompt(prompts, cat, taken_base + tried, min_side, W, H)
             boxes, answer, name = ask(prompt, cat)
@@ -711,9 +744,8 @@ def _box_mode_photo(
         # object cut off by the photo's edge or further back; no "no place" answer
         for cat in order:
             same = [lb["bbox"] for lb in labels if lb["category"] == cat]
-            prompt = last_resort_prompt(prompts, cat, same, W, H)
-            boxes, answer, name = ask(prompt, cat)
-            evaluate(cat, boxes, prompt, answer, name, "edge")
+            prompt = hinted(last_resort_prompt(prompts, cat, same, W, H), cat)
+            ask_with_size_retries(cat, prompt, "edge")
             if valid:
                 break
     if ncfg.get("any_class", False) and (more or not valid):
