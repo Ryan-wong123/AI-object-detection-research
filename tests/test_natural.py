@@ -814,3 +814,76 @@ def test_cover_problem_and_reask(cfg, tmp_path, monkeypatch):
     rows = [json.loads(x) for x in (tmp_path / "work" / "natural_candidates.jsonl").open()]
     assert any(r["reason"].startswith("covers") and r["round"] == 1 for r in rows)
     assert any("covers" in p and "cannot be used" in p for p in asked)
+
+
+def test_box_mode_full_run_settings_plan_and_insert(cfg, tmp_path):
+    """The full run's box-mode settings (free, shape check, last resort, no review) plan and
+    then generate + verify end to end: C2/C3/C4 share Qwen's box 1, the ledger has no C5."""
+    from inlayfake.config import load_config
+    from inlayfake.ledger import read_ledger
+    from inlayfake.stages import insert, plan, sample
+
+    full = load_config(
+        Path(__file__).resolve().parents[1] / "configs" / "insertion_natural_box.yaml"
+    )
+    nat = full["placement"]["natural"] | {"vlm": {"backend": "fake"}, "depth": {"model_id": "fake"}}
+    nat.pop("prompts", None)
+    c = _natural_cfg(cfg, **{k: v for k, v in nat.items() if k not in ("vlm", "depth", "enabled")})
+    sample.run(c)
+    summary = plan.run(c)
+    wd = tmp_path / "work"
+    plans = [json.loads(x) for x in (wd / "plans.jsonl").read_text().splitlines()]
+    cands = [json.loads(x) for x in (wd / "natural_candidates.jsonl").read_text().splitlines()]
+    assert plans and summary["n_plans"] == len(plans)
+    first = {r["source_id"]: r for r in cands if r.get("valid_rank") == 0}
+    for p in plans:
+        assert (
+            p["box_free"] == first[p["source_id"]]["box"]
+            and first[p["source_id"]]["size_from"] == "vlm"
+        )
+    out = insert.run(c)
+    assert out["final"]["needs_retry"] == 0
+    final = list(read_ledger(wd / "ledger.jsonl"))
+    assert not any(r.condition.value == "C5" for r in final)
+    for p in plans:
+        recs = {r.condition.value: r for r in final if r.source_id == p["source_id"]}
+        if "C4" in recs:
+            assert recs["C4"].edit.placement_rule == "natural"
+            assert recs["C4"].edit.plan_box == recs["C2"].edit.plan_box
+
+
+def test_merged_prompt_one_reask_then_next_class(cfg, tmp_path, monkeypatch):
+    """merged: one question with every labelled object as taken, size and order of preference;
+    if all boxes fail a check, one re-ask with the failures; no separate size/foreground/last-
+    resort questions."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import plan, sample
+
+    asked = []
+
+    def boxes(self, img, prompt):
+        asked.append(prompt)
+        H, W = img.shape[:2]
+        if "cannot be used" in prompt:
+            return [[0.3 * W, 0.6 * H, 0.3 * W, 0.25 * H]], '[{"bbox_2d": [300, 600, 600, 850]}]'
+        return [[0.5 * W, 0.9 * H, 6.0, 6.0]], '[{"bbox_2d": [500, 900, 510, 912]}]'
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    sc = {"min_side_px": 15, "min_area_frac": 0.001, "max_cover_labelled": 0.3, "retries": 1}
+    c = _natural_cfg(
+        cfg,
+        mode="box",
+        free=True,
+        merged=True,
+        classes_per_photo=99,
+        shape_check=sc,
+        last_resort=True,  # ignored in merged mode
+    )
+    sample.run(c)
+    summary = plan.run(c)
+    rows = [json.loads(x) for x in (tmp_path / "work" / "natural_candidates.jsonl").open()]
+    assert summary["n_plans"] > 0
+    assert {r["round"] for r in rows} <= {"merged", "merged+size1"}
+    assert all(r["round"] == "merged+size1" for r in rows if r["ok"])
+    assert all("order of preference" in p and "already taken" in p for p in asked)
+    assert not any("cut off by the edge of the photo (as if" in p for p in asked)  # no last resort

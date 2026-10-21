@@ -1,0 +1,58 @@
+# Task 2, natural placement, box mode (author decision 2026-10-21): the full run on the 544
+# week-1 photos with the settings of the no-rules box-mode pilot
+# (configs/pilot_natural_qwen_free.yaml; a test keeps placement, edit, verify, generation and
+# encoding equal). Replaces the Molmo full run (configs/insertion_natural.yaml, data/inlayfake_v3:
+# planning only, never generated).
+#
+#   Per photo, classes from the photo's week-1 labels (COCO + audit adds, least-used first): ONE
+#   merged question to Qwen3-VL-8B (placement_prompts.yaml, merged_template): every labelled object
+#   and person listed as taken, the photo's own objects of the class, size and proportions, an
+#   order of preference (whole object in free space; nearer the camera if small; cut off by the
+#   edge or partly behind something only if no free space), always 3 boxes. Checks (the only
+#   rules): short side >= 15 px and >= 0.1% of the image (measured), not > 3x thinner than the
+#   class usually is, <= 30% of any labelled object or person covered (insertion, not
+#   replacement). If all 3 boxes fail: one re-ask with the concrete failures; then the next class.
+#   No review gate (author): box 1 is generated first, boxes 2-3 if the verifier rejects it
+#   (3 seeds each); the human audit of every C4 edit comes afterwards.
+#
+#   python -m inlayfake sample  --config configs/insertion_natural_box.yaml
+#   python -m inlayfake plan    --config configs/insertion_natural_box.yaml
+#   python -m inlayfake insert  --config configs/insertion_natural_box.yaml
+#   python -m inlayfake preview --config configs/insertion_natural_box.yaml --limit 544
+inherit: insertion_natural.yaml
+run_name: task2_insertion_natural_box
+placement:
+  natural:
+    mode: box
+    vlm:
+      backend: qwen
+      model_id: Qwen/Qwen3-VL-8B-Instruct
+      load_in_4bit: true
+    free: true
+    classes_per_photo: 99
+    max_candidates: 3
+    stop_when_valid: true
+    retry: false
+    any_class: false
+    more_questions: false
+    # merged first question (author, 21 Oct): every requirement and the order of preference in
+    # one prompt; one re-ask with the concrete failures; then the next class. No separate
+    # foreground or last-resort questions.
+    merged: true
+    last_resort: false
+    shape_check:
+      hint: true
+      min_side_px: 15
+      min_area_frac: 0.001
+      max_elongation_factor: 3.0
+      max_cover_labelled: 0.30
+      retries: 1
+      foreground_last: false
+    review:
+      enabled: false
+paths:
+  work: data/inlayfake_v4
+site:
+  week: 2
+  title: AI insertion (natural, box mode)
+  folder: week2_ai_insertion_natural_box

@@ -20,7 +20,11 @@ placement:
     any_class: false
     # close-ups and full scenes where every class got no place (author, 21 Oct): ask the same
     # classes again, allowing the new object cut off by the photo's edge or further back
-    last_resort: true
+    # merged first question (author, 21 Oct): every requirement and the order of preference in
+    # one prompt; one re-ask with the concrete failures; then the next class. No separate
+    # foreground or last-resort questions.
+    merged: true
+    last_resort: false
     # size and shape the generator and verifier can handle (author, 21 Oct): a hint in every
     # question, and boxes under 32 px / 0.5% of the image or > 3x thinner than the class usually
     # is are re-asked with the reason, up to 2 times per question
@@ -35,8 +39,8 @@ placement:
       # insertion, not replacement (author, 21 Oct): a box may cover at most 30% of any labelled
       # object or person (COCO + audit adds); otherwise re-asked with the reason
       max_cover_labelled: 0.30
-      retries: 2
-      foreground_last: true      # last re-ask: in the foreground, near the camera (author, 21 Oct)
+      retries: 1
+      foreground_last: false
     more_questions: false
     review:
       enabled: false
