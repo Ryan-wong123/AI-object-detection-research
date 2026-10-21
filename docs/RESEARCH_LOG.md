@@ -7,6 +7,24 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Full natural run started (run `task2_insertion_natural_box`)
+
+- **Author decision:** start the full run with the merged-question box mode (the author found
+  the merged pilot "a lot better"); it must survive a shutdown at any point.
+- **Crash safety checked** stage by stage. Gap found and fixed (commit ab7dc63): a power cut
+  while appending a JSON-lines log (Qwen's answers, planning progress, verification, re-plans)
+  could leave a cut-off line that the next append glued onto, and reading would then fail, so the
+  run could not resume. `open_append` drops a cut-off last line first; tests cut lines mid-way
+  and resume to identical plans and a complete ledger. Images count as made only once their
+  record is written (atomically, after the image); verified records are written before their log
+  row. 129 tests pass.
+- **Started** 17:51 with `python scripts/run_stages.py configs/insertion_natural_box.yaml`
+  (sample, plan, insert, preview as separate processes; idle sleep blocked); the same command
+  resumes. Work dir `data/inlayfake_v4`. Planning ~12 s per photo (~1.8 h); generation and
+  verification expected ~6-9 h more [[TBD: actual]].
+
+---
+
 ## 2026-10-21: Full run set up (box mode, no gate); merged first question: pilot 44 of 50
 
 - **Author decisions:** no review gate for the full run (box 1 generated, backups on verifier
