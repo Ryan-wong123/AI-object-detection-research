@@ -40,6 +40,7 @@ from inlayfake.edit.natural import (
     fit_inside,
     last_resort_prompt,
     load_prompts,
+    merged_prompt,
     point_support,
     pointing_prompt,
     shape_problem,
@@ -166,6 +167,7 @@ def plan_settings(cfg: dict, prompts: dict, rules: dict) -> dict:
         "more_questions",
         "free",
         "last_resort",
+        "merged",
         "shape_check",
         "check_point_surface",
         "min_box_frac",
@@ -733,6 +735,18 @@ def _box_mode_photo(
 
     def usable(rows_: list[dict]) -> list[dict]:
         return [r for r in rows_ if spot_id(r) not in rejected]
+
+    if ncfg.get("merged", False):
+        # merged first question (author, 21 Oct): every requirement in one prompt, then one re-ask
+        # with the concrete failures (shape_check.retries), then the next class
+        for cat in order:
+            same = [lb["bbox"] for lb in labels if lb["category"] == cat]
+            mside = sc.get("min_side_px", min_side) if sc else min_side
+            prompt = merged_prompt(prompts, cat, same, taken_base, mside, W, H)
+            ask_with_size_retries(cat, prompt, "merged")
+            if valid:
+                break
+        return valid
 
     for cat in order:
         same = [lb["bbox"] for lb in labels if lb["category"] == cat]

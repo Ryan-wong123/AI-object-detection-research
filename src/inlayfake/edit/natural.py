@@ -64,6 +64,7 @@ def load_prompts(path: str | Path) -> dict:
     return {
         "template": y["template"],
         "box_template": y.get("box_template"),
+        "merged_template": y.get("merged_template"),
         "box_retry_template": y.get("box_retry_template"),
         "last_resort_template": y.get("last_resort_template"),
         "size_hint_template": y.get("size_hint_template"),
@@ -156,6 +157,7 @@ def box_prompt(
     W: int = 1,
     H: int = 1,
     key: str = "box_template",
+    **extra,
 ) -> str:
     """Box-mode question (``box_template``) for one class; ``where_short`` is the group's
     ``where`` without the leading "empty spots on"; ``existing`` = the photo's own objects of the
@@ -179,7 +181,35 @@ def box_prompt(
         listed = f"{len(boxes)} of them at bbox_2d " + ", ".join(str(b) for b in boxes)
         them = "them"
     return prompts[key].format(
-        where_short=where, how=c["how"], existing=listed, them=them, **{"class": category}
+        where_short=where,
+        how=c["how"],
+        existing=listed,
+        them=them,
+        **extra,
+        **{"class": category},
+    )
+
+
+def merged_prompt(
+    prompts: dict,
+    category: str,
+    existing: list[list[float]],
+    taken: list[list[float]],
+    min_side_px: float,
+    W: int,
+    H: int,
+) -> str:
+    """The merged first question: taken places (every labelled object and person), the photo's
+    own objects of the class, size and proportions, order of preference, always 3 boxes."""
+    return box_prompt(
+        prompts,
+        category,
+        existing,
+        W,
+        H,
+        key="merged_template",
+        taken=_taken_text(taken, W, H),
+        min_side=min_side_grid(min_side_px, W, H),
     )
 
 

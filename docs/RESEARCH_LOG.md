@@ -7,6 +7,29 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-21: Full run set up (box mode, no gate); merged first question: pilot 44 of 50
+
+- **Author decisions:** no review gate for the full run (box 1 generated, backups on verifier
+  failure; the human audit of every C4 afterwards); then: replace the chain of questions (main,
+  size re-asks, foreground re-ask, last resort) by **one merged first question** with every
+  requirement and an order of preference, plus one re-ask with the concrete failures.
+- **Config** `configs/insertion_natural_box.yaml` (544 week-1 photos, work dir
+  `data/inlayfake_v4`), equal to `pilot_natural_qwen_free.yaml` in placement/edit/generation/
+  encoding (test). Not started yet. End-to-end CPU test of box-mode plan + insert added.
+- **Merged question** (`merged_template`): every labelled object and person as taken (0-1000
+  grid), the photo's own objects of the class, size and proportions (>= 15 px), order of
+  preference (whole object in free space; nearer the camera if small; cut off by the edge or
+  partly behind something only if no free space), always 3 boxes. Same checks (15 px / 0.1%,
+  3x elongation, 30% overlap); one re-ask; then the next class.
+- **Pilot** (`run_plan_2026-10-21T091847Z`, UTC; 73 questions): **44 of 50** photos (multi-step
+  version: 48). 36 photos settled by one question, 11 by two. Plans: 37 from the first answer, 7
+  after the re-ask. Rejections: 38 boxes covering 53-100% of a real object, 24 too small, 5 too
+  thin. Without a box: a vase display, a surfer with board, a ski race, a busy motorcycle street,
+  an airplane through a window, a zebra herd (the multi-step version's last resort and second
+  size re-ask had given them boxes). Quality to be judged by the author on the preview.
+
+---
+
 ## 2026-10-21: Qwen cannot judge its own boxes: no agreement with the author's review
 
 - **Question (author):** can a second Qwen pass replace the author's review as the full-run gate?

@@ -27,6 +27,28 @@ template: "Point to {where} where another {class} could naturally {how}."
 # tennis racket standing in mid-air against a wall). The same where/how slots fill it. {existing}
 # lists the photo's own objects of the class (bbox_2d, 0-1000 grid): in a first test Qwen boxed
 # the existing skis and bowl instead of an empty place.
+# Merged first question (placement.natural.merged; author, 2026-10-21): every requirement in one
+# prompt instead of separate size, foreground and last-resort questions, so the VLM weighs them
+# together: all labelled objects and people listed as taken, the size/proportion requirement, an
+# order of preference (whole object in free space; nearer the camera if it would be small; cut off
+# by the edge or partly behind something only if there is no free space), always 3 boxes. One
+# re-ask with the concrete failures (size_retry_template) follows if all 3 break a check.
+merged_template: >-
+  Look at the whole photo and understand the scene: what is happening, where the surfaces are,
+  and how big things are at each distance. These places are already taken by people and objects
+  (bbox_2d, 0-1000 grid): {taken}. The photo already shows {existing}. Add one more, new {class}
+  so that it looks completely natural and makes sense in this exact scene. It should {how} on
+  {where_short}, rest on a real surface (or be in open sky if it can fly), have a realistic size
+  and orientation for its distance, fit what is happening in the photo, and not overlap any taken
+  place. Draw each box around the whole new {class} with its normal proportions (not a thin
+  strip), at least {min_side} wide and {min_side} high on the 0-1000 grid. Choose places in this
+  order of preference: (1) a whole {class} in free space; (2) if it would be smaller than that
+  there, a place closer to the camera, in the lower part of the photo, where it appears larger;
+  (3) only if there is no free space at all, a {class} partly cut off by the edge of the photo or
+  partly behind something, with the box covering only its visible part. Give 3 different places,
+  best first, as JSON: [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. Always give 3
+  places.
+
 box_template: >-
   Look at the whole photo and understand the scene: what is happening, where the surfaces are,
   and how big things are at each distance. The photo already shows {existing}. Do not mark
