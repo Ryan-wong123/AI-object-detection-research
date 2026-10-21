@@ -12,7 +12,7 @@ from tqdm import tqdm
 from inlayfake.detect import Detection, FakeDetector, build_detector
 from inlayfake.edit.encode import load_rgb
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import done_ids, load_coco, load_records, run_dir
+from inlayfake.stages.common import done_ids, load_coco, load_records, open_append, run_dir
 
 
 def run(cfg: dict) -> dict:
@@ -30,7 +30,7 @@ def run(cfg: dict) -> dict:
             continue
         det = build_detector(name, cfg, categories, cfg["hardware"]["device"])
         allowed = set(categories)
-        with out.open("a", encoding="utf-8") as f:
+        with open_append(out) as f:
             for r in tqdm(todo, desc=name):
                 if isinstance(det, FakeDetector):
                     det.set_truth(
