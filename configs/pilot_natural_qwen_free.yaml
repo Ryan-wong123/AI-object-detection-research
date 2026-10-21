@@ -30,6 +30,7 @@ placement:
       min_area_frac: 0.005
       max_elongation_factor: 3.0
       retries: 2
+      foreground_last: true      # last re-ask: in the foreground, near the camera (author, 21 Oct)
     more_questions: false
     review:
       enabled: false
