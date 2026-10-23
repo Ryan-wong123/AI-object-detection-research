@@ -550,6 +550,7 @@ def plan_natural(cfg, index, sources: list[dict], extra: dict, stats: dict, wd: 
         _free_cuda_cache()
     progress.close()
     points_file.close()
+    plans, failed = apply_manual_boxes(wd, rows, plans, failed, sources)
     rcfg = ncfg.get("review") or {}
     if rcfg.get("enabled"):  # the author's spot review (stages/spots.py) decides the plans
         from inlayfake.stages.spots import apply_review, read_review, review_path
@@ -809,7 +810,63 @@ def natural_version(valid: dict[int, list[dict]], sid: int, track: str, version:
     if version < len(cands):
         c = cands[version]
         row.update(category=c["category"], box=c["box"])
+        if c.get("round") == "manual":
+            row["placement_rule"] = "manual"
     return row
+
+
+def apply_manual_boxes(
+    wd: Path, rows: list[dict], plans: list[dict], failed: list[dict], sources: list[dict]
+) -> tuple[list[dict], list[dict]]:
+    """Boxes the author drew on the review page (``manual:<photo>`` entries; 2026-10-23) for
+    photos without an AI object: appended as the photo's last valid spot (round "manual"), so
+    the free track moves to it after the model's boxes; a photo without any plan gets its
+    first plan from it (placement_rule "manual"). Returns (plans, failed)."""
+    from inlayfake.stages.verify import read_review
+
+    manual = {
+        int(k.split(":", 1)[1]): v
+        for k, v in read_review(wd).items()
+        if k.startswith("manual:") and v.get("box") and v.get("category")
+    }
+    if not manual:
+        return plans, failed
+    split = {s["source_id"]: s["split"] for s in sources}
+    planned = {p["source_id"] for p in plans}
+    for sid, m in sorted(manual.items()):
+        if sid not in split:
+            continue
+        n_valid = sum(1 for r in rows if r["source_id"] == sid and r.get("ok"))
+        box = [round(float(v), 1) for v in m["box"]]
+        rows.append(
+            {
+                "source_id": sid,
+                "category": m["category"],
+                "rank": 0,
+                "box": box,
+                "ok": True,
+                "reason": "ok",
+                "round": "manual",
+                "class_in_photo": True,
+                "size_from": "author",
+                "valid_rank": n_valid,
+            }
+        )
+        if sid not in planned:
+            plans.append(
+                {
+                    "source_id": sid,
+                    "split": split[sid],
+                    "category": m["category"],
+                    "box_free": box,
+                    "box_occ": None,
+                    "occluded_ann_id": None,
+                    "class_in_photo": True,
+                    "placement_rule": "manual",
+                }
+            )
+            failed = [f for f in failed if f["source_id"] != sid]
+    return plans, failed
 
 
 # ---------------------------------------------------------------------------- realism check

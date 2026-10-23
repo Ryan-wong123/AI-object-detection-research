@@ -274,7 +274,9 @@ def effective_plan(plan: dict, versions: dict, v_free: int, v_occ: int) -> dict:
         class_in_photo_occ=base_in,
         placement_rule_occ=plan.get("placement_rule", "standard"),
         # natural placement: every free-track box (version 0 included) comes from a VLM point
-        placement_rule_free="natural" if plan.get("placement_rule") == "natural" else "standard",
+        placement_rule_free=plan.get("placement_rule")
+        if plan.get("placement_rule") in ("natural", "manual")
+        else "standard",
     )
     sid = plan["source_id"]
     if v_free:
@@ -616,6 +618,14 @@ def _ensure_natural(cfg, plans, state, wd: Path, versions: dict) -> dict:
         sid = plan["source_id"]
         if plan.get("box_free") is None:
             continue
+        # a version recorded without a box gets one if a spot was added later (a box the
+        # author drew on the review page, 2026-10-23)
+        for (s_, t_, ver), old in list(versions.items()):
+            if s_ == sid and t_ == FREE and old["box"] is None:
+                row = natural_version(valid, sid, FREE, ver)
+                if row["box"] is not None:
+                    versions[(sid, FREE, ver)] = row
+                    new.append(row)
         while True:
             v = track_version(cfg, state, sid, FREE, versions)
             missing = [ver for ver in range(1, v + 1) if (sid, FREE, ver) not in versions]

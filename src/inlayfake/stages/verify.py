@@ -159,15 +159,24 @@ def verify_window(rec, W: int, H: int, vcfg: dict) -> list[int]:
     )
 
 
-def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool, str, dict]:
-    """Returns (passed, reason, info) and, if passed, writes the annotated record."""
+def verify_one(
+    rec, img, ref, finder, segmenter, vcfg, index, wd, override: bool = False
+) -> tuple[bool, str, dict]:
+    """Returns (passed, reason, info) and, if passed, writes the annotated record.
+    ``override``: the author accepted this C4 although the verifier did not find the object;
+    the planned box stands in for the detection (SAM still outlines the object) and the record
+    is flagged ``verifier_override``."""
     H, W = img.shape[:2]
     x0, y0, x1, y1 = verify_window(rec, W, H, vcfg)
     crop = img[y0:y1, x0:x1]
     cat = rec.edit.target_category
-    cands = [
-        ([b[0] + x0, b[1] + y0, b[2] - b[0], b[3] - b[1]], s) for b, s in finder(crop, cat, rec)
-    ]
+    cands = (
+        []
+        if override
+        else [
+            ([b[0] + x0, b[1] + y0, b[2] - b[0], b[3] - b[1]], s) for b, s in finder(crop, cat, rec)
+        ]
+    )
     originals = [
         i.bbox
         for i in rec.instances
@@ -201,6 +210,8 @@ def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool,
             originals,
             vcfg.get("original_iou", 0.5),
         )
+    if override:
+        best = (list(rec.edit.plan_box), None)
     info = {"n_candidates": len(cands), "score": best[1] if best else None}
 
     actual = changed_mask(img, ref, vcfg["changed_pixel_threshold"])
@@ -227,7 +238,7 @@ def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool,
             return False, "empty inserted mask", info
         inserted = m
         info["inserted_area"] = int(m.sum())
-        min_fill = vcfg.get("min_box_fill")
+        min_fill = None if override else vcfg.get("min_box_fill")
         if min_fill:  # fix 3 (2026-10-20): an object much smaller than its box looks pasted in
             ox, oy, ow, oh = mask_bbox(m)
             px_, py_, pw_, ph_ = rec.edit.plan_box
@@ -263,7 +274,12 @@ def verify_one(rec, img, ref, finder, segmenter, vcfg, index, wd) -> tuple[bool,
             new = replace(new, origin=Origin.MIXED_MODIFIED)
         insts.append(new)
 
-    edit = replace(rec.edit, actual_mask_path=actual_path, verifier_score=info["score"])
+    edit = replace(
+        rec.edit,
+        actual_mask_path=actual_path,
+        verifier_score=info["score"],
+        verifier_override=override,
+    )
     out = replace(rec, instances=insts, ignore_regions=ignores, edit=edit)
     p = wd / "verified" / f"{rec.image_id}.json"
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -348,6 +364,11 @@ def read_review(wd: Path) -> dict[str, dict[str, str]]:
     """The author's per-image review ({image_id: {"decision": "accept"|"reject", ...}})."""
     p = Path(wd) / REVIEW_CLICKS
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def overridden_images(wd: Path) -> set[str]:
+    """Failed C4 attempts the author accepted anyway on the review page (2026-10-23)."""
+    return {k for k, v in read_review(wd).items() if v.get("decision") == "override"}
 
 
 def rejected_images(wd: Path) -> set[str]:
@@ -495,8 +516,18 @@ def run(cfg: dict) -> dict:
     c1 = {r.source_id: r for r in generated if r.condition.value == "C1"}
     # attempt order per job, so that a re-verification (e.g. after a rule change) stops at the
     # first passing attempt and later attempts of that job are left out
+    overrides = overridden_images(wd)
+    passed_ids = {row["image_id"] for rows in state.values() for row in rows if row["passed"]}
     todo = sorted(
-        (r for r in generated if r.condition.value in EDITED and r.image_id not in checked),
+        (
+            r
+            for r in generated
+            if r.condition.value in EDITED
+            and (
+                r.image_id not in checked
+                or (r.image_id in overrides and r.image_id not in passed_ids)
+            )
+        ),
         key=lambda r: (job_key(r), r.edit.plan_version, r.edit.attempts),
     )
 
@@ -508,11 +539,16 @@ def run(cfg: dict) -> dict:
             for r in tqdm(todo, desc="verify"):
                 done_here = rows_at(state.get(job_key(r), []), r.edit.plan_version)
                 limit = attempts_for(cfg, r.condition.value, r.edit.plan_version)
-                if any(x["passed"] for x in done_here) or len(done_here) >= limit:
+                ov = r.condition.value == "C4" and r.image_id in overrides
+                if any(x["passed"] for x in done_here) or (len(done_here) >= limit and not ov):
                     continue  # this box already passed (or is out of attempts): not needed
                 n_verified += 1
                 img, ref = load_rgb(r.path), load_rgb(c1[r.source_id].path)
-                passed, reason, info = verify_one(r, img, ref, finder, segmenter, vcfg, index, wd)
+                passed, reason, info = verify_one(
+                    r, img, ref, finder, segmenter, vcfg, index, wd, override=ov
+                )
+                if ov:
+                    reason = "accepted by the author (verifier overridden)"
                 row = {
                     "image_id": r.image_id,
                     "key": job_key(r),
