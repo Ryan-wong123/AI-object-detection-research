@@ -76,3 +76,15 @@ def test_box_mode_full_run_uses_the_pilot_settings():
     assert full["sampling"]["only_sources"] == "data/inlayfake/plans.jsonl"
     assert full["paths"]["work"] == "data/inlayfake_v4"
     assert full["placement"]["natural"]["review"]["enabled"] is False  # author: no gate
+
+
+def test_task3_config_reads_the_frozen_benchmark():
+    """configs/task3_detection_natural.yaml scores the natural-placement benchmark
+    (data/inlayfake_v4) with the same conditions and label-audit decisions, into its own run."""
+    t3 = load_config(ROOT / "configs" / "task3_detection_natural.yaml")
+    full = load_config(ROOT / "configs" / "insertion_natural_box.yaml")
+    assert t3["paths"]["work"] == "data/inlayfake_v4"
+    assert t3["conditions"] == ["C0", "C1", "C2", "C3", "C4"] == full["conditions"]
+    assert t3["audit"]["decisions"] == full["audit"]["decisions"]
+    assert t3["run_name"] == "task3_detection_natural" != full["run_name"]
+    assert t3["eval"]["ap_bootstrap"] == 200

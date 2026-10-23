@@ -216,6 +216,13 @@ cloud sandbox, so their first real run is the pilot.
   Pilot: **44 of 50** photos with a box <!-- run:task2_pilot_natural_qwen_free, run_plan_2026-10-21T091847Z, file:paper/results/task2_pilot_natural_qwen_merged_plan.json -->. A Qwen self-judge did not agree with the
   author's review (AUROC 0.44 / 0.50) and is not used <!-- file:paper/results/task2_judge_agreement.json -->.
   Paper §4 rewritten (Box 1 prompt, Table 1c). Full run (`configs/insertion_natural_box.yaml`): planning gave **518 of 544** photos a box <!-- run:task2_insertion_natural_box, run_plan_2026-10-21T115944Z, file:paper/results/task2_insertion_natural_box_plan.json -->; **427 of 544 photos have a verified AI object** (Qwen's box 1: 350, box 2: 57, box 3: 20), 425 complete with all five conditions <!-- run:task2_insertion_natural_box, run_verify_2026-10-23T070146Z, file:paper/results/task2_insertion_natural_box_final.json -->; the author's review of every edit is next.
+- **Benchmark frozen for Task 3 (23 Oct, author decision, no further regeneration):** ledger
+  `data/inlayfake_v4/ledger.jsonl`; C0/C1 518 images (3,778 photographed objects), C2 425, C3 427,
+  C4 427 (427 AI objects); 425 photos with all five conditions (train / val / test 247 / 88 / 90)
+  <!-- run:task2_insertion_natural_box, file:paper/results/task2_benchmark_table1.csv -->. Known limitations stated, not fixed: some boxes partly repaint a real object (87 C2,
+  72 C4 images, labelled mixed/modified), C3 pastes do not update covered labels, 117 photos
+  without an AI object. Results website tab "Week 2 · AI insertion (natural, benchmark)".
+  Task 3 config: `configs/task3_detection_natural.yaml`.
 - **Decision (21 Oct):** photos without an accepted natural box get no AI edit (no forced or
   random fallback), so the AI condition covers a subset of the 544 photos; full-run coverage
   [[TBD]].

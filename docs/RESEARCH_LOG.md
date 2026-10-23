@@ -7,6 +7,25 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-23: Benchmark frozen for Task 3: `data/inlayfake_v4`
+
+- **Author decision:** no further regeneration (no time to give every photo an object or to
+  protect real objects inside the box); move on to Task 3 with the current round.
+- **The benchmark** is the natural-placement run `task2_insertion_natural_box`: ledger
+  `data/inlayfake_v4/ledger.jsonl` (final verify `run_verify_2026-10-23T070146Z`, UTC). Table 1
+  counts in `paper/results/task2_benchmark_table1.csv` and `task2_benchmark_summary.json`:
+  C0/C1 518 images each (3,778 photographed objects), C2 425, C3 427 (427 pasted), C4 427
+  (427 AI-inserted, 85 real objects mixed/modified), C2 104 mixed/modified; 425 photos have all
+  five conditions (train / val / test 247 / 88 / 90); 76 classes.
+- **Known limitations kept, not fixed:** (1) 220 of 425 C2 boxes touch a labelled real object;
+  87 C2 and 72 C4 images partly repaint one (labelled mixed/modified; in C2 the covered part
+  looks erased); unlabelled objects inside a box can be repainted unnoticed. (2) C3 pastes are
+  not checked for covering real objects (no mixed/modified labels in C3). (3) 117 photos have
+  no AI object (26 no box, 91 all boxes failed). To be stated in the paper.
+- Task 3 config: `configs/task3_detection_natural.yaml` (reads this ledger).
+
+---
+
 ## 2026-10-23: Author tools for photos without an AI object: drawn box, accept anyway
 
 - **Author request:** give the 117 photos without an AI object a way to get one: a box drawn on

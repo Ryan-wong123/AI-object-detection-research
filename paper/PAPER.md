@@ -422,15 +422,23 @@ Many of these edits were implausible (objects in mid-air or inside windows), whi
 natural placement above; the run is kept to compare detection and forensics on natural and random
 placements [[TBD: decide whether it is reported as a separate condition]].
 
-**Table 1.** Conditions and statistics. [[TBD: images, instances per origin, per condition]]
+**Table 1.** Conditions and statistics of the benchmark (natural-placement run). Images and
+labelled object instances per condition, by origin; *mixed/modified* are photographed objects the
+edit partly repainted (more than 10% of their area changed). The 518 photographs are those with a
+planned box; the real-only baseline (§7.1) uses all 544. Splits (train / val / test) follow the
+photograph. <!-- run:task2_insertion_natural_box, run_verify_2026-10-23T070146Z, file:paper/results/task2_benchmark_table1.csv -->
 
-| Cond. | Description | #images | #photographed | #AI-inserted | #real-pasted |
-|---|---|---|---|---|---|
-| C0 | untouched | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
-| C1 | matched resave | 544 <!-- run:task1_real_baseline (sample/plan/generate, author's laptop, 2026-10-08) --> | [[TBD]] | – | – |
-| C2 | sham edit | [[TBD]] | [[TBD]] | – | – |
-| C3 | real paste | [[TBD]] | [[TBD]] | – | [[TBD]] |
-| C4 | AI insert | [[TBD]] | [[TBD]] | [[TBD]] | – |
+| Cond. | Description | #images (train / val / test) | #photographed | #mixed/modified | #AI-inserted | #real-pasted |
+|---|---|---|---|---|---|---|
+| C0 | untouched | 518 (305 / 104 / 109) | 3,778 | – | – | – |
+| C1 | matched resave | 518 (305 / 104 / 109) | 3,778 | – | – | – |
+| C2 | sham edit | 425 (247 / 88 / 90) | 2,838 | 104 | – | – |
+| C3 | real paste | 427 (249 / 88 / 90) | 2,945 | – | – | 427 |
+| C4 | AI insert | 427 (249 / 88 / 90) | 2,860 | 85 | 427 | – |
+
+All five conditions exist for 425 photographs (247 / 88 / 90); matched comparisons across
+conditions use these. C3 objects are pasted over the scene without updating the labels of real
+objects they cover [[TBD: annotate occlusion by pasted objects, or state as a limitation]].
 
 **Figure 1.** [[TBD: example source with C1–C4 panels and instance origin overlays]]
 
