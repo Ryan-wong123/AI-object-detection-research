@@ -7,6 +7,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-23: Full natural run finished: 427 of 544 photos with a verified AI object
+
+- **Run** `task2_insertion_natural_box` (`configs/insertion_natural_box.yaml`, `data/inlayfake_v4`),
+  final verify `run_verify_2026-10-23T070146Z` (UTC); `paper/results/task2_insertion_natural_box_final.json`.
+  Stopped three times (laptop sleep 22 Oct 05:29 and 19:53; NVIDIA driver reset, event 153,
+  22 Oct 18:10) and resumed each time with the same command, losing nothing.
+- **Result:** of 544 photos, 518 had a planned box; **427 have a verified AI object (C4)**: 350 on
+  Qwen's first box (242 / 72 / 36 on seeds 1 / 2 / 3), 57 on the second, 20 on the third. 91 ran out
+  of boxes (35 had one box, 17 two, 39 failed all three), 26 had no box. C4 failures were almost
+  all "object not found by verifier". Per-image pass rate falls with each box (box 1: 350 of 998
+  images, box 2: 57 of 321): the remaining photos are harder for SDXL.
+- **Final ledger:** C0/C1 518, C3 427, C4 427, C2 425; **425 photos complete C0–C4** (2 photos have
+  a C4 but their sham produced the target object on all 3 seeds). 76 classes; split
+  train / val / test 249 / 88 / 90 C4 edits; planned box median 1.4% of the image, inserted
+  object (SAM box) median 0.82%. C4 attempts: 286 first, 93 second, 48 third (of the edit's box).
+- **Next:** the author's review of C2/C3/C4 per photo (`editaudit`), redo of rejects (same run
+  command), then week-3 detection/forensics on the final ledger.
+
+---
+
 ## 2026-10-22: Edit review per photo: accept/reject C2, C3, C4; rejected images are redone
 
 - **Author request:** the review page should show C2, C3 and C4 per photo with Accept/Reject for
