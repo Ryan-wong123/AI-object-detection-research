@@ -6,6 +6,7 @@
 > |---|---|
 > | Last updated | 2026-10-21 |
 > | Natural placement in §4 | 2026-10-21: rewritten for the benchmark version: Qwen3-VL-8B box mode with one merged placement question (Box 1, full prompt), three checks only (15 px / 0.1% measured; elongation ≤ 3× the class's; ≤ 30% of any labelled object or person), one re-ask with the failures, next class, no fallback; no review gate (author), hand audit of every C4 afterwards; self-judge AUROC 0.44/0.50 (dropped). Table 1c replaced by the benchmark's rules. Pilot 44 of 50 (run task2_pilot_natural_qwen_free). Full run configs/insertion_natural_box.yaml not started [[TBD]]. Box 1 (~250 words) may move to the supplementary for the page limit. Earlier Molmo and rule-based versions are in docs/RESEARCH_LOG.md |
+> | Full natural run done | 2026-10-23 (run task2_insertion_natural_box): 427 of 544 photos with a verified AI object (boxes 1/2/3: 350/57/20), 425 complete C0–C4, 76 classes; author review of C2/C3/C4 pending [[TBD]] |
 > | Natural-placement pilot v3 | 2026-10-20 (run task2_pilot_natural_v3): more spots/classes per photo: 19 of 50 photos (v2 18), same quality (paper/results/task2_pilot_natural_four_way.json) |
 > | Natural-placement pilot v2 | 2026-10-20 (run task2_pilot_natural_v2): with surface rule, larger boxes and box-fill rule: 18 of 50 photos with a verified AI edit, 72% on a fitting surface (random 46%), objects median 1.8% of the image (random 0.8%) (paper/results/task2_pilot_natural_three_way.json; pilot, not yet a paper result) |
 > | Natural-placement pilot | 2026-10-19 (run task2_pilot_natural, 50 photos): VLM-pointed, depth-scaled boxes; 33/50 photos get a natural spot; VLM realism check unusable (off); 28 of 50 photos with a verified natural AI edit; vs random placement on the same photos: on a fitting surface 64% vs 46%, objects smaller (median 0.5% vs 0.8% of the image) (paper/results/task2_pilot_natural_vs_random.json; pilot, not yet a paper result). If adopted, §4 placement text and a new full run follow |
@@ -361,7 +362,7 @@ photographs, the earlier point-based version placed a verified object in 18 of 5
 ground, a table or water, median 1.8% of the image) and random free-space placement in 50 (46%,
 0.8%) <!-- run:task2_pilot_natural_v2, run:task2_pilot_inphoto, file:paper/results/task2_pilot_natural_three_way.json -->.
 Photographs without a usable box receive no AI edit, so the AI condition covers a subset of the
-photographs (C0 and C1 cover all); in the full run, 518 of the 544 photographs received a box <!-- run:task2_insertion_natural_box, run_plan_2026-10-21T115944Z, file:paper/results/task2_insertion_natural_box_plan.json --> (451 from the first answer, 67 after the re-ask); photographs with a verified AI edit: [[TBD: full natural run, after verification]].
+photographs (C0 and C1 cover all); in the full run, 518 of the 544 photographs received a box <!-- run:task2_insertion_natural_box, run_plan_2026-10-21T115944Z, file:paper/results/task2_insertion_natural_box_plan.json --> (451 from the first answer, 67 after the re-ask); 427 of the 544 photographs received a verified AI object (350 on the model's first box, 57 on the second, 20 on the third), and 425 have all five conditions <!-- run:task2_insertion_natural_box, run_verify_2026-10-23T070146Z, file:paper/results/task2_insertion_natural_box_final.json -->.
 
 **Table 1b.** What each condition tests.
 
@@ -401,8 +402,7 @@ quarter of its area on a real object of the class is attributed to that object, 
 A failed edit is regenerated with a new seed, up to three attempts per box; then the next of the
 model's boxes for the photograph is used (the sham and paste controls move with it). A photograph
 whose boxes all fail receives no AI edit; there is no fallback to random boxes, other classes or
-placement anywhere. Coverage of the natural run: [[TBD: photographs with a verified AI edit,
-attempts per edit, by object size]]. SAM [Kirillov et al. 2023], prompted with the
+placement anywhere. In the natural run, 427 of the 518 photographs with a box received a verified AI object, 286 on the first seed of their box; the inserted objects cover a median 0.82% of the image <!-- run:task2_insertion_natural_box, run_verify_2026-10-23T070146Z, file:paper/results/task2_insertion_natural_box_final.json --> [[TBD: verification rate by object size]]. SAM [Kirillov et al. 2023], prompted with the
 verifier's box and clipped to the edit mask, provides the inserted object's mask and box. Original
 objects covered by an insertion keep their visible mask and visible fraction; below 10% visible they
 become ignore regions. We record the actual changed region separately from the intended mask, and
