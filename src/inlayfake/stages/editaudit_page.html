@@ -29,7 +29,7 @@ figure.acc .w{outline:3px solid var(--tp)}
 <span id="count" class="muted"></span>
 <label>show <select id="flt">
 <option value="todo">to review</option><option value="all">all</option>
-<option value="reject">with a reject</option><option value="random">random sample</option>
+<option value="reject">rejected</option>
 <option value="done">reviewed</option><option value="missing">no AI object (view only)</option>
 </select></label><span id="save" class="muted"></span></header>
 <main>
@@ -50,7 +50,7 @@ function dec(id){ return (DEC[id] || {}).decision || ''; }
 function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
 function render(){
   const f = document.getElementById('flt').value; box.innerHTML = '';
-  let nDone = 0, nRej = 0, nRand = 0, nRandDone = 0;
+  let nDone = 0, nRej = 0;
   let nMissing = 0;
   for (const c of CARDS){
     if (c.kind === 'missing'){
@@ -68,14 +68,11 @@ function render(){
       continue;
     }
     const ds = ids(c).map(dec), isDone = ds.every(Boolean), hasRej = ds.includes('reject');
-    const rnd = c.figs.some(g => g.random);
     if (isDone) nDone++; if (hasRej) nRej++;
-    if (rnd){ nRand++; if (isDone) nRandDone++; }
     if (f === 'missing') continue;
     if (f === 'todo' && isDone) continue;
     if (f === 'done' && !isDone) continue;
     if (f === 'reject' && !hasRej) continue;
-    if (f === 'random' && !rnd) continue;
     const figs = c.figs.map(g => {
       if (g.missing) return `<figure><figcaption>${LABEL[g.cond]}</figcaption>` +
         `<div class="missing">not in the benchmark yet</div></figure>`;
@@ -84,7 +81,7 @@ function render(){
         `<button class="a ${d === 'accept' ? 'on' : ''}" data-id="${g.id}" data-v="accept">Accept</button>` +
         `<button class="r ${d === 'reject' ? 'on' : ''}" data-id="${g.id}" data-v="reject">Reject</button></div>` : '';
       return `<figure class="${d === 'reject' ? 'rej' : d === 'accept' ? 'acc' : ''}">` +
-        `<figcaption>${LABEL[g.cond]}${g.random ? ' <span class="pill">random sample</span>' : ''}</figcaption>` +
+        `<figcaption>${LABEL[g.cond]}</figcaption>` +
         `<span class="w"><img loading="lazy" src="${g.src}">${g.boxes}</span>${btn}</figure>`;
     }).join('');
     const el = document.createElement('div'); el.className = 'card';
@@ -96,7 +93,7 @@ function render(){
   }
   const nReview = CARDS.length - nMissing;
   document.getElementById('count').textContent =
-    `${nDone} of ${nReview} photos reviewed · ${nRej} with a reject · random sample ${nRandDone} of ${nRand}` +
+    `${nDone} of ${nReview} photos reviewed · ${nRej} rejected` +
     ` · ${nMissing} without an AI object`;
 }
 async function save(id, field, value){
