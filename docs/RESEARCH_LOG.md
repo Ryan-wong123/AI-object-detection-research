@@ -7,6 +7,30 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-23: Task 3 `detect` and hand-crafted `forensics` complete (run `task3_detection_natural`)
+
+- **Branch** `week-3-detection` from `main`. Plan agreed with the author: detection + hand-crafted
+  forensics first, then TruFor/UnivFD, then the `vlm` plain/grounded prompts, with the H1/H2
+  metrics in `evaluate` written meanwhile.
+- **Code:** `scripts/run_stages.py` takes optional stage names after the config
+  (`... task3_detection_natural.yaml detect forensics`), so Task 3 stages run detached, one
+  process per stage, with sleep blocked. Why: the same resumable runner as week 2, without
+  re-running sample/plan/insert.
+- **Ran (author's laptop, RTX 4070 8 GB):** 4 detectors and 5 hand-crafted methods on all 2,315
+  ledger images; every output file has exactly one row per image (none missing, none extra).
+  Wall time: Faster R-CNN 3:01 (12.8 img/s), YOLO11-m 0:39, RT-DETR 1:32, Grounding DINO 41:45
+  (1.08 s/img, in two parts: 1,440 images in 26:14, then 877 in 15:31), forensics 5:05 (CPU,
+  7.6 img/s). Started 16:47, done 18:23 including a 41-min stop.
+- **Surprise:** the run stopped at 17:19 (Grounding DINO 1,438/2,315) because it was started as a
+  child of the agent desktop app, which restarted for an update at 17:20 (System event log); no
+  sleep, no driver reset, last JSONL line intact. Restarted at 18:00 as an independent process
+  (WMI) and resumed from the next image. Also seen: Windows Update began installing the 26H2
+  feature update at 17:18, which may reboot the laptop; pause updates during long runs.
+- **Next:** H1/H2 metrics in `evaluate` (semantic AP per origin subset, matched-instance changes),
+  then run it on these detections.
+
+---
+
 ## 2026-10-23: Benchmark frozen for Task 3: `data/inlayfake_v4`
 
 - **Author decision:** no further regeneration (no time to give every photo an object or to

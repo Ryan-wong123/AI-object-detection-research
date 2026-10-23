@@ -1,10 +1,12 @@
 """Run pipeline stages one after another, resumably (author request, 2026-10-21).
 
     python scripts/run_stages.py configs/insertion_natural_box.yaml
+    python scripts/run_stages.py configs/task3_detection_natural.yaml detect forensics
 
-Runs sample -> plan -> insert -> preview, each as its own process (so one model's GPU memory is
-freed before the next stage), and asks Windows not to sleep while it runs (closing the lid or
-shutting down still stops it). Every stage skips work that is already saved, so after a
+With no stage names it runs sample -> plan -> insert -> preview; stage names after the config
+run those stages instead (Task 3, 2026-10-23). Each stage is its own process (so one model's GPU
+memory is freed before the next stage), and Windows is asked not to sleep while it runs (closing
+the lid or shutting down still stops it). Every stage skips work that is already saved, so after a
 shutdown, crash or power cut the same command continues where it stopped:
 
 - plan: Qwen's answers (natural_points.jsonl) and every finished photo
@@ -31,13 +33,14 @@ STAGES = (["sample"], ["plan"], ["insert"], ["preview", "--limit", "100000"])
 
 def main() -> int:
     cfg_path = sys.argv[1]
+    stages = [[name] for name in sys.argv[2:]] or STAGES
     wd = Path(load_config(cfg_path)["paths"]["work"])
     wd.mkdir(parents=True, exist_ok=True)
     if sys.platform == "win32":  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED: no idle sleep while running
         ctypes.windll.kernel32.SetThreadExecutionState(0x80000001)
     log = (wd / "run_stages.log").open("a", encoding="utf-8")
     with (wd / "run_progress.log").open("a", encoding="utf-8") as progress:
-        for stage in STAGES:
+        for stage in stages:
             log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} start {stage[0]}\n")
             log.flush()
             cmd = [sys.executable, "-m", "inlayfake", stage[0], "--config", cfg_path, *stage[1:]]

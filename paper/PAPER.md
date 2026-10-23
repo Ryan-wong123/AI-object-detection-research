@@ -4,7 +4,8 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-21 |
+> | Last updated | 2026-10-23 |
+> | Task 3 detection | 2026-10-23 (run task3_detection_natural, frozen ledger data/inlayfake_v4, 2,315 images): 4 detectors and 5 hand-crafted forensic methods complete on C0–C4; detector time ≈ 47 min (Grounding DINO 41:45), forensics 5:05. §7 H1/H2 tables wait on the new `evaluate` metrics [[TBD]]; TruFor/UnivFD and Stage 2 prompts not yet run |
 > | Natural placement in §4 | 2026-10-21: rewritten for the benchmark version: Qwen3-VL-8B box mode with one merged placement question (Box 1, full prompt), three checks only (15 px / 0.1% measured; elongation ≤ 3× the class's; ≤ 30% of any labelled object or person), one re-ask with the failures, next class, no fallback; no review gate (author), hand audit of every C4 afterwards; self-judge AUROC 0.44/0.50 (dropped). Table 1c replaced by the benchmark's rules. Pilot 44 of 50 (run task2_pilot_natural_qwen_free). Full run configs/insertion_natural_box.yaml not started [[TBD]]. Box 1 (~250 words) may move to the supplementary for the page limit. Earlier Molmo and rule-based versions are in docs/RESEARCH_LOG.md |
 > | Full natural run done | 2026-10-23 (run task2_insertion_natural_box): 427 of 544 photos with a verified AI object (boxes 1/2/3: 350/57/20), 425 complete C0–C4, 76 classes; author review of C2/C3/C4 pending [[TBD]] |
 > | Natural-placement pilot v3 | 2026-10-20 (run task2_pilot_natural_v3): more spots/classes per photo: 19 of 50 photos (v2 18), same quality (paper/results/task2_pilot_natural_four_way.json) |
