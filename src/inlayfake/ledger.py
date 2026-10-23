@@ -76,6 +76,9 @@ class EditInfo:
     # merged AI condition (placement.merged): where the photo's AI edit came from: "free" (free
     # space), "occluding" (covers 20-50% of one real object) or "anywhere" (merged-mode box)
     merged_source: str | None = None
+    # the author accepted this edit although the verifier did not find the object (review page,
+    # "accept anyway", 2026-10-23); its mask comes from SAM prompted with the planned box
+    verifier_override: bool = False
 
 
 @dataclass

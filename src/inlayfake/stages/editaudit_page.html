@@ -22,7 +22,11 @@ figure.acc .w{outline:3px solid var(--tp)}
 .notes{width:100%;margin-top:6px}
 .fails{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:8px}
 .fails figcaption{font-size:11px;color:var(--muted)}
-.full{max-width:520px}
+.full{max-width:640px}
+.draw{cursor:crosshair;user-select:none}
+.b.man{border-color:var(--tp);border-width:3px}
+.b.new{border-color:var(--tp);border-style:dotted;border-width:3px}
+.q select{max-width:200px}
 .pill{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}
 </style></head><body>
 <header><h1>__TITLE__ <span>· review C2 / C3 / C4</span></h1>
@@ -30,7 +34,8 @@ figure.acc .w{outline:3px solid var(--tp)}
 <label>show <select id="flt">
 <option value="todo">to review</option><option value="all">all</option>
 <option value="reject">rejected</option>
-<option value="done">reviewed</option><option value="missing">no AI object (view only)</option>
+<option value="done">reviewed</option><option value="missing">no AI object</option>
+<option value="fixed">no AI object: your box or accepted attempt</option>
 </select></label><span id="save" class="muted"></span></header>
 <main>
 <p class="note">Per photo: C1 is the matched resave (before); C2 the sham edit (box repainted, no
@@ -51,18 +56,40 @@ function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&l
 function render(){
   const f = document.getElementById('flt').value; box.innerHTML = '';
   let nDone = 0, nRej = 0;
-  let nMissing = 0;
+  let nMissing = 0, nFix = 0;
   for (const c of CARDS){
     if (c.kind === 'missing'){
       nMissing++;
-      if (f !== 'missing' && f !== 'all') continue;
+      const man = DEC[c.manual_key] || null;
+      const nOv = c.fails.filter(t => dec(t.id) === 'override').length;
+      if (man || nOv) nFix++;
+      if (f !== 'missing' && f !== 'all' && f !== 'fixed') continue;
+      if (f === 'fixed' && !(man || nOv)) continue;
       const el = document.createElement('div'); el.className = 'card';
-      const tries = c.fails.map(t => `<figure><span class="w"><img loading="lazy" src="${t.src}">` +
-        `${t.boxes}</span><figcaption>${esc(t.label)}</figcaption></figure>`).join('');
+      const tries = c.fails.map(t => {
+        const on = dec(t.id) === 'override';
+        return `<figure class="${on ? 'acc' : ''}"><span class="w"><img loading="lazy" src="${t.src}">` +
+          `${t.boxes}</span><figcaption>${esc(t.label)}</figcaption>` +
+          `<div class="btns"><button class="a ${on ? 'on' : ''}" data-id="${t.id}" data-v="override">` +
+          `Accept anyway</button></div></figure>`;
+      }).join('');
+      const manBox = man ? `<span class="b man" style="left:${man.box[0] / c.W * 100}%;` +
+        `top:${man.box[1] / c.H * 100}%;width:${man.box[2] / c.W * 100}%;` +
+        `height:${man.box[3] / c.H * 100}%"></span>` : '';
+      const opts = c.classes.map(k => `<option ${man && man.category === k ? 'selected' : ''}>` +
+        `${esc(k)}</option>`).join('');
+      const status = man ? `your box: ${esc(man.category)}, generated in the next run` +
+        ' (fixed prompt, flagged manual)' : 'drag on the photo to draw a box for a new object';
       el.innerHTML = `<h2>${esc(c.category)} <span>photo ${c.sid}</span> ` +
         `<span class="pill">no AI object: ${esc(c.reason)}</span></h2>` +
-        `<figure class="full"><figcaption>photo with the planned boxes</figcaption>` +
-        `<span class="w"><img loading="lazy" src="${c.full.src}">${c.full.boxes}</span></figure>` +
+        `<figure class="full"><figcaption>photo with the planned boxes (dashed); your box (green)` +
+        `</figcaption><span class="w draw" data-k="${c.manual_key}" data-w="${c.W}" data-h="${c.H}">` +
+        `<img loading="lazy" src="${c.full.src}" draggable="false">${c.full.boxes}${manBox}` +
+        `<span class="b new" hidden></span></span></figure>` +
+        `<div class="q">class <select class="cls" data-k="${c.manual_key}">${opts}</select>` +
+        `<button class="savebox" data-k="${c.manual_key}">Save box</button>` +
+        `<button class="clearbox" data-k="${c.manual_key}" ${man ? '' : 'disabled'}>Clear box</button>` +
+        `<span class="muted st">${status}</span></div>` +
         (tries ? `<div class="fails">${tries}</div>` : '');
       box.appendChild(el);
       continue;
@@ -94,7 +121,7 @@ function render(){
   const nReview = CARDS.length - nMissing;
   document.getElementById('count').textContent =
     `${nDone} of ${nReview} photos reviewed · ${nRej} rejected` +
-    ` · ${nMissing} without an AI object`;
+    ` · ${nMissing} without an AI object (${nFix} with your box or an accepted attempt)`;
 }
 async function save(id, field, value){
   const msg = document.getElementById('save');
@@ -102,8 +129,10 @@ async function save(id, field, value){
     const r = await fetch('review-click', {method: 'POST',
       headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, field, value})});
     if (!r.ok) throw new Error(r.status);
-    DEC[id] = DEC[id] || {};
-    if (value) DEC[id][field] = value; else delete DEC[id][field];
+    if (field !== 'manual') {
+      DEC[id] = DEC[id] || {};
+      if (value) DEC[id][field] = value; else delete DEC[id][field];
+    }
     msg.textContent = 'saved'; return true;
   } catch (e) {
     msg.textContent = 'NOT saved: start the page with  python -m inlayfake editaudit --serve';
@@ -117,6 +146,46 @@ box.addEventListener('click', async e => {
 });
 box.addEventListener('change', e => {
   const t = e.target; if (t.classList.contains('notes')) save(t.dataset.id, 'notes', t.value.trim());
+});
+let drag = null, pending = {};
+box.addEventListener('mousedown', e => {
+  const w = e.target.closest('.draw'); if (!w) return;
+  e.preventDefault();
+  const r = w.getBoundingClientRect();
+  drag = {w, r, x0: (e.clientX - r.left) / r.width, y0: (e.clientY - r.top) / r.height};
+});
+window.addEventListener('mousemove', e => {
+  if (!drag) return;
+  const {w, r, x0, y0} = drag;
+  const x1 = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
+  const y1 = Math.min(Math.max((e.clientY - r.top) / r.height, 0), 1);
+  const nb = w.querySelector('.b.new'); nb.hidden = false;
+  const L = Math.min(x0, x1), T = Math.min(y0, y1), W = Math.abs(x1 - x0), H = Math.abs(y1 - y0);
+  Object.assign(nb.style, {left: L * 100 + '%', top: T * 100 + '%', width: W * 100 + '%', height: H * 100 + '%'});
+  drag.box = [L, T, W, H];
+});
+window.addEventListener('mouseup', () => {
+  if (!drag) return;
+  const {w, box: b} = drag; drag = null;
+  if (!b || b[2] < 0.01 || b[3] < 0.01) return;
+  const iw = +w.dataset.w, ih = +w.dataset.h;
+  pending[w.dataset.k] = [b[0] * iw, b[1] * ih, b[2] * iw, b[3] * ih];
+  const st = w.closest('.card').querySelector('.st');
+  st.textContent = 'box drawn: choose the class and click Save box';
+});
+box.addEventListener('click', async e => {
+  const sb = e.target.closest('.savebox'), cb = e.target.closest('.clearbox');
+  if (!sb && !cb) return;
+  const k = (sb || cb).dataset.k;
+  if (cb) {
+    if (await save(k, 'manual', '')) { delete DEC[k]; render(); }
+    return;
+  }
+  const card = sb.closest('.card');
+  const b = pending[k] || (DEC[k] && DEC[k].box);
+  if (!b) { card.querySelector('.st').textContent = 'draw a box on the photo first'; return; }
+  const v = {category: card.querySelector('.cls').value, box: b};
+  if (await save(k, 'manual', v)) { DEC[k] = v; delete pending[k]; render(); }
 });
 document.getElementById('flt').onchange = render;
 fetch('review.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}))

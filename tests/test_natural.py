@@ -1035,3 +1035,115 @@ def test_review_page_lists_photos_without_an_ai_object(cfg, tmp_path, monkeypatc
         "no box" in k["reason"] or "none verified" in k["reason"] for k in missing
     )
     assert all(not k.get("figs") for k in missing)  # view only: no accept/reject
+
+
+def _photo_classes(c, sid):
+    from inlayfake.stages.common import load_coco
+    from inlayfake.stages.plan import present_classes
+
+    idx = load_coco(c)
+    return present_classes(idx, idx.image_anns(sid), [], {"person"})
+
+
+def test_accept_anyway_puts_a_failed_attempt_in_the_benchmark(cfg, tmp_path):
+    """review 'override' on a failed C4 attempt: the next insert accepts it (flagged
+    verifier_override, mask from SAM at the planned box) and its photo is complete again."""
+    from inlayfake.ledger import read_ledger
+    from inlayfake.stages import insert, plan, sample
+    from inlayfake.stages.verify import REVIEW_CLICKS
+
+    sc = {"min_side_px": 15, "min_area_frac": 0.001, "max_cover_labelled": 0.3, "retries": 0}
+    c = _natural_cfg(cfg, mode="box", free=True, merged=True, classes_per_photo=1, shape_check=sc)
+    sample.run(c)
+    plan.run(c)
+    wd = tmp_path / "work"
+    sid = json.loads((wd / "plans.jsonl").read_text().splitlines()[0])["source_id"]
+    c = deep_merge(c, {"verify": {"fake_fail_until": {f"{sid}|C4": 99}}})
+    insert.run(c)
+    assert not any(
+        r.source_id == sid and r.condition.value == "C4" for r in read_ledger(wd / "ledger.jsonl")
+    )
+    failed = [json.loads(x) for x in (wd / "verify.jsonl").read_text().splitlines()]
+    pick = next(r for r in failed if r["key"] == f"{sid}|C4|G1" and not r["passed"])
+    (wd / REVIEW_CLICKS).write_text(json.dumps({pick["image_id"]: {"decision": "override"}}))
+    insert.run(c)
+    final = {r.condition.value: r for r in read_ledger(wd / "ledger.jsonl") if r.source_id == sid}
+    assert final["C4"].image_id == pick["image_id"] and final["C4"].edit.verifier_override
+    assert {"C2", "C3", "C4"} <= set(final)
+    assert final["C2"].edit.plan_box == final["C4"].edit.plan_box
+
+
+def test_drawn_box_gives_a_photo_its_ai_object(cfg, tmp_path, monkeypatch):
+    """A box the author drew (review 'manual:<photo>') becomes a plan for a photo with no box,
+    and an extra version after the model's boxes for a photo whose boxes all failed; both are
+    generated with the fixed prompt, verified, and flagged placement_rule 'manual'."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.ledger import read_ledger
+    from inlayfake.stages import insert, plan, sample
+    from inlayfake.stages.verify import REVIEW_CLICKS
+
+    orig = scene.FakeVLM.boxes
+    state = {"n": 0}
+
+    def boxes(self, img, prompt):
+        state["n"] += 1
+        return ([], "[]") if state["n"] == 1 else orig(self, img, prompt)
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    sc = {"min_side_px": 15, "min_area_frac": 0.001, "max_cover_labelled": 0.3, "retries": 0}
+    c = _natural_cfg(cfg, mode="box", free=True, merged=True, classes_per_photo=1, shape_check=sc)
+    sample.run(c)
+    first = plan.run(c)
+    wd = tmp_path / "work"
+    plans = [json.loads(x) for x in (wd / "plans.jsonl").read_text().splitlines()]
+    srcs = [json.loads(x) for x in (wd / "sources.jsonl").read_text().splitlines()]
+    nobox = next(s for s in srcs if s["source_id"] not in {p["source_id"] for p in plans})
+    failing = plans[0]["source_id"]
+    n_valid = sum(
+        1
+        for x in (wd / "natural_candidates.jsonl").read_text().splitlines()
+        if json.loads(x).get("ok") and json.loads(x)["source_id"] == failing
+    )
+    c = deep_merge(c, {"verify": {"fake_fail_until": {f"{failing}|C4": n_valid}}})
+    insert.run(c)
+    W, H = nobox["width"], nobox["height"]
+    clicks = {
+        f"manual:{nobox['source_id']}": {
+            "category": _photo_classes(c, nobox["source_id"])[0],
+            "box": [0.3 * W, 0.6 * H, 0.25 * W, 0.2 * H],
+        },
+        f"manual:{failing}": {"category": plans[0]["category"], "box": [5.0, 5.0, 40.0, 30.0]},
+    }
+    (wd / REVIEW_CLICKS).write_text(json.dumps(clicks))
+    again = plan.run(c)
+    assert again["n_plans"] == first["n_plans"] + 1
+    insert.run(c)
+    final = {(r.source_id, r.condition.value): r for r in read_ledger(wd / "ledger.jsonl")}
+    for sid in (nobox["source_id"], failing):
+        c4 = final[(sid, "C4")]
+        assert c4.edit.placement_rule == "manual"
+        assert c4.edit.plan_box == [round(v, 1) for v in clicks[f"manual:{sid}"]["box"]]
+        assert final[(sid, "C2")].edit.plan_box == c4.edit.plan_box
+
+
+def test_review_save_click_manual_box_and_override(tmp_path):
+    """The review page's save: a drawn box needs a class and a real size; 'override' is a valid
+    decision; clearing a box removes it."""
+    import pytest
+
+    from inlayfake.stages.editaudit import save_click
+    from inlayfake.stages.verify import overridden_images, read_review
+
+    (tmp_path / "condition_review.csv").write_text(
+        "source_id,condition,image_id,category,plan_version,in_random_sample,current,decision,notes\n"
+    )
+    save_click(tmp_path, "manual:7", "manual", {"category": "cup", "box": [10, 20, 30.25, 40]})
+    assert read_review(tmp_path)["manual:7"] == {"category": "cup", "box": [10.0, 20.0, 30.2, 40.0]}
+    with pytest.raises(ValueError):
+        save_click(tmp_path, "manual:7", "manual", {"category": "", "box": [1, 1, 30, 30]})
+    with pytest.raises(ValueError):
+        save_click(tmp_path, "manual:7", "manual", {"category": "cup", "box": [1, 1, 2, 2]})
+    save_click(tmp_path, "7__C4__G1__s1", "decision", "override")
+    assert overridden_images(tmp_path) == {"7__C4__G1__s1"}
+    save_click(tmp_path, "manual:7", "manual", "")
+    assert "manual:7" not in read_review(tmp_path)

@@ -7,6 +7,25 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-23: Author tools for photos without an AI object: drawn box, accept anyway
+
+- **Author request:** give the 117 photos without an AI object a way to get one: a box drawn on
+  the photo, and accepting a failed attempt the verifier missed (options A and C; no per-image
+  prompts, so the generation prompt stays fixed).
+- **Drawn box** (review page, `manual:<photo>`): `plan` adds it as the photo's last valid spot
+  (round "manual"); a photo without any plan gets its first plan from it. The free track moves
+  to it after the model's boxes (box versions recorded without a box are updated). Generated
+  and verified as usual; the edit is flagged `placement_rule: manual`.
+- **Accept anyway** (review decision `override` on a failed C4): the next `verify` re-checks it
+  with the planned box standing in for the detection (SAM outline, no fill check), reason
+  "accepted by the author (verifier overridden)", flag `verifier_override`.
+- Tests: no-box photo and all-boxes-failed photo both get a manual C4 with C2/C3 at the box; an
+  overridden attempt becomes the photo's C4 with its C2/C3. 135 tests pass.
+- **For the paper:** report manual placements and verifier overrides separately [[TBD: counts
+  after the author's review]].
+
+---
+
 ## 2026-10-23: Full natural run finished: 427 of 544 photos with a verified AI object
 
 - **Run** `task2_insertion_natural_box` (`configs/insertion_natural_box.yaml`, `data/inlayfake_v4`),

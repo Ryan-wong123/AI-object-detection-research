@@ -103,7 +103,11 @@ def _missing_cards(cfg: dict, wd: Path, with_c4: set[int], crops: Path) -> list[
     for r in read_jsonl(vpath) if vpath.exists() else []:
         if r["condition"] == "C4" and not r["passed"]:
             fails[int(r["key"].split("|")[0])].append(r)
-    index = None
+    from inlayfake.stages.plan import audit_anns, present_classes
+
+    index = load_coco(cfg)
+    adds = audit_anns(cfg["placement"].get("audit_decisions"))
+    exclude = set(cfg["placement"].get("exclude_classes", ["person"]))
     out = []
     for src in sources:
         sid = src["source_id"]
@@ -112,7 +116,6 @@ def _missing_cards(cfg: dict, wd: Path, with_c4: set[int], crops: Path) -> list[
         W, H = src["width"], src["height"]
         full = crops / f"{sid}_full.jpg"
         if not full.exists():
-            index = index or load_coco(cfg)
             im = Image.open(index.image_path(sid)).convert("RGB")
             k = 720 / max(im.size)
             im.resize((round(im.width * k), round(im.height * k))).save(full, quality=85)
@@ -130,6 +133,7 @@ def _missing_cards(cfg: dict, wd: Path, with_c4: set[int], crops: Path) -> list[
                 Image.fromarray(load_rgb(rec.path)[y0:y1, x0:x1]).save(crop, quality=90)
             tries.append(
                 {
+                    "id": rec.image_id,
                     "src": f"audit_crops/{crop.name}",
                     "boxes": _box_span(rec.edit.plan_box, x0, y0, x1, y1, "plan"),
                     "label": f"box {row.get('version', 0) + 1}, seed {row['attempt']}: "
@@ -148,6 +152,12 @@ def _missing_cards(cfg: dict, wd: Path, with_c4: set[int], crops: Path) -> list[
                 "reason": reason,
                 "full": {"src": f"audit_crops/{full.name}", "boxes": overlay},
                 "fails": tries,
+                "W": W,
+                "H": H,
+                "classes": present_classes(
+                    index, index.image_anns(sid), adds.get(sid, []), exclude
+                ),
+                "manual_key": f"manual:{sid}",
             }
         )
     return out
@@ -225,21 +235,35 @@ def build_page(cfg: dict) -> dict:
     }
 
 
-def save_click(wd: Path, key: str, field: str, value: str) -> dict:
-    """Store one decision (accept/reject of an image, or notes of a photo) and rewrite the CSV."""
-    if field not in ("decision", "notes"):
+def save_click(wd: Path, key: str, field: str, value) -> dict:
+    """Store one decision and rewrite the CSV: accept/reject of an image; "override" (accept a
+    failed C4 attempt anyway); notes of a photo; or a box drawn for a photo without an AI object
+    (field "manual", value {"category", "box": [x, y, w, h] in image pixels}, "" to clear)."""
+    if field not in ("decision", "notes", "manual"):
         raise ValueError(f"unknown field {field!r}")
-    if field == "decision" and value not in ("", "accept", "reject"):
+    if field == "decision" and value not in ("", "accept", "reject", "override"):
         raise ValueError(f"unknown decision {value!r}")
+    if field == "manual" and value:
+        box = [float(v) for v in value["box"]]
+        if len(box) != 4 or box[2] < 4 or box[3] < 4 or not value.get("category"):
+            raise ValueError("a manual box needs a class and a box of at least 4 x 4 px")
+        value = {"category": str(value["category"]), "box": [round(v, 1) for v in box]}
     with _LOCK:
         review = read_review(wd)
-        row = review.setdefault(key, {})
-        if value:
-            row[field] = value
+        if field == "manual":
+            if value:
+                review[key] = value
+            else:
+                review.pop(key, None)
+            row = review.get(key, {})
         else:
-            row.pop(field, None)
-        if not row:
-            review.pop(key)
+            row = review.setdefault(key, {})
+            if value:
+                row[field] = value
+            else:
+                row.pop(field, None)
+            if not row:
+                review.pop(key)
         write_text_atomic(wd / REVIEW_CLICKS, json.dumps(review, indent=1, sort_keys=True))
         current = {}
         p = wd / CSV_NAME
@@ -278,7 +302,7 @@ def serve(cfg: dict, port: int = 8769) -> None:
             n = int(self.headers.get("Content-Length", 0))
             msg = json.loads(self.rfile.read(n) or b"{}")
             try:
-                save_click(wd, msg["id"], msg["field"], str(msg.get("value", "")))
+                save_click(wd, msg["id"], msg["field"], msg.get("value", ""))
             except (KeyError, ValueError) as e:
                 self.send_error(400, str(e))
                 return

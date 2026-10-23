@@ -404,6 +404,15 @@ of Qwen's boxes, and C2/C3 follow the C4 box); a rejected C3 is re-pasted with a
 Rejected images never enter the final ledger. Run `editaudit` again afterwards: the new images
 appear as "to review", the rejected ones stay in the CSV (`current: n`).
 
+Photos without an AI object (filter "no AI object") show the planned boxes and every failed
+attempt. Two ways to still give them one, both applied by the next run of the pipeline:
+
+- **Draw a box:** drag on the photo, pick the class (the photo's own classes) and click
+  *Save box*. It is generated with the same fixed prompt, 3 seeds, the same verifier, with C2/C3
+  at the same box; the edit is flagged `placement_rule: manual`.
+- **Accept anyway:** under a failed attempt that looks right but the verifier missed. It enters
+  the benchmark flagged `verifier_override` (its mask from SAM at the planned box).
+
 ### Reviewing the planned spots by hand
 
 Before generation, every planned natural spot can be accepted or rejected on a web page (one card
