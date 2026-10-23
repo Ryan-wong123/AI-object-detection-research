@@ -324,6 +324,126 @@ Notes:
   the paper and the week-2 briefing.
 - The run started on 17 Oct 2026, 02:21, used way B.
 
+## Week 2b: natural placement (pilot)
+
+The first full run placed most AI objects in a random free spot, so some look wrong (a skateboard
+in the air, a bird in a window pane). The natural-placement pipeline (`placement.natural`,
+`configs/pilot_natural.yaml`) places each object where it would really be:
+
+1. **Where:** a local VLM (Molmo-7B-D, 4-bit; not one of the VLMs week 3 evaluates) answers one
+   fixed question per class from `configs/placement_prompts.yaml`, e.g. *"Point to empty spots on
+   a table, counter, desk or shelf where another cup could naturally rest."* Each point is where
+   the object touches its surface.
+2. **Size:** from the photo's own object of that class, scaled by depth (Depth Anything V2 Small):
+   further back means smaller (limited to ×0.5–2).
+3. **Rules:** never on a person, at most 15% of any real object covered, not resting on window,
+   mirror, ceiling or sky (sky allowed for bird, airplane, kite, frisbee). All candidates and
+   reasons: `natural_candidates.jsonl` in the work folder.
+4. **Generate** C4 (SDXL), C3 (real paste) and C2 (sham) at that box, as before.
+5. **Check:** OWLv2 must find the object, then the VLM answers four yes/no questions (resting on
+   something, not behind glass, plausible size, one complete object); a failure is regenerated
+   (3 seeds per spot, then the next natural spot; no random fallback). Answers: `realism.jsonl`.
+
+Pilot (50 photos, about 2–3 h of GPU time; the first run downloads Molmo, 32 GB):
+
+```powershell
+python -m inlayfake sample --config configs/pilot_natural.yaml
+python -m inlayfake plan   --config configs/pilot_natural.yaml
+python -m inlayfake insert --config configs/pilot_natural.yaml
+python -m inlayfake preview --config configs/pilot_natural.yaml --limit 50
+start data\inlayfake_pilot_natural\preview.html
+```
+
+### Full natural-placement run (544 photos, pilot v2 settings)
+
+`configs/insertion_natural.yaml` runs the pilot-v2 method on the 544 week-1 photos into
+`data\inlayfake_v3` (the random-placement run in `data\inlayfake_v2` stays as the comparison).
+Expected: about 14–27 h of GPU time (best guess ~18 h: planning ~4.5–8 h, generation ~9–19 h);
+about 190–200 photos with a verified natural AI edit (estimate from the pilot). Close the browser
+and use a high-performance mode (MSI Center): other programs on the GPU slowed the pilots 2–4×.
+Start it in the background (keeps running if this window closes; asks Windows not to idle-sleep):
+
+```powershell
+python -m inlayfake sample --config configs/insertion_natural.yaml
+$code = "import ctypes, subprocess, sys; ctypes.windll.kernel32.SetThreadExecutionState(0x80000001); [subprocess.run([sys.executable, '-m', 'inlayfake'] + a) for a in (['plan','--config','configs/insertion_natural.yaml'], ['insert','--config','configs/insertion_natural.yaml'], ['preview','--config','configs/insertion_natural.yaml','--limit','544'])]"
+$p = Start-Process -FilePath (Resolve-Path .venv\Scripts\python.exe) -ArgumentList @('-c', "`"$code`"") -WorkingDirectory (Get-Location).Path -RedirectStandardOutput data\inlayfake_v3\run.log -RedirectStandardError data\inlayfake_v3\run_progress.log -WindowStyle Hidden -PassThru
+$p.Id | Out-File data\inlayfake_v3\run.pid -Encoding ascii
+```
+
+Check progress (progress bar, then passed / retrying / dropped counts):
+
+```powershell
+((Get-Content data\inlayfake_v3\run_progress.log -Raw -Encoding utf8) -split "`r|`n" | Where-Object { $_ -match '^(natural placement|G1|verify)' })[-1]
+python -c "import json,glob,os; f=max(glob.glob('data/inlayfake_v3/runs/run_verify_*.json'),key=os.path.getmtime); d=json.load(open(f)); print({c:{k:v for k,v in d['by_condition'][c].items() if not k.startswith('passed_on')} for c in d['by_condition']}, 'needs_retry:', d['needs_retry'])"
+```
+
+The run is resumable, also after a crash or power loss: start the same command again. Planning
+saves every photo as it finishes (`natural_plan_progress.jsonl`), generation every image, and
+verification every check, so at most the photo or image in progress is redone. Files are written
+crash-safely (a cut-off last log line is skipped; records and plans are replaced in one step).
+
+### Reviewing the edits: accept or reject C2, C3, C4 (clickable)
+
+```powershell
+python -m inlayfake editaudit --config configs/insertion_natural_box.yaml --serve
+```
+
+Open http://127.0.0.1:8769/ . One card per photo: C1 (before), C2 (sham), C3 (real paste) and C4
+(AI object), cropped around the box, each with Accept / Reject, and notes per photo. Every click
+is saved at once to `<work>\condition_review.csv`. Filters: to review, with a reject, random
+sample, reviewed.
+
+Rejected images are redone by the next run of the pipeline:
+
+```powershell
+python scripts/run_stages.py configs/insertion_natural_box.yaml
+```
+
+A rejected C2 or C4 counts as a failed verification (new seed at the same box; after 3 the next
+of Qwen's boxes, and C2/C3 follow the C4 box); a rejected C3 is re-pasted with another donor.
+Rejected images never enter the final ledger. Run `editaudit` again afterwards: the new images
+appear as "to review", the rejected ones stay in the CSV (`current: n`).
+
+Photos without an AI object (filter "no AI object") show the planned boxes and every failed
+attempt. Two ways to still give them one, both applied by the next run of the pipeline:
+
+- **Draw a box:** drag on the photo, pick the class (the photo's own classes) and click
+  *Save box*. It is generated with the same fixed prompt, 3 seeds, the same verifier, with C2/C3
+  at the same box; the edit is flagged `placement_rule: manual`.
+- **Accept anyway:** under a failed attempt that looks right but the verifier missed. It enters
+  the benchmark flagged `verifier_override` (its mask from SAM at the planned box).
+
+### Reviewing the planned spots by hand
+
+Before generation, every planned natural spot can be accepted or rejected on a web page (one card
+per photo; spot 1 is the planned one, 2 and 3 are backups):
+
+```powershell
+python -m inlayfake spots --config configs/pilot_natural_qwen_small.yaml --serve
+```
+
+Open http://127.0.0.1:8767/ . Every click is saved at once to `<work>\spot_review.json`, so the
+review can stop and continue later (Ctrl+C stops the server). Then switch the review on in the
+config (`placement.natural.review.enabled: true`) and run `plan` again: each photo uses its first
+accepted spot; photos without one get no AI edit.
+
+### Planning first, then deciding on the rules
+
+Planning alone tells how many photos get a natural spot, before any SDXL time is spent
+(~2.5–4.5 h for the 544 photos; Molmo + depth on the GPU):
+
+```powershell
+python -m inlayfake plan --config configs/insertion_natural.yaml
+python -c "import json,glob,os; f=max(glob.glob('data/inlayfake_v3/runs/run_plan_*.json'),key=os.path.getmtime); d=json.load(open(f)); print('photos with a spot:', d['n_plans'], ' without:', d['n_failed']); print(d['candidate_reasons'])"
+```
+
+Molmo's answer for each photo and class is saved in `natural_points.jsonl`, and each planned
+photo records the settings it was planned with. Change a rule in the config (for example
+`box_rules.max_cover_real: 0.40`) and run `plan` again: every photo is re-checked with the new
+rules from the saved answers, in minutes rather than hours. Molmo is asked again only for a class
+it was never asked about (the class order can shift when other photos change). When the numbers
+are acceptable, start generation with `insert` (it uses the latest `plans.jsonl`).
+
 ## Viewing the detector results
 
 The detector viewer is a web page that shows each photo's COCO labels next to every detector's

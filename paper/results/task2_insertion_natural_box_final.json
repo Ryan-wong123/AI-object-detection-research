@@ -1,0 +1,52 @@
+{
+  "stage": "verify",
+  "utc": "2026-10-23T07:01:46Z",
+  "git_commit": "0d992eda62fc632301892355869bc0ef9e1406df",
+  "git_dirty": false,
+  "config_hash": "9cdd3b45deeb",
+  "seed": 20261008,
+  "python": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU (8.0 GiB)",
+  "packages": {
+    "numpy": "2.4.6",
+    "pillow": "12.3.0",
+    "torch": "2.6.0+cu124",
+    "diffusers": "0.41.0",
+    "transformers": "5.19.0",
+    "ultralytics": "8.4.174",
+    "pycocotools": "2.0.11"
+  },
+  "verified_now": 0,
+  "final_ledger_records": 2315,
+  "by_condition": {
+    "C2": {
+      "passed": 425,
+      "passed_on_attempt_1": 342,
+      "passed_on_box_0": 348,
+      "dropped": 93,
+      "passed_on_attempt_2": 60,
+      "passed_on_box_1": 57,
+      "passed_on_attempt_3": 23,
+      "passed_on_box_2": 20
+    },
+    "C4": {
+      "passed": 427,
+      "passed_on_attempt_1": 242,
+      "passed_on_box_0": 350,
+      "dropped": 91,
+      "passed_on_attempt_4": 31,
+      "passed_on_box_1": 57,
+      "passed_on_attempt_3": 36,
+      "passed_on_attempt_7": 13,
+      "passed_on_box_2": 20,
+      "passed_on_attempt_2": 72,
+      "passed_on_attempt_5": 16,
+      "passed_on_attempt_8": 5,
+      "passed_on_attempt_9": 2,
+      "passed_on_attempt_6": 10
+    }
+  },
+  "needs_retry": 0,
+  "audit_sample": 427
+}

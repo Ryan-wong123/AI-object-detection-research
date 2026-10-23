@@ -333,13 +333,14 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
                 flags = []
                 if not r["edit"].get("class_in_photo", True):
                     flags.append("class not in photo")
-                if r["edit"].get("placement_rule", "standard") != "standard":
+                if r["edit"].get("placement_rule", "standard") == "anywhere":
                     flags.append("placed anywhere")
                 note = " · ".join(flags)
             panels.append(_panel(r, wd, thumb, "flag" if note else "", note))
         status = {
             c: _edit_status(cfg, c, sid, p, conds, state, versions)
             for c in ("C2", "C3", "C4", "C5")
+            if c in cfg["conditions"]  # natural placement has no C5
         }
         not_planned = [c for c, s in status.items() if s == "unplanned"]
         # heading note: every condition the photo lacks, grouped by reason
@@ -359,8 +360,9 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
             "unplanned": bool(not_planned),
             "complete": complete,
             f"c4-{status['C4']}": True,
-            f"c5-{status['C5']}": True,
         }
+        if "C5" in status:
+            tags[f"c5-{status['C5']}"] = True
         for t, on in tags.items():
             tally[t] += on
         attrs = (
@@ -372,6 +374,7 @@ def _benchmark_only(cfg: dict, wd: Path, limit: int | None, thumb: int) -> dict:
     options = "".join(
         f'<option value="{v}"{" selected" if v == "all" else ""}>{html.escape(label)}</option>'
         for v, label in FILTERS
+        if "C5" in cfg["conditions"] or not v.startswith("c5-")
     )
     controls = (
         f'<label>Show <select id="f">{options}</select></label>'

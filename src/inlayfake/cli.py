@@ -25,6 +25,8 @@ STAGES = {
     "evaluate": "compute metrics with grouped bootstrap CIs",
     "report": "per-image table of the photos used and what each detector found",
     "viewer": "web page comparing COCO labels with every detector's boxes",
+    "spots": "web page to accept or reject planned natural spots before generation",
+    "editaudit": "clickable human audit of the AI edits, saved into audit_edits.csv",
 }
 IMPLEMENTED = {
     "sample",
@@ -39,6 +41,8 @@ IMPLEMENTED = {
     "viewer",
     "verify",
     "insert",
+    "spots",
+    "editaudit",
 }
 
 
@@ -73,6 +77,11 @@ def main(argv: list[str] | None = None) -> int:
                 action="store_true",
                 help="with --review: write the page into the week's website folder (docs/results/)",
             )
+        if name in ("spots", "editaudit"):
+            p.add_argument(
+                "--serve", action="store_true", help="also serve it and save every click"
+            )
+            p.add_argument("--port", type=int, default=None, help="spots: 8767, editaudit: 8769")
         if name == "preview":
             p.add_argument(
                 "--share",
@@ -92,6 +101,10 @@ def main(argv: list[str] | None = None) -> int:
         kwargs["share"] = True
     if getattr(args, "review", False):
         kwargs["review"] = True
+    if getattr(args, "serve", False):
+        kwargs["serve_page"] = True
+    if args.stage in ("spots", "editaudit") and args.port is not None:
+        kwargs["port"] = args.port
     if getattr(args, "all_attempts", False):
         kwargs["all_attempts"] = True
     result = module.run(cfg, **kwargs)

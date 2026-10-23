@@ -1,0 +1,26 @@
+{
+ "decisions": {
+  "accept": 35,
+  "reject": 24
+ },
+ "full": {
+  "n": 59,
+  "auroc": 0.438,
+  "agreement_at_0.5": 0.525,
+  "rejects_caught_at_0.5": "8 of 24",
+  "accepts_kept_at_0.5": "23 of 35",
+  "best_cutoff": 0.02,
+  "agreement_at_best": 0.593,
+  "always_accept_baseline": 0.593
+ },
+ "short": {
+  "n": 59,
+  "auroc": 0.499,
+  "agreement_at_0.5": 0.492,
+  "rejects_caught_at_0.5": "16 of 24",
+  "accepts_kept_at_0.5": "13 of 35",
+  "best_cutoff": 0.002,
+  "agreement_at_best": 0.627,
+  "always_accept_baseline": 0.593
+ }
+}

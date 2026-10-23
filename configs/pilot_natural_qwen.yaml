@@ -1,0 +1,29 @@
+# Natural placement, box mode (author, 2026-10-21): planning-only pilot on the same 50 photos as
+# pilots v1-v4. Qwen3-VL-8B looks at the whole photo and draws the box for one more object of a
+# class already in the photo (configs/placement_prompts.yaml, box_template), instead of Molmo
+# pointing and a depth-scaled template box. Motivation: with points, 39 of 73 planned objects that
+# should lie flat got an upright box (e.g. a tennis racket standing in mid-air against a wall).
+# Rules as the full run (50% overlap with a person or a real object, author 21 Oct); the
+# point-on-surface check uses the box's bottom centre.
+#
+# Week 3 evaluates Qwen2.5-VL-3B (origin claims, PRD H5). Qwen3-VL-8B is a later, larger model of
+# the same family that only chooses the location; the author accepted this (21 Oct), the paper
+# states it, and week 3 compares that model's claims on natural vs random placement.
+#
+#   python -m inlayfake sample --config configs/pilot_natural_qwen.yaml
+#   python -m inlayfake plan   --config configs/pilot_natural_qwen.yaml
+inherit: pilot_natural_v4.yaml
+run_name: task2_pilot_natural_qwen
+placement:
+  natural:
+    mode: box
+    vlm:
+      backend: qwen
+      model_id: Qwen/Qwen3-VL-8B-Instruct
+      load_in_4bit: true
+    max_candidates: 3
+    box_rules:
+      max_cover_person: 0.50
+      max_cover_real: 0.50
+paths:
+  work: data/inlayfake_pilot_natural_qwen

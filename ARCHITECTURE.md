@@ -209,6 +209,22 @@ Verifier and segmenter are injectable (`model_id: fake` in `configs/dryrun.yaml`
   Very last resort, `placement.allow_anywhere`: if no box satisfies the rules, a C4-occ box anywhere
   in the image with no overlap rule (`placement.place_anywhere`; plan stage and C4-occ re-plans;
   `EditInfo.placement_rule = "anywhere"`). C4 is never placed this way.
+- **Natural placement** (`placement.natural.enabled`, `stages/natural.py`, `edit/natural.py`,
+  `edit/scene.py`; author decision 2026-10-19; pilot `configs/pilot_natural.yaml`): `plan` loads
+  Depth Anything V2 Small and a pointing VLM (Molmo-7B-D 4-bit; `internvl` and `fake` backends)
+  once and, for up to `classes_per_photo` classes already in the photo, asks the fixed prompt
+  `Point to {where} where another {class} could naturally {how}.` (`configs/placement_prompts.yaml`:
+  22 class groups covering all 79 non-person COCO classes). Each point (contact point; centre for
+  `air` classes pointed at sky) becomes a box: reference = the photo's same-class object not cut
+  off and at most 30% hidden, nearest in depth; height × clamp(nearness(point) /
+  nearness(reference base), 0.5, 2), reference shape kept; COCO-typical size if no reference;
+  `min_side_px`, `max_area_frac`, shifted inside the image by at most 15%. Rules (`box_rules`):
+  no person, ≤ 15% of any real object (COCO + audit rows), base band not on window / mirror /
+  ceiling / sky COCO-Stuff pixels (sky allowed for `air`). Valid candidates in order are the free
+  track's versions 0, 1, 2, … (`replan._ensure_natural`), so retries move to the next natural
+  spot; no candidate means no plan. `verify` then runs `realism_pass`: the VLM answers four yes/no
+  questions on the edit with the AI object boxed in red; any unexpected answer turns the attempt
+  into a failure (`realism.jsonl`, applied by `verify_state`). C5 is not used.
 - **Merged AI condition** (`placement.merged.enabled`, full run since 2026-10-18; author scope
   change): C4 and C4-occ become one AI condition, labelled C4 in the final ledger. The free track
   carries it (`replan.merged_version`): a verified C4 at any version ≤ `max_version` is kept;

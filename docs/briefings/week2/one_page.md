@@ -60,6 +60,15 @@ object are dropped, never labelled.
 | Merged run: photos with an AI edit / all of C0–C4 / dropped | 537 / 533 / 7 <!-- run:task2_insertion, file:paper/results/task2_insertion_merged_round_final.json --> |
 | Final: photos with all of C0–C4 / edited images | 544 / 1,088 (AI edits: 464 free-space, 38 occluding, 42 anywhere; bed and train in the corner, doubtful) <!-- run:task2_insertion, file:paper/results/task2_insertion_final.json --> |
 | Human audit (all 544 C4 edits) | [[TBD]] |
+| Natural-placement pilot (50 photos): with a natural spot / verified AI object | 33 / 28; on a fitting surface 64% (random 46%), but smaller objects <!-- run:task2_pilot_natural, file:paper/results/task2_pilot_natural_vs_random.json --> |
+| Natural pilot v2 (fixes): verified AI object / on fitting surface / object size | 18 of 50 / 72% / 1.8% of image (random 0.8%); about 14 of 18 natural by eye <!-- run:task2_pilot_natural_v2, file:paper/results/task2_pilot_natural_three_way.json --> |
+| Natural pilot v3 (more spots/classes): verified AI object | 19 of 50, same quality as v2 <!-- run:task2_pilot_natural_v3 --> |
+| Full natural run: photos with a spot (overlap limit 30% / 50%, author chose 50%) | 349 / 389 of 544 <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->; with a verified AI edit [[TBD]] <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json --> |
+| Box mode (Qwen3-VL draws the box, author reviews), 50-photo pilot: photos with an accepted natural box | 26 of 50; 5 more pending review; the rest get no AI edit (author decision) <!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json --> |
+| Final placement (merged Qwen question, 3 checks, no gate), pilot: photos with a box | 44 of 50 <!-- run:task2_pilot_natural_qwen_free, run_plan_2026-10-21T091847Z, file:paper/results/task2_pilot_natural_qwen_merged_plan.json --> |
+| Full natural run: photos with a box (planning) / with a verified AI edit | 518 of 544 / **427** (425 complete C0–C4) <!-- run:task2_insertion_natural_box, run_verify_2026-10-23T070146Z, file:paper/results/task2_insertion_natural_box_final.json --> <!-- run:task2_insertion_natural_box, run_plan_2026-10-21T115944Z, file:paper/results/task2_insertion_natural_box_plan.json --> |
+| Benchmark frozen for Task 3: images C0 / C1 / C2 / C3 / C4 | 518 / 518 / 425 / 427 / 427; 425 photos complete <!-- run:task2_insertion_natural_box, file:paper/results/task2_benchmark_table1.csv --> |
+| Qwen self-judge vs author's review | AUROC 0.44 / 0.50 (not used) <!-- file:paper/results/task2_judge_agreement.json --> |
 | Human audit: present / realistic / other change | [[TBD]] |
 
 ## Next week and points to discuss

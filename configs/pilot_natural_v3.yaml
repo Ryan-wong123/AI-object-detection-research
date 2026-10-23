@@ -1,0 +1,19 @@
+# Natural-placement pilot v3 (author, 2026-10-20): v2's quality rules unchanged, more chances per
+# photo to raise coverage (v2: 18 of 50 photos). Each photo now gets up to 3 classes (v2: 2) and up
+# to 10 spots per class (v2: 5), spaced at least 7% of the image diagonal apart (v2: 10%), and
+# up to 30 spot versions for retries (v2: 9). Costs VLM planning time, not quality.
+#   python -m inlayfake sample  --config configs/pilot_natural_v3.yaml
+#   python -m inlayfake plan    --config configs/pilot_natural_v3.yaml
+#   python -m inlayfake insert  --config configs/pilot_natural_v3.yaml
+#   python -m inlayfake preview --config configs/pilot_natural_v3.yaml --limit 50
+inherit: pilot_natural_v2.yaml
+run_name: task2_pilot_natural_v3
+placement:
+  natural:
+    classes_per_photo: 3
+    max_candidates: 10
+    min_point_dist: 0.07
+edit:
+  max_replans: 30
+paths:
+  work: data/inlayfake_pilot_natural_v3

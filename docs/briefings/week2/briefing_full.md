@@ -2,7 +2,7 @@
 
 > Terminology: C4-occ = the occlusion placement rule of the AI insertion before 18 Oct 2026 (cover 20–50% of one real object); since then it is part of the single AI condition C4.
 
-Last updated 18 Oct 2026 Â· Ryan Wong
+Last updated 21 Oct 2026 · Ryan Wong
 
 Briefing for the project professor. Branch `week-2-ai-insertion`. Generation runs on the RTX 4070
 laptop. The SDXL pilot (run `task2_pilot`, `data/inlayfake_pilot`) ran on 16 Oct; full-run
@@ -167,6 +167,74 @@ cloud sandbox, so their first real run is the pilot.
   over the windscreen: clearly there, but implausible, so it is flagged for the audit.
 - **Still without one (1):** the car-interior shot, where the class is not the problem: no box
   fits the occlusion rule. 69 tests pass.
+
+### 24. Natural-placement pilot (19 Oct, run `task2_pilot_natural`)
+- **Why:** many full-run AI objects are placed unnaturally (a skateboard in the air, a bird in a
+  window pane), because most boxes were random free-space spots.
+- **New method:** a local VLM (Molmo-7B-D) points at natural spots for a class already in the photo
+  (one fixed "Point to …" prompt per class), the box is sized from the photo's own object of that
+  class and scaled by depth, and it may cover no person and at most 15% of any real object.
+- **Plan:** 33 of the 50 pilot photos got a natural spot; 17 had none that met the rules (mostly
+  people or other objects in the way).
+- **Automatic realism check did not work:** Molmo answered "not natural" for every edit, including
+  clearly fine ones, so it is switched off; edits are judged by eye.
+- **Generation (final):** 28 of 33 photos have a verified AI object, 5 dropped; 28 of the 50 pilot
+  photos <!-- run:task2_pilot_natural, run_verify_2026-10-19T151526Z -->.
+- **Pilot v2 with three fixes** (point on an allowed surface, larger boxes, reject objects filling
+  < 35% of their box): 18 of 50 photos with a verified AI edit; on a fitting surface 72%, none on a
+  wall, objects median 1.8% of the image (random 0.8%, v1 0.5%); by eye about 14 of 18 natural
+  <!-- run:task2_pilot_natural_v2, file:paper/results/task2_pilot_natural_three_way.json -->.
+  Better quality, lower coverage; decision needed.
+- **Pilot v3** (same rules, 3 classes and 10 spots per class): 19 of 50 photos (v2: 18), same
+  quality; more tries per photo do not raise coverage, because people and other objects block the
+  spots and some objects still fail verification <!-- run:task2_pilot_natural_v3, file:paper/results/task2_pilot_natural_four_way.json -->.
+- **Decision (20 Oct):** the full natural run uses the v2 method with looser rules (up to 30% of a
+  person or of a real object covered, object filling at least 25% of its box;
+  `configs/insertion_natural.yaml`). It runs planning alone first: the number of photos with a
+  spot decides whether the rules are loosened further before any generation. Molmo's answers are
+  saved, so trying other rules re-checks the photos in minutes. Planning result: **349 of 544
+  photos (64%) have a natural spot** <!-- run:task2_insertion_natural, run_plan_2026-10-20T145159Z, file:paper/results/task2_insertion_natural_plan.json -->; looser overlap limits
+  would add at most 50 (40%), 62 (50%) or 78 (60%) photos. The author then raised both overlap
+  limits to 50%: **389 of 544 photos (72%)** have a spot <!-- run:task2_insertion_natural, run_plan_2026-10-20T161419Z, file:paper/results/task2_insertion_natural_plan_50pct.json -->.
+  Photos with a verified natural AI edit: [[TBD]].
+- **Placement replaced (21 Oct): Qwen3-VL-8B draws the box, the author reviews it.** Many Molmo
+  boxes did not make sense: the point was fine but the box was upright for objects that should
+  lie flat (39 of 73; a tennis racket standing in mid-air). Qwen3-VL-8B now reads the whole
+  scene and draws up to three boxes (same rules), with a second question listing taken places,
+  every class of the photo, then any listed class. The author accepted or rejected every box by
+  eye on a review page. Pilot (50 photos): **26 with an accepted natural box**; more questions
+  for the other 24 proposed boxes for 5 [[TBD: author's review]] and none for the 17 far-away,
+  close-up or crowded photos <!-- run:task2_pilot_natural_qwen, run_plan_2026-10-20T191136Z, run_plan_2026-10-20T193654Z, file:data/inlayfake_pilot_natural_qwen/spot_review.json -->.
+  Qwen3-VL is from the same family as the week-3 origin judge (Qwen2.5-VL-3B): disclosed, and
+  week 3 compares that judge on natural vs random placement.
+- **Final placement for the full run (21 Oct):** one merged question to Qwen3-VL-8B per class
+  (every labelled object and person as taken, size and proportions, order of preference: free
+  space, nearer the camera, cut off by the edge), three checks only (short side >= 15 px and
+  0.1% of the image, measured in a generation test; not > 3x thinner than the class; <= 30% of
+  any real object or person covered, so edits add rather than replace), one re-ask with the
+  failures, then the next class; no review gate (author), every C4 audited by hand afterwards.
+  Pilot: **44 of 50** photos with a box <!-- run:task2_pilot_natural_qwen_free, run_plan_2026-10-21T091847Z, file:paper/results/task2_pilot_natural_qwen_merged_plan.json -->. A Qwen self-judge did not agree with the
+  author's review (AUROC 0.44 / 0.50) and is not used <!-- file:paper/results/task2_judge_agreement.json -->.
+  Paper §4 rewritten (Box 1 prompt, Table 1c). Full run (`configs/insertion_natural_box.yaml`): planning gave **518 of 544** photos a box <!-- run:task2_insertion_natural_box, run_plan_2026-10-21T115944Z, file:paper/results/task2_insertion_natural_box_plan.json -->; **427 of 544 photos have a verified AI object** (Qwen's box 1: 350, box 2: 57, box 3: 20), 425 complete with all five conditions <!-- run:task2_insertion_natural_box, run_verify_2026-10-23T070146Z, file:paper/results/task2_insertion_natural_box_final.json -->; the author's review of every edit is next.
+- **Benchmark frozen for Task 3 (23 Oct, author decision, no further regeneration):** ledger
+  `data/inlayfake_v4/ledger.jsonl`; C0/C1 518 images (3,778 photographed objects), C2 425, C3 427,
+  C4 427 (427 AI objects); 425 photos with all five conditions (train / val / test 247 / 88 / 90)
+  <!-- run:task2_insertion_natural_box, file:paper/results/task2_benchmark_table1.csv -->. Known limitations stated, not fixed: some boxes partly repaint a real object (87 C2,
+  72 C4 images, labelled mixed/modified), C3 pastes do not update covered labels, 117 photos
+  without an AI object. Results website tab "Week 2 · AI insertion (natural, benchmark)".
+  Task 3 config: `configs/task3_detection_natural.yaml`.
+- **Decision (21 Oct):** photos without an accepted natural box get no AI edit (no forced or
+  random fallback), so the AI condition covers a subset of the 544 photos; full-run coverage
+  [[TBD]].
+- **Compared with random placement on the same photos:** objects rest on a fitting surface more
+  often (64% vs 46%) and on walls less often (11% vs 20%), but they are smaller (median 0.5% vs
+  0.8% of the image) <!-- file:paper/results/task2_pilot_natural_vs_random.json -->. Proposed fixes:
+  the point must be on an allowed surface, a minimum box size with gentler depth scaling, and
+  rejecting objects that fill too little of their box.
+- **By eye:** about half the 25 look natural (backpack by a tent, car in a car park, boats and
+  surfboards on water, traffic lights), about half do not (horse or motorcycle on a wall, giraffe
+  head in a window, tiny or smudged objects). Causes: the VLM sometimes points at a wall, and SDXL
+  often draws the object much smaller than its box. Decision needed on how to continue.
 
 ### 23. Insertion run complete: all 544 photos have C0–C4 (18 Oct)
 - The full preview (all 544 photos, C0–C4) is in the repo: `docs/results/week2_ai_insertion/index.html`.

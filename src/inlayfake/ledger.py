@@ -76,6 +76,9 @@ class EditInfo:
     # merged AI condition (placement.merged): where the photo's AI edit came from: "free" (free
     # space), "occluding" (covers 20-50% of one real object) or "anywhere" (merged-mode box)
     merged_source: str | None = None
+    # the author accepted this edit although the verifier did not find the object (review page,
+    # "accept anyway", 2026-10-23); its mask comes from SAM prompted with the planned box
+    verifier_override: bool = False
 
 
 @dataclass
@@ -135,13 +138,19 @@ class ImageRecord:
 
 
 def write_ledger(records: Iterable[ImageRecord], path: str | Path) -> int:
+    import os
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     n = 0
-    with path.open("w", encoding="utf-8") as f:
+    tmp = path.with_name(path.name + ".tmp")  # crash-safe: old or new file, never half of one
+    with tmp.open("w", encoding="utf-8") as f:
         for r in records:
             f.write(json.dumps(r.to_dict(), ensure_ascii=False) + "\n")
             n += 1
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
     return n
 
 

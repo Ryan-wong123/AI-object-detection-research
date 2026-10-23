@@ -1,0 +1,304 @@
+# Natural placement (planned stage, not used by any run yet; author request 2026-10-19).
+#
+# Stage 1 asks a local VLM (Molmo-7B-D; NOT Florence-2 / Qwen2.5-VL, which week 3 evaluates) to
+# point at natural spots for another object of a class already in the photo. One fixed template,
+# filled per photo from the class table below: the VLM's answer varies with the image, the
+# question does not (reproducible, no per-image hand-tuning). Molmo points best with short
+# "Point to ..." questions, so the per-class knowledge lives in two slots, not in long rules.
+#
+#   pointing prompt:  "Point to {where} where another {class} could naturally {how}."
+#   e.g. dog:         "Point to empty spots on the floor or ground where another dog could
+#                      naturally stand or lie."
+#
+# A point is where the object touches its support (bottom centre of the box); for classes with
+# air: true a point in open sky is the object's centre instead. Covers every non-person COCO class
+# in the 544 week-1 photos (78) plus toaster. People are never generated, so worn or held items
+# (handbag, tie, tennis racket, ...) are placed resting on a surface, never "held".
+#
+# Stage 3 asks the same VLM the fixed yes/no questions below on the edited image with the box
+# drawn; the edit passes only if every answer matches "expected".
+
+template: "Point to {where} where another {class} could naturally {how}."
+
+# Box mode (placement.natural.mode: box; author, 2026-10-21): the VLM (Qwen3-VL-8B) sees the whole
+# photo and draws the box itself, so the box's place, size and shape (an object lying flat gets a
+# flat box) come from its reading of the scene, not from a point plus a depth-scaled template.
+# Motivation: with points, 39 of 73 planned objects that should lie flat got an upright box (a
+# tennis racket standing in mid-air against a wall). The same where/how slots fill it. {existing}
+# lists the photo's own objects of the class (bbox_2d, 0-1000 grid): in a first test Qwen boxed
+# the existing skis and bowl instead of an empty place.
+# Merged first question (placement.natural.merged; author, 2026-10-21): every requirement in one
+# prompt instead of separate size, foreground and last-resort questions, so the VLM weighs them
+# together: all labelled objects and people listed as taken, the size/proportion requirement, an
+# order of preference (whole object in free space; nearer the camera if it would be small; cut off
+# by the edge or partly behind something only if there is no free space), always 3 boxes. One
+# re-ask with the concrete failures (size_retry_template) follows if all 3 break a check.
+merged_template: >-
+  Look at the whole photo and understand the scene: what is happening, where the surfaces are,
+  and how big things are at each distance. These places are already taken by people and objects
+  (bbox_2d, 0-1000 grid): {taken}. The photo already shows {existing}. Add one more, new {class}
+  so that it looks completely natural and makes sense in this exact scene. It should {how} on
+  {where_short}, rest on a real surface (or be in open sky if it can fly), have a realistic size
+  and orientation for its distance, fit what is happening in the photo, and not overlap any taken
+  place. Draw each box around the whole new {class} with its normal proportions (not a thin
+  strip), at least {min_side} wide and {min_side} high on the 0-1000 grid. Choose places in this
+  order of preference: (1) a whole {class} in free space; (2) if it would be smaller than that
+  there, a place closer to the camera, in the lower part of the photo, where it appears larger;
+  (3) only if there is no free space at all, a {class} partly cut off by the edge of the photo or
+  partly behind something, with the box covering only its visible part. Give 3 different places,
+  best first, as JSON: [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. Always give 3
+  places.
+
+box_template: >-
+  Look at the whole photo and understand the scene: what is happening, where the surfaces are,
+  and how big things are at each distance. The photo already shows {existing}. Do not mark
+  {them}. Find an empty place where one more, new {class} could be added so that it looks
+  completely natural and makes sense in this exact scene. The new {class} should {how} on
+  {where_short}, rest on a real surface (or be in open sky if it can fly), have a realistic size
+  and orientation for its distance, fit what is happening in the photo, and not overlap any
+  person or existing object. Give up to 3 different empty places, best first, as JSON:
+  [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. Each box must tightly fit the whole
+  new {class}. If no place would look natural, answer [].
+
+# Second round (placement.natural.retry; author, 2026-10-21) for a class whose first boxes all
+# broke a rule: the VLM is told every labelled object and person plus its own rejected boxes as
+# taken places, and a minimum size (0-1000 grid), so it looks for free space nearer the camera.
+# In the box-mode pilot, 15 of 28 photos without a spot had only far-away (too small) boxes and 9
+# only boxes on other real objects.
+# Last resort (placement.natural.last_resort; author, 2026-10-21) for close-ups and full scenes
+# where every class of the photo got no place: the same class again, but the new object may be
+# partly cut off by the edge of the photo or further back in the scene, as real photos often
+# show; this question has no "no place" answer. Boxes still go to the author's review.
+last_resort_template: >-
+  Look at the whole photo and understand the scene. The photo already shows {existing}. Do not
+  mark {them}. One more, new {class} must be added somewhere in this photo so that it looks as
+  natural as possible. If there is no free space for a whole {class}, it may be partly cut off by
+  the edge of the photo (as if it continues outside the frame), or further back in the scene and
+  therefore smaller, or partly behind something. It should {how} on {where_short} where possible,
+  have a realistic size and orientation for its distance, and not be on or in front of a person.
+  Give up to 3 different places, best first, as JSON:
+  [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. The box covers only the visible part
+  of the new {class}, inside the photo. Always give at least one place.
+
+# Size and shape (placement.natural.shape_check; author, 2026-10-21): boxes too small for SDXL
+# and the verifier, or much thinner than the class's usual proportions (the no-rules pilot drew a
+# 630 x 16 px "train" along a railing), are re-asked with this feedback, up to `retries` times.
+size_hint_template: >-
+  Draw each box around the whole new {class} with its normal proportions (not a thin strip),
+  at least {min_side} wide and {min_side} high on the 0-1000 grid; if the {class} would be
+  smaller there, choose a place closer to the camera.
+# Last size re-ask (shape_check.foreground_last; author, 2026-10-21): in wide scenes (a frisbee
+# field, a ski race) Qwen kept drawing tiny far-away boxes; there is usually free ground near
+# the camera where the object appears large.
+foreground_hint_template: >-
+  Place the new {class} in the foreground, in the lower part of the photo close to the camera,
+  where it appears large.
+size_retry_template: >-
+  Your earlier boxes for the new {class} cannot be used: {feedback}. Give different boxes that
+  follow these instructions.
+
+box_retry_template: >-
+  Look at the whole photo and understand the scene. These places are already taken by people or
+  objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Find a different,
+  empty place where one more, new {class} could be added so that it looks completely natural and
+  makes sense in this exact scene. The new {class} should {how} on {where_short}, rest on a real
+  surface (or be in open sky if it can fly), have a realistic size and orientation for its
+  distance, and not overlap any taken place. Prefer places closer to the camera: the box must be
+  at least {min_side} wide and {min_side} high on the 0-1000 grid. Give up to 3 places, best
+  first, as JSON: [{{"bbox_2d": [x1, y1, x2, y2], "label": "new {class}"}}]. If no place would
+  look natural, answer [].
+
+# Any-class round (placement.natural.any_class; author, 2026-10-21): when no class of the photo
+# fits, the VLM may choose any everyday object from the list (never a person) that would look
+# natural here. Such plans are flagged class_in_photo: false and reported separately.
+any_class_template: >-
+  Look at the whole photo and understand the scene. These places are already taken by people or
+  objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Which everyday
+  object could be added to an empty place so that it looks completely natural and makes sense in
+  this exact scene? Choose only from: {class_list}. It must rest on a real surface (or be in open
+  sky if it can fly), have a realistic size and orientation for its distance, not overlap any
+  taken place, and its box must be at least {min_side} wide and {min_side} high on the 0-1000
+  grid. Give up to 3 options, best first, as JSON:
+  [{{"bbox_2d": [x1, y1, x2, y2], "label": "object name"}}]. If nothing would look natural,
+  answer [].
+
+# More questions (placement.natural.more_questions; author, 2026-10-21) for photos the author's
+# spot review left without an accepted spot: every class of the photo is asked (no early stop),
+# the any-class question is asked with the rejected spots listed as taken, and this second
+# wording starts from free space instead of from an object.
+any_class_alt_template: >-
+  Look at the whole photo and understand the scene. These places are already taken by people or
+  objects, or were tried before and do not work (bbox_2d, 0-1000 grid): {taken}. Find up to 3
+  empty areas in this photo where a small or medium everyday object could rest naturally (on the
+  floor, ground, a table, a shelf, a bench, water or in open sky), at least {min_side} wide and
+  {min_side} high on the 0-1000 grid. For each area, choose the object from this list that would
+  most naturally be there in this kind of place: {class_list}. Give the box that tightly fits that
+  object, as JSON: [{{"bbox_2d": [x1, y1, x2, y2], "label": "object name"}}]. If no area would
+  look natural, answer [].
+
+# Box rules for a candidate spot (author, 2026-10-19). A real object = any labelled object of the
+# photo (COCO labels + week-1 audit "add" labels). Overlap is measured as the share of the real
+# object's area that the AI box covers. A spot that breaks a rule is skipped; if no spot or class
+# fits, the photo gets no AI edit (never forced over a real object).
+box_rules:
+  max_cover_real: 0.15     # at most 15% of any real object covered (author: "around 10-15%")
+  max_cover_person: 0.0    # never on a person
+  max_candidates: 5        # VLM points tried per class before the next class in the photo
+
+# Allowed support under a VLM point (author, 2026-10-20; pilot fix 1). The point is where the
+# object touches its support, so the COCO-Stuff label there must be one of the group's surfaces,
+# or the point must lie on a labelled object that can carry it (on_objects, e.g. a cup on a dining
+# table). COCO-Stuff marks object pixels "other"; a point on any other object is rejected. In the
+# first pilot 17 of 75 accepted points lay on objects or unlabelled pixels (a horse on a
+# scoreboard, a giraffe in a wall).
+surface_sets:
+  ground: [floor-marble, floor-other, floor-stone, floor-tile, floor-wood, carpet, rug, mat, road,
+           pavement, dirt, sand, gravel, grass, snow, ground-other, playingfield, platform, mud, moss,
+           hill, stairs, rock, stone, straw, plant-other, flower]
+  road: [road, pavement, gravel, dirt, ground-other, platform, snow, sand, grass]
+  rail: [railroad, gravel, platform, ground-other, dirt]
+  table: [table, counter, desk-stuff, shelf, cabinet, cupboard, furniture-other, napkin, cloth, paper,
+          wood, food-other, blanket, textile-other, towel]
+  soft: [blanket, pillow, textile-other, cloth, towel]
+  water: [sea, river, water-other, waterdrops]
+  beach: [sand, ground-other, dirt, gravel, rock, stone, grass]
+  wall: [wall-brick, wall-concrete, wall-other, wall-panel, wall-stone, wall-tile, wall-wood]
+  sky: [sky-other, clouds]
+  perch: [tree, branch, bush, leaves, railing, roof, fence]
+  # animals stand in bushes and tall plants (author, 21 Oct: elephants in tall grass were rejected
+  # as "on a bush" in the box-mode pilot)
+  vegetation: [bush, leaves, plant-other, flower, grass, straw]
+
+supports:   # group: {surfaces: [surface sets], on_objects: [COCO classes]}
+  ground_animal: {surfaces: [ground, vegetation]}
+  bird: {surfaces: [ground, sky, perch], on_objects: [bench, boat, car, truck, fire hydrant, chair]}
+  road_vehicle: {surfaces: [road]}
+  bicycle: {surfaces: [road, ground]}
+  rail: {surfaces: [rail]}
+  aircraft: {surfaces: [road, ground, sky]}
+  water_craft: {surfaces: [water, beach]}
+  surfboard: {surfaces: [water, beach]}
+  street_furniture: {surfaces: [road, ground]}
+  # on a pole, so the box's bottom need not touch the ground in the photo (traffic lights over a
+  # road, against sky or a building; author, 21 Oct): no surface check
+  street_sign: {any_surface: true}
+  floor_furniture: {surfaces: [ground]}
+  wall_or_stand: {surfaces: [wall, table], on_objects: [dining table]}
+  counter_appliance: {surfaces: [table], on_objects: [dining table, oven, refrigerator]}
+  kitchen_fixture: {surfaces: [table, wall]}
+  tabletop: {surfaces: [table, soft], on_objects: [dining table, bed, couch, chair, bench, toilet, sink]}
+  food: {surfaces: [table], on_objects: [dining table, bowl, oven]}
+  bag: {surfaces: [ground, table], on_objects: [bench, chair, couch, bed, dining table]}
+  worn_item: {surfaces: [table, soft], on_objects: [bed, chair, couch, dining table]}
+  umbrella: {surfaces: [ground, beach]}
+  sports_gear: {surfaces: [ground], on_objects: [bench]}
+  snow_gear: {surfaces: [ground]}
+  flying_toy: {surfaces: [sky, ground]}
+
+check:
+  # pilot 2026-10-19: the first wording failed all 17 accepted edits. "in front of any glass ...
+  # rather than seen through it" asked the inverse of what was scored (no glass nearby -> "no"),
+  # and the compound "resting on a surface or held up by something, as it would be in reality"
+  # was answered "no" every time. Now one plain question each, with a neutral instruction.
+  instruction: "Look at the {class} inside the red box. Answer yes or no only."
+  questions:
+    - {id: supported, text: "Is the {class} in the red box standing, lying or resting on the ground, a floor or another surface{air_clause}?", expected: "yes"}
+    - {id: through_glass, text: "Is the {class} in the red box seen through a window or glass, reflected in a mirror, or shown on a screen?", expected: "no"}
+    - {id: size, text: "Is the {class} in the red box a realistic size compared with the things around it?", expected: "yes"}
+    - {id: whole, text: "Does the red box contain one complete {class}, not a fragment or a blurry blob?", expected: "yes"}
+  air_clause: ", or flying in the sky"
+
+# where/how per group; classes list the members. air: point may be in open sky.
+groups:
+  ground_animal:
+    where: "empty spots on the ground, grass, sand, snow or floor"
+    how: "stand or lie"
+    classes: [dog, cat, horse, sheep, cow, elephant, bear, zebra, giraffe]
+  bird:
+    where: "empty spots on the ground, a branch, a railing, a roof edge or in open sky"
+    how: "perch or fly"
+    air: true
+    classes: [bird]
+  road_vehicle:
+    where: "empty spots on the road, street, parking area or driveway"
+    how: "be parked or drive"
+    classes: [car, truck, bus, motorcycle]
+  bicycle:
+    where: "empty spots on the road, pavement, path or ground"
+    how: "stand or be parked"
+    classes: [bicycle]
+  rail:
+    where: "empty spots on railway tracks"
+    how: "stand"
+    classes: [train]
+  aircraft:
+    where: "empty spots on the runway, tarmac or in open sky"
+    how: "stand or fly"
+    air: true
+    classes: [airplane]
+  water_craft:
+    where: "empty spots on open water, a beach or a shore"
+    how: "float or lie"
+    classes: [boat]
+  surfboard:
+    where: "empty spots on open water, a beach or sand"
+    how: "float or lie flat"
+    classes: [surfboard]
+  street_furniture:
+    where: "empty spots on the pavement, sidewalk or roadside ground"
+    how: "stand on its base"
+    classes: [fire hydrant, parking meter, bench]
+  street_sign:
+    where: "empty spots on the pavement or roadside ground next to the road"
+    how: "stand on a pole"
+    classes: [stop sign, traffic light]
+  floor_furniture:
+    where: "empty spots on the floor"
+    how: "stand"
+    classes: [chair, couch, bed, dining table, potted plant, refrigerator, toilet]
+  wall_or_stand:
+    where: "empty spots on a wall, a table, a shelf or a TV stand"
+    how: "hang or stand"
+    classes: [clock, tv]
+  counter_appliance:
+    where: "empty spots on a kitchen counter, table or shelf"
+    how: "stand"
+    classes: [microwave, toaster]
+  kitchen_fixture:
+    where: "empty spots along a kitchen or bathroom counter or wall"
+    how: "be installed"
+    classes: [sink, oven]
+  tabletop:
+    where: "empty spots on a table, counter, desk or shelf"
+    how: "rest"
+    classes: [cup, bottle, wine glass, bowl, vase, book, laptop, keyboard, mouse, remote,
+              cell phone, scissors, toothbrush, hair drier, fork, knife, spoon, teddy bear]
+  food:
+    where: "empty spots on a plate, a table, a counter or a cutting board"
+    how: "lie"
+    classes: [pizza, sandwich, cake, donut, hot dog, banana, apple, orange, broccoli, carrot]
+  bag:
+    where: "empty spots on the floor, ground, a bench, a chair or a table"
+    how: "rest"
+    classes: [handbag, backpack, suitcase]
+  worn_item:
+    where: "empty spots on a table, a bed, a chair or a couch"
+    how: "lie"
+    classes: [tie]
+  umbrella:
+    where: "empty spots on the ground, sand or floor"
+    how: "stand open or lie"
+    classes: [umbrella]
+  sports_gear:
+    where: "empty spots on the ground, grass, floor or a bench"
+    how: "lie"
+    classes: [sports ball, tennis racket, baseball bat, baseball glove, skateboard]
+  snow_gear:
+    where: "empty spots on the snow or ground"
+    how: "lie"
+    classes: [skis, snowboard]
+  flying_toy:
+    where: "empty spots in open sky or on the ground"
+    how: "fly or lie"
+    air: true
+    classes: [kite, frisbee]

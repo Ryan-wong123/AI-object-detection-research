@@ -1,0 +1,193 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edit review</title><style>__CSS__
+.cards{display:flex;flex-direction:column;gap:12px}
+.figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:900px){.figs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.figs figure{margin:0}
+.figs figcaption{font-size:12px;color:var(--muted);margin:3px 0}
+.w{position:relative;display:block;line-height:0}
+.w img{width:100%;display:block;border-radius:4px}
+.b{position:absolute;border:2px solid}
+.b.plan{border-color:var(--plan);border-style:dashed}
+.b.ins{border-color:var(--ins)}
+.btns{display:flex;gap:6px;margin-top:4px}
+.btns button{flex:1}
+.btns button.on.a{background:var(--tp);color:#fff}
+.btns button.on.r{background:var(--fp);color:#fff}
+figure.rej .w{outline:3px solid var(--fp)}
+figure.acc .w{outline:3px solid var(--tp)}
+.missing{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:4px;
+  padding:20px 6px;text-align:center}
+.notes{width:100%;margin-top:6px}
+.fails{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:8px}
+.fails figcaption{font-size:11px;color:var(--muted)}
+.full{max-width:640px}
+.draw{cursor:crosshair;user-select:none}
+.b.man{border-color:var(--tp);border-width:3px}
+.b.new{border-color:var(--tp);border-style:dotted;border-width:3px}
+.q select{max-width:200px}
+.pill{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}
+</style></head><body>
+<header><h1>__TITLE__ <span>· review C2 / C3 / C4</span></h1>
+<span id="count" class="muted"></span>
+<label>show <select id="flt">
+<option value="todo">to review</option><option value="all">all</option>
+<option value="reject">rejected</option>
+<option value="done">reviewed</option><option value="missing">no AI object</option>
+<option value="fixed">no AI object: your box or accepted attempt</option>
+</select></label><span id="save" class="muted"></span></header>
+<main>
+<p class="note">Per photo: C1 is the matched resave (before); C2 the sham edit (box repainted, no
+object should appear); C3 a real object pasted in; C4 the AI-inserted object. Accept or reject
+each; click a chosen button again to clear it. Dashed box: the planned box; solid box: the pasted
+or verified object. Rejected images are redone by the next run of the pipeline (new seed or next
+box for C2/C4, another donor for C3) and appear here again to review. Every click is saved at once
+to condition_review.csv.</p>
+<div class="cards" id="cards"></div></main>
+<script>
+const CARDS = __DATA__;
+const LABEL = {C1: 'C1 before', C2: 'C2 sham', C3: 'C3 real paste', C4: 'C4 AI object'};
+let DEC = {};
+const box = document.getElementById('cards');
+function ids(c){ return c.figs.filter(f => f.id).map(f => f.id); }
+function dec(id){ return (DEC[id] || {}).decision || ''; }
+function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+function render(){
+  const f = document.getElementById('flt').value; box.innerHTML = '';
+  let nDone = 0, nRej = 0;
+  let nMissing = 0, nFix = 0;
+  for (const c of CARDS){
+    if (c.kind === 'missing'){
+      nMissing++;
+      const man = DEC[c.manual_key] || null;
+      const nOv = c.fails.filter(t => dec(t.id) === 'override').length;
+      if (man || nOv) nFix++;
+      if (f !== 'missing' && f !== 'all' && f !== 'fixed') continue;
+      if (f === 'fixed' && !(man || nOv)) continue;
+      const el = document.createElement('div'); el.className = 'card';
+      const tries = c.fails.map(t => {
+        const on = dec(t.id) === 'override';
+        return `<figure class="${on ? 'acc' : ''}"><span class="w"><img loading="lazy" src="${t.src}">` +
+          `${t.boxes}</span><figcaption>${esc(t.label)}</figcaption>` +
+          `<div class="btns"><button class="a ${on ? 'on' : ''}" data-id="${t.id}" data-v="override">` +
+          `Accept anyway</button></div></figure>`;
+      }).join('');
+      const manBox = man ? `<span class="b man" style="left:${man.box[0] / c.W * 100}%;` +
+        `top:${man.box[1] / c.H * 100}%;width:${man.box[2] / c.W * 100}%;` +
+        `height:${man.box[3] / c.H * 100}%"></span>` : '';
+      const opts = c.classes.map(k => `<option ${man && man.category === k ? 'selected' : ''}>` +
+        `${esc(k)}</option>`).join('');
+      const status = man ? `your box: ${esc(man.category)}, generated in the next run` +
+        ' (fixed prompt, flagged manual)' : 'drag on the photo to draw a box for a new object';
+      el.innerHTML = `<h2>${esc(c.category)} <span>photo ${c.sid}</span> ` +
+        `<span class="pill">no AI object: ${esc(c.reason)}</span></h2>` +
+        `<figure class="full"><figcaption>photo with the planned boxes (dashed); your box (green)` +
+        `</figcaption><span class="w draw" data-k="${c.manual_key}" data-w="${c.W}" data-h="${c.H}">` +
+        `<img loading="lazy" src="${c.full.src}" draggable="false">${c.full.boxes}${manBox}` +
+        `<span class="b new" hidden></span></span></figure>` +
+        `<div class="q">class <select class="cls" data-k="${c.manual_key}">${opts}</select>` +
+        `<button class="savebox" data-k="${c.manual_key}">Save box</button>` +
+        `<button class="clearbox" data-k="${c.manual_key}" ${man ? '' : 'disabled'}>Clear box</button>` +
+        `<span class="muted st">${status}</span></div>` +
+        (tries ? `<div class="fails">${tries}</div>` : '');
+      box.appendChild(el);
+      continue;
+    }
+    const ds = ids(c).map(dec), isDone = ds.every(Boolean), hasRej = ds.includes('reject');
+    if (isDone) nDone++; if (hasRej) nRej++;
+    if (f === 'missing') continue;
+    if (f === 'todo' && isDone) continue;
+    if (f === 'done' && !isDone) continue;
+    if (f === 'reject' && !hasRej) continue;
+    const figs = c.figs.map(g => {
+      if (g.missing) return `<figure><figcaption>${LABEL[g.cond]}</figcaption>` +
+        `<div class="missing">not in the benchmark yet</div></figure>`;
+      const d = g.id ? dec(g.id) : '';
+      const btn = g.id ? `<div class="btns">` +
+        `<button class="a ${d === 'accept' ? 'on' : ''}" data-id="${g.id}" data-v="accept">Accept</button>` +
+        `<button class="r ${d === 'reject' ? 'on' : ''}" data-id="${g.id}" data-v="reject">Reject</button></div>` : '';
+      return `<figure class="${d === 'reject' ? 'rej' : d === 'accept' ? 'acc' : ''}">` +
+        `<figcaption>${LABEL[g.cond]}</figcaption>` +
+        `<span class="w"><img loading="lazy" src="${g.src}">${g.boxes}</span>${btn}</figure>`;
+    }).join('');
+    const el = document.createElement('div'); el.className = 'card';
+    el.innerHTML = `<h2>${esc(c.category)} <span>photo ${c.sid}</span></h2>` +
+      `<div class="figs">${figs}</div>` +
+      `<input class="notes" placeholder="notes for this photo" data-id="${c.photo}" ` +
+      `value="${esc((DEC[c.photo] || {}).notes || '')}">`;
+    box.appendChild(el);
+  }
+  const nReview = CARDS.length - nMissing;
+  document.getElementById('count').textContent =
+    `${nDone} of ${nReview} photos reviewed · ${nRej} rejected` +
+    ` · ${nMissing} without an AI object (${nFix} with your box or an accepted attempt)`;
+}
+async function save(id, field, value){
+  const msg = document.getElementById('save');
+  try {
+    const r = await fetch('review-click', {method: 'POST',
+      headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, field, value})});
+    if (!r.ok) throw new Error(r.status);
+    if (field !== 'manual') {
+      DEC[id] = DEC[id] || {};
+      if (value) DEC[id][field] = value; else delete DEC[id][field];
+    }
+    msg.textContent = 'saved'; return true;
+  } catch (e) {
+    msg.textContent = 'NOT saved: start the page with  python -m inlayfake editaudit --serve';
+    return false;
+  }
+}
+box.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-id]'); if (!b) return;
+  const v = dec(b.dataset.id) === b.dataset.v ? '' : b.dataset.v;
+  if (await save(b.dataset.id, 'decision', v)) render();
+});
+box.addEventListener('change', e => {
+  const t = e.target; if (t.classList.contains('notes')) save(t.dataset.id, 'notes', t.value.trim());
+});
+let drag = null, pending = {};
+box.addEventListener('mousedown', e => {
+  const w = e.target.closest('.draw'); if (!w) return;
+  e.preventDefault();
+  const r = w.getBoundingClientRect();
+  drag = {w, r, x0: (e.clientX - r.left) / r.width, y0: (e.clientY - r.top) / r.height};
+});
+window.addEventListener('mousemove', e => {
+  if (!drag) return;
+  const {w, r, x0, y0} = drag;
+  const x1 = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
+  const y1 = Math.min(Math.max((e.clientY - r.top) / r.height, 0), 1);
+  const nb = w.querySelector('.b.new'); nb.hidden = false;
+  const L = Math.min(x0, x1), T = Math.min(y0, y1), W = Math.abs(x1 - x0), H = Math.abs(y1 - y0);
+  Object.assign(nb.style, {left: L * 100 + '%', top: T * 100 + '%', width: W * 100 + '%', height: H * 100 + '%'});
+  drag.box = [L, T, W, H];
+});
+window.addEventListener('mouseup', () => {
+  if (!drag) return;
+  const {w, box: b} = drag; drag = null;
+  if (!b || b[2] < 0.01 || b[3] < 0.01) return;
+  const iw = +w.dataset.w, ih = +w.dataset.h;
+  pending[w.dataset.k] = [b[0] * iw, b[1] * ih, b[2] * iw, b[3] * ih];
+  const st = w.closest('.card').querySelector('.st');
+  st.textContent = 'box drawn: choose the class and click Save box';
+});
+box.addEventListener('click', async e => {
+  const sb = e.target.closest('.savebox'), cb = e.target.closest('.clearbox');
+  if (!sb && !cb) return;
+  const k = (sb || cb).dataset.k;
+  if (cb) {
+    if (await save(k, 'manual', '')) { delete DEC[k]; render(); }
+    return;
+  }
+  const card = sb.closest('.card');
+  const b = pending[k] || (DEC[k] && DEC[k].box);
+  if (!b) { card.querySelector('.st').textContent = 'draw a box on the photo first'; return; }
+  const v = {category: card.querySelector('.cls').value, box: b};
+  if (await save(k, 'manual', v)) { DEC[k] = v; delete pending[k]; render(); }
+});
+document.getElementById('flt').onchange = render;
+fetch('review.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}))
+  .then(d => { DEC = d || {}; render(); });
+</script></body></html>

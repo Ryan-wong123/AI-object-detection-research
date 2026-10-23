@@ -8,7 +8,8 @@ before publishing".
 ## Licences and shared images
 
 - [ ] **COCO photo licences for the shared previews.** `docs/results/week1_real_baseline/` (week 1)
-  (including the label-audit page `audit.html`) and `docs/results/week2_ai_insertion/` (week 2)
+  (including the label-audit page `audit.html`), `docs/results/week2_ai_insertion/` and
+  `docs/results/week2_ai_insertion_natural_box/` (week 2, the benchmark)
   contain downscaled COCO photos, plus edited
   versions of them. COCO images carry their own Flickr licences (the COCO annotations are a
   separate licence). Confirm the terms allow redistributing these copies, edited ones included,
