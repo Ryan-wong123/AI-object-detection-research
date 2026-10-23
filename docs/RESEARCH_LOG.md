@@ -7,6 +7,704 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-23: Benchmark frozen for Task 3: `data/inlayfake_v4`
+
+- **Author decision:** no further regeneration (no time to give every photo an object or to
+  protect real objects inside the box); move on to Task 3 with the current round.
+- **The benchmark** is the natural-placement run `task2_insertion_natural_box`: ledger
+  `data/inlayfake_v4/ledger.jsonl` (final verify `run_verify_2026-10-23T070146Z`, UTC). Table 1
+  counts in `paper/results/task2_benchmark_table1.csv` and `task2_benchmark_summary.json`:
+  C0/C1 518 images each (3,778 photographed objects), C2 425, C3 427 (427 pasted), C4 427
+  (427 AI-inserted, 85 real objects mixed/modified), C2 104 mixed/modified; 425 photos have all
+  five conditions (train / val / test 247 / 88 / 90); 76 classes.
+- **Known limitations kept, not fixed:** (1) 220 of 425 C2 boxes touch a labelled real object;
+  87 C2 and 72 C4 images partly repaint one (labelled mixed/modified; in C2 the covered part
+  looks erased); unlabelled objects inside a box can be repainted unnoticed. (2) C3 pastes are
+  not checked for covering real objects (no mixed/modified labels in C3). (3) 117 photos have
+  no AI object (26 no box, 91 all boxes failed). To be stated in the paper.
+- Task 3 config: `configs/task3_detection_natural.yaml` (reads this ledger).
+
+---
+
+## 2026-10-23: Author tools for photos without an AI object: drawn box, accept anyway
+
+- **Author request:** give the 117 photos without an AI object a way to get one: a box drawn on
+  the photo, and accepting a failed attempt the verifier missed (options A and C; no per-image
+  prompts, so the generation prompt stays fixed).
+- **Drawn box** (review page, `manual:<photo>`): `plan` adds it as the photo's last valid spot
+  (round "manual"); a photo without any plan gets its first plan from it. The free track moves
+  to it after the model's boxes (box versions recorded without a box are updated). Generated
+  and verified as usual; the edit is flagged `placement_rule: manual`.
+- **Accept anyway** (review decision `override` on a failed C4): the next `verify` re-checks it
+  with the planned box standing in for the detection (SAM outline, no fill check), reason
+  "accepted by the author (verifier overridden)", flag `verifier_override`.
+- Tests: no-box photo and all-boxes-failed photo both get a manual C4 with C2/C3 at the box; an
+  overridden attempt becomes the photo's C4 with its C2/C3. 135 tests pass.
+- **For the paper:** report manual placements and verifier overrides separately [[TBD: counts
+  after the author's review]].
+
+---
+
+## 2026-10-23: Full natural run finished: 427 of 544 photos with a verified AI object
+
+- **Run** `task2_insertion_natural_box` (`configs/insertion_natural_box.yaml`, `data/inlayfake_v4`),
+  final verify `run_verify_2026-10-23T070146Z` (UTC); `paper/results/task2_insertion_natural_box_final.json`.
+  Stopped three times (laptop sleep 22 Oct 05:29 and 19:53; NVIDIA driver reset, event 153,
+  22 Oct 18:10) and resumed each time with the same command, losing nothing.
+- **Result:** of 544 photos, 518 had a planned box; **427 have a verified AI object (C4)**: 350 on
+  Qwen's first box (242 / 72 / 36 on seeds 1 / 2 / 3), 57 on the second, 20 on the third. 91 ran out
+  of boxes (35 had one box, 17 two, 39 failed all three), 26 had no box. C4 failures were almost
+  all "object not found by verifier". Per-image pass rate falls with each box (box 1: 350 of 998
+  images, box 2: 57 of 321): the remaining photos are harder for SDXL.
+- **Final ledger:** C0/C1 518, C3 427, C4 427, C2 425; **425 photos complete C0–C4** (2 photos have
+  a C4 but their sham produced the target object on all 3 seeds). 76 classes; split
+  train / val / test 249 / 88 / 90 C4 edits; planned box median 1.4% of the image, inserted
+  object (SAM box) median 0.82%. C4 attempts: 286 first, 93 second, 48 third (of the edit's box).
+- **Next:** the author's review of C2/C3/C4 per photo (`editaudit`), redo of rejects (same run
+  command), then week-3 detection/forensics on the final ledger.
+- **Review page** (author request): also lists the **117 photos without an AI object** (26 no box,
+  91 all boxes failed) as view-only cards with the planned boxes and every failed C4 attempt and
+  its verifier reason; filter "no AI object". 427 photos to review (1279 images), 44 in the
+  random sample.
+
+---
+
+## 2026-10-22: Edit review per photo: accept/reject C2, C3, C4; rejected images are redone
+
+- **Author request:** the review page should show C2, C3 and C4 per photo with Accept/Reject for
+  each, save to a CSV, and rejected images should be rerun.
+- **Built:** `editaudit` now shows one card per photo (C1 before, C2, C3, C4 cropped around the
+  box), Accept/Reject per image, notes per photo; clicks go to `condition_review_clicks.json` and
+  `condition_review.csv` (one row per current or reviewed image; rejected rows stay with
+  `current: n`). The three-question audit page is replaced.
+- **Redo:** `verify_state` turns a rejected C2/C4 into a failed verification, so the next
+  `insert` makes a new seed at the same box (after 3, the next of Qwen's boxes; C2/C3 follow the
+  C4 box); a rejected C3 gets another donor (new seed); rejected images are kept out of the final
+  ledger. Test: rejecting all three of a photo and running `insert` again gives three new images
+  and none of the rejected ones in the ledger. 131 tests pass.
+- **Note:** the running full run's `insert` process has the old code; rejections take effect when
+  the pipeline is run again after it finishes (`python scripts/run_stages.py ...`).
+
+---
+
+## 2026-10-22: Clickable edit audit; audit sheet grows with the run
+
+- **Author request:** a clickable audit page for all AI edits that saves into audit_edits.csv,
+  with filters and a progress counter. `python -m inlayfake editaudit --serve` (port 8769):
+  before/after crops with planned and verified boxes, yes/no for object present, realistic and
+  other change, notes; each click goes to `audit_edits_clicks.json` and is merged into the CSV.
+- **Two audit-sheet problems found and fixed while building it:** (1) the sheet never grew after
+  the first verify round (the CSV was never rewritten), so edits passing in retry rounds would
+  have been missing; (2) the random sample was drawn from the first round's edits only, biasing
+  the verifier error estimate towards easy edits. Now new edits are appended (existing rows keep
+  their place and decisions) and sample membership is a fixed hash of the edit id (seed, 10%).
+  Clicks survive a verify rewrite of the sheet (tests). The running full run's `insert` process
+  still has the old code loaded, so its verify rounds leave the sheet as it is; `editaudit`
+  (new code) adds the newly passed edits when run again.
+- **State at start:** 242 edits on the page (round-1 passes), 23 in the random sample.
+
+---
+
+## 2026-10-21: Full natural run started (run `task2_insertion_natural_box`)
+
+- **Author decision:** start the full run with the merged-question box mode (the author found
+  the merged pilot "a lot better"); it must survive a shutdown at any point.
+- **Crash safety checked** stage by stage. Gap found and fixed (commit ab7dc63): a power cut
+  while appending a JSON-lines log (Qwen's answers, planning progress, verification, re-plans)
+  could leave a cut-off line that the next append glued onto, and reading would then fail, so the
+  run could not resume. `open_append` drops a cut-off last line first; tests cut lines mid-way
+  and resume to identical plans and a complete ledger. Images count as made only once their
+  record is written (atomically, after the image); verified records are written before their log
+  row. 129 tests pass.
+- **Started** 17:51 with `python scripts/run_stages.py configs/insertion_natural_box.yaml`
+  (sample, plan, insert, preview as separate processes; idle sleep blocked); the same command
+  resumes. Work dir `data/inlayfake_v4`. Planning ~12 s per photo (~1.8 h); generation and
+  verification expected ~6-9 h more [[TBD: actual]].
+- **Planning finished** 19:59 (2 h 8 min; 779 Qwen questions; `run_plan_2026-10-21T115944Z`,
+  UTC): **518 of 544** photos have a box, 26 none; 451 plans from the first answer, 67 after the
+  re-ask; 77 classes; median box 1.45% of the image
+  (`paper/results/task2_insertion_natural_box_plan.json`). Generation round 1: 1036 SDXL images
+  (C4 + C2 for 518 photos) at ~17 s each (~4.6 h), then verification and retry rounds.
+
+---
+
+## 2026-10-21: Full run set up (box mode, no gate); merged first question: pilot 44 of 50
+
+- **Author decisions:** no review gate for the full run (box 1 generated, backups on verifier
+  failure; the human audit of every C4 afterwards); then: replace the chain of questions (main,
+  size re-asks, foreground re-ask, last resort) by **one merged first question** with every
+  requirement and an order of preference, plus one re-ask with the concrete failures.
+- **Config** `configs/insertion_natural_box.yaml` (544 week-1 photos, work dir
+  `data/inlayfake_v4`), equal to `pilot_natural_qwen_free.yaml` in placement/edit/generation/
+  encoding (test). Not started yet. End-to-end CPU test of box-mode plan + insert added.
+- **Merged question** (`merged_template`): every labelled object and person as taken (0-1000
+  grid), the photo's own objects of the class, size and proportions (>= 15 px), order of
+  preference (whole object in free space; nearer the camera if small; cut off by the edge or
+  partly behind something only if no free space), always 3 boxes. Same checks (15 px / 0.1%,
+  3x elongation, 30% overlap); one re-ask; then the next class.
+- **Pilot** (`run_plan_2026-10-21T091847Z`, UTC; 73 questions): **44 of 50** photos (multi-step
+  version: 48). 36 photos settled by one question, 11 by two. Plans: 37 from the first answer, 7
+  after the re-ask. Rejections: 38 boxes covering 53-100% of a real object, 24 too small, 5 too
+  thin. Without a box: a vase display, a surfer with board, a ski race, a busy motorcycle street,
+  an airplane through a window, a zebra herd (the multi-step version's last resort and second
+  size re-ask had given them boxes). Quality to be judged by the author on the preview.
+
+---
+
+## 2026-10-21: Qwen cannot judge its own boxes: no agreement with the author's review
+
+- **Question (author):** can a second Qwen pass replace the author's review as the full-run gate?
+  `scripts/judge_agreement.py`: each of the 93 pilot spots shown with the box drawn in red, two
+  fixed wordings ("full": surface, size, scene, people/objects; "short": would the photo still
+  look natural), Qwen3-VL-8B's P(yes) from the first answer token.
+- **Author's review** (`data/inlayfake_pilot_natural_qwen_free/spot_review.json`): 59 of 93 spots
+  reviewed, 35 accepted, 24 rejected; 35 of 48 photos have an accepted spot; box 1: 22 accepted,
+  15 rejected, 11 not reviewed.
+- **Agreement** (`paper/results/task2_judge_agreement.json`): AUROC **0.44** ("full") and **0.50**
+  ("short"), i.e. chance; best agreement over all cut-offs 0.59 and 0.63 against 0.59 for
+  accepting everything. At 0.5 the "full" judge catches 8 of 24 rejects and keeps 23 of 35
+  accepts. **Negative result:** Qwen's yes/no on a drawn box does not separate the boxes the
+  author finds natural from those they reject (as Molmo's realism check before).
+- **Consequence:** an automatic judge cannot be the full-run gate; the author's review is.
+
+---
+
+## 2026-10-21: Overlap limit back (30%): insertion, not replacement; pilot 48 of 50
+
+- **Author's finding:** in the no-rules pilot some boxes covered real objects (three "truck"
+  boxes on parked cars; an elephant box on the existing elephant). Painting there would replace
+  or hide a real object, which is COinCO's edit, not InlayFake's, and breaks the real/AI labels.
+- **Change (author: 30%):** `shape_check.max_cover_labelled: 0.30`: a box may cover at most 30% of
+  any labelled object or person (COCO + audit adds); otherwise it is re-asked with the reason
+  ("covers 85% of the existing car"), up to 2 times, then the next class. Unlabelled objects are
+  not seen; the author's review covers them.
+- **Pilot** (`run_plan_2026-10-21T082757Z`, UTC; 57 new questions): **48 of 50**; the first box
+  moved in 14 photos; 26+11+8+7 boxes rejected for covering 83-100% of a real object. Lost: a
+  crowded sheep field and a packed motorcycle museum (every box over sheep, a person or
+  motorcycles). The truck photo now gets a car on the pavement corner (off the road: doubtful);
+  the elephant photo gets boxes in the grass beside the herd (plausible).
+
+---
+
+## 2026-10-21: Size limit measured: 15 px; no-rules pilot 50 of 50
+
+- **Author request:** measure which box sizes survive generation + verification instead of the
+  estimated 32 px / 0.5% limit. `scripts/size_limit_test.py`: 42 of Qwen's real boxes from the
+  no-rules pilot (6 per short-side band 10-16 ... 40-48 px; 24 from the 5 wide sports photos;
+  boxes on an existing object of the same class left out), SDXL C4 with the pilot settings,
+  3 seeds each, the pipeline's C4 verification (OWLv2 + SAM, fill >= 25%).
+- **Result** (`paper/results/task2_size_limit_test.json`): boxes passing on any seed per band:
+  10-16 px 4/6, 16-20 3/6, 20-24 4/6, 24-28 5/6, 28-32 4/6, 32-40 5/6, 40-48 4/6; per-seed pass
+  rate 0.33-0.61 with no trend in size. Failures: 61 not found, 9 fill too low (of 126). All 5 wide
+  photos have a passing box. **By eye** (zoomed), passing edits at 15-22 px look like the object
+  (skis on snow, frisbees on grass and in the air, surfboards on water and a beach); two gloves
+  are weak (a gold lump, a glove drawn on a player's hand). Small sample (6 per band, 5 photos
+  dominate): no size effect detected, not proof of none.
+- **Decision (author's request to set the limit from the test):** shape_check minimum 15 px short
+  side and 0.1% of the image (was 32 px / 0.5%); 15 px is the smallest size checked by eye; the
+  too-thin check stays.
+- **Pilot** (`run_plan_2026-10-21T075954Z`, UTC; 55 new questions since the size hint changed):
+  **50 of 50** photos have a box (49 first answer, 1 after a size re-ask); median box 1.4% of the
+  image; 11 with a short side under 24 px. (At 16 px: 49, the ski boxes are 15.7 px.)
+
+---
+
+## 2026-10-21: Foreground re-ask does not rescue the wide sports scenes
+
+- **Author request:** cover wide scenes by asking, on the last size re-ask, for the foreground
+  near the camera (`shape_check.foreground_last`, `foreground_hint_template`).
+- **Pilot** (`run_plan_2026-10-21T065854Z`, UTC; 24 new questions): still **45 of 50**; the 5
+  wide sports photos still have no box. Qwen does move the boxes to the bottom of the photo, but
+  keeps them at a realistic size for the class there: frisbees 31 x 22 and 28 x 35 px, gloves
+  25 x 36 px, skis 65 x 19 px, a surfboard 58 x 15 px; all just under the 32 px / 0.5% limit (one
+  "frisbee" box is a 205 x 28 strip). So the size limit, not Qwen's placement, excludes these
+  photos; whether SDXL and the verifier can handle 20-30 px objects has not been measured.
+
+---
+
+## 2026-10-21: Size/shape check with re-asking (no-rules pilot): 45 of 50, no tiny boxes
+
+- **Author request:** no too-thin or tiny boxes. Built `shape_check`: a size hint in every
+  question ("whole object, normal proportions, at least N on the 0-1000 grid, else closer to the
+  camera"); a box under 32 px / 0.5% of the image, or more than 3x as elongated as the class
+  usually is in COCO (orientation-free, so a lying bottle passes), is re-asked with the failed
+  boxes and reasons, up to 2 times per question. Limits come from what SDXL and the verifier can
+  handle, not from naturalness.
+- **Pilot** (`run_plan_2026-10-21T064902Z`, UTC; 111 new questions, the hint changed every
+  question): **45 of 50** photos with a box (before 50, of which many tiny). No planned box under
+  0.5% of the image or 32 px (median 1.8%). 40 from the first answer, 3 after re-asking, 2 from
+  the last resort after re-asking. **Lost 5 photos**: wide sports scenes (frisbee field and
+  garden, ski race, baseball field, surfing) where Qwen kept drawing tiny boxes in 3 tries
+  (148 boxes too small in total).
+- **By eye, the 5 re-asked boxes are mixed:** a giraffe near the herd and a traffic light in a
+  dark street corner are plausible; a surfboard box on the surfer's own board, a motorcycle box
+  on the bus front and an airplane box on the jet bridge are not. Train and toilet close-ups now
+  get a first-answer box (a train on the ground below the viaduct; a sliver of floor in the
+  toilet corner), still poor.
+
+---
+
+## 2026-10-21: Last-resort question for close-ups (same class, edge or further back)
+
+- **Author request:** for close-ups where every class of the photo got no place, ask Qwen once
+  more for the same class, allowing the new object to be cut off by the photo's edge, further
+  back or partly behind something; no "no place" answer (`last_resort: true`,
+  `last_resort_template`; boxes tagged "last resort" on the review page).
+- **Pilot** (no-rules mode, `run_plan_2026-10-21T061019Z`, UTC; 2 new questions): **50 of 50**
+  photos have a box. Both last-resort boxes are poor: a 16 px strip along the viaduct railing
+  across the whole photo (not a train shape) and a 32 px box in the floor corner of the toilet
+  close-up. These scenes have no sensible place for another object of the class; the author's
+  review decides.
+
+---
+
+## 2026-10-21: Other-class fallback tried and reverted
+
+- An other-class fallback for close-ups (Qwen picks a class labelled in the 544 week-1 photos when
+  none of the photo's classes gets a place) was built and piloted (50 of 50, but both fallback
+  boxes poor: benches on viaduct pillars, a bottle over a hand). **Author: not what was wanted;
+  reverted** (commit d59b5f2 reverted). No-rules pilot back to 48 of 50
+  (`run_plan_2026-10-20T203038Z`, UTC); the train and toilet photos get no AI edit.
+
+---
+
+## 2026-10-21: Decision: no object replacement
+
+- In the no-rules pilot 2 photos get no box: each has one insertable class (train on a viaduct,
+  toilet close-up) and Qwen answered that no second one would look natural. Considered: erase
+  the real object and generate an AI one in its place ("replace"). **Author decision: not
+  implemented**, because replacing a COCO object by inpainting is what COinCO (CVPR 2026, closest
+  related work) does; InlayFake stays insertion-only. Such photos get no AI edit; classes stay
+  limited to the photo's own labels (COCO + week-1 audit adds), no other-class fallback.
+
+---
+
+## 2026-10-21: Box mode without rules: 48 of 50 photos
+
+- **Author request:** "scrap all rules": Qwen takes a class from the photo's week-1 labels,
+  understands the photo and places the object where it makes most sense.
+- **Built:** `placement.natural.free` (every Qwen box is used as drawn: no surface, size, overlap
+  or window/sky rule); the next class is asked only if Qwen gives no box. Config
+  `pilot_natural_qwen_free.yaml`, own work dir, Qwen answers reused (0 new questions).
+- **Pilot** (`run_plan_2026-10-20T201049Z`, UTC): **48 of 50** photos get a box; for 2 Qwen
+  answered that no class fits. Planned boxes: median 1.5% of the image; 14 under 0.5% and 11 with
+  a short side under 24 px (likely to fail generation or the verifier); 6 cover more than half of
+  an existing object of the same class (the verifier ignores the photo's own object, so these will
+  fail and fall back to box 2 or 3); 6 touch a person.
+- **Fix kept from before:** photos that had the extra questions keep them after an accept
+  (commit 0b4458c).
+- **Next:** author looks at the boxes (page on port 8768) and decides whether to review them or
+  generate as is.
+
+---
+
+## 2026-10-21: Looser automatic rules, since the author reviews every spot: 43 of 50
+
+- **Author request:** loosen the rules so every photo can get a spot that makes sense. Since the
+  author reviews each spot by eye, the automatic rules only need to remove what cannot work:
+  `pilot_natural_qwen_loose.yaml` drops the surface check at the box's base and lowers the
+  minimum box to 0.2% of the image / 24 px (was 0.5% / 32 px); overlap limits stay at 50%.
+- **Result** (`run_plan_2026-10-20T195948Z`, UTC; 97 new Qwen questions, 82 reused): **43 of 50**
+  photos have at least one spot (strict: 33); **17 of the 24** photos without an accepted spot now
+  have new spots to review (73 spots, median 1.8% of the image, 15 under 0.5%). Still nothing for
+  7 photos: boxes under 0.2% / 24 px (40) or on existing objects or people (dogs, surfboards,
+  bicycles, a person).
+- **Risks:** the smallest objects may fail generation or verification; spots on surfaces the old
+  rule rejected (bushes, windows, metal) depend on the author's review.
+- **Next:** author reviews the new spots; then decide on the remaining 7.
+
+---
+
+## 2026-10-21: Decision: photos without an accepted natural spot get no AI edit
+
+- **Author decision:** only photos with an accepted natural spot get an AI object; the others
+  (about 19 of 50 in the pilot) get none. No hand-drawn spots, no random or forced fallback.
+- **Consequence:** the AI condition (C2–C4) covers a subset of the 544 photos; C0/C1 cover all.
+  Comparisons of AI-inserted vs real stay matched within the subset; the paper reports the
+  subset size and how it differs (fewer close-ups, crowded and far-away scenes).
+- **Paper:** §4 *Natural placement* rewritten for box mode with review; Table 1c has a box-mode
+  column; the Molmo version is described as replaced.
+- **Next:** author reviews the 9 new pilot spots; then the full 544-photo box-mode run (plan,
+  review, more questions, review, generation).
+
+---
+
+## 2026-10-21: Author's spot review; more Qwen questions add little
+
+- **Review (author, 33 pilot photos):** 26 spots accepted, 8 rejected; **26 of 50 photos** have
+  an accepted spot (20 from the first question, 6 from the second); 7 photos had every spot
+  rejected and 17 never had a valid spot. Decisions: `data/inlayfake_pilot_natural_qwen/
+  spot_review.json` (copy `spot_review_round1.json`).
+- **Author decision:** every photo needs an AI object; ask Qwen more questions for the 24 photos
+  without an accepted spot and review the new spots (not hand-drawn boxes). `more_questions`:
+  every class of the photo, the second question for any class without an unrejected spot, and
+  two any-class wordings (one starting from free space); rejected spots are listed as taken.
+- **Result** (`run_plan_2026-10-20T193654Z`, UTC; 36 new questions): only **5 of the 24**
+  photos got new spots to review (9 spots: 5 second-question, 4 other-class), all among the 7
+  photos whose spots were rejected. **None of the 17 photos that never had a spot got one**:
+  their boxes are still too small (68), on people (12) or other objects, or Qwen answers that
+  nothing fits (12). So more questions cannot give every photo a natural AI object; at best 31
+  of 50 if the author accepts all 5.
+- **Next:** author reviews the 9 new spots and decides how the remaining ~19 photos get an AI
+  object (hand-drawn spot, a less natural fallback, or no AI edit).
+
+---
+
+## 2026-10-21: Hand review of planned spots before generation
+
+- **Author decision:** keep all 33 pilot spots and review each one by hand before generation.
+- **Built:** `python -m inlayfake spots --serve` (`stages/spots.py`): a page with every valid spot
+  (planned + backups) and Accept/Reject buttons; a local server (127.0.0.1) saves each click to
+  `<work>/spot_review.json`. With `placement.natural.review.enabled`, `plan` keeps only accepted
+  spots (or, with `require_accept: false`, all but rejected ones); a photo uses its first
+  accepted spot and is dropped if none. Decisions are keyed by photo, class and box. The plans
+  are the author's choice from the VLM's candidates; the paper must say so.
+- **Next:** the author reviews the 33 pilot photos; then decide on the full 544-photo run.
+
+---
+
+## 2026-10-21: Box mode, fixes A + B: 33 of 50, but the extra spots are mostly poor
+
+- **Why:** the author wants an AI object in every photo but no random fallback. Looking through
+  the 28 pilot photos without a spot: 15 had only too-small (far) boxes, 9 only boxes on other
+  real objects, ~5 rule mistakes, ~5 bottoms on people or vehicles in traffic, 3 "no place"
+  answers that were right (close-ups, a full scene).
+- **Changes:** surface rule: ground animals may stand in plants, pole-mounted signs skip the check
+  (commit 636594b; pilot 22 -> 23). A: a second question for a class whose boxes all failed,
+  listing every labelled object, person and rejected box as taken, with a minimum size. B: every
+  class of the photo is tried (stop at the first with a valid spot), then Qwen may pick any listed
+  class (flagged `class_in_photo: false`). Config `pilot_natural_qwen_small.yaml`.
+- **Pilot** `run_plan_2026-10-20T191136Z` (UTC): **33 of 50** photos with a spot (23 before):
+  23 from the first question, 9 from the second, 1 other class (a bicycle). 91 new Qwen
+  questions, 66 reused.
+- **By eye, the 10 new spots are mostly poor:** about 3 of 10 look plausible (a bus far down the
+  roadside, a zebra on the grass); the others lie on real things COCO does not label (a resting
+  sheep, a scooter rider, a car's number plate, a museum motorcycle's seat), are the wrong shape
+  (a bicycle box spanning the whole ground strip) or sit where the object makes no sense. The
+  overlap rule cannot catch unlabelled objects. So pushing Qwen for more spots trades quality
+  for coverage, as with the looser Molmo rules.
+- **Next:** author decides: keep the first-question spots only (23 of 50), keep all 33 and review
+  by hand, or another way to judge the extra spots.
+
+---
+
+## 2026-10-21: Box mode: Qwen3-VL-8B draws the box (planning-only pilot, 50 photos)
+
+- **Why:** the author found many planned boxes that do not make sense (a tennis racket standing
+  in mid-air against a wall). Cause: Molmo's point was fine, but the template box was upright;
+  39 of 73 planned objects that should lie flat had an upright box (full run, 50% plan). Author
+  decision: let a stronger VLM read the whole scene and draw the box itself (option 3), with
+  Qwen3-VL-8B although week 3 evaluates Qwen2.5-VL-3B (same family; it only picks the location;
+  to be disclosed and checked in week 3). Commit 71f38aa (`placement.natural.mode: box`).
+- **Model:** Qwen3-VL-8B-Instruct, 4-bit: 6.3 GB on the GPU, 3–9 s per answer (Molmo: 15–45 s).
+- **First test (3 photos):** Qwen boxed the *existing* skis and bowl instead of an empty place.
+  Fix: the question lists the photo's own objects of the class (0–1000 grid) and asks for an
+  empty place; then the racket boxes lie flat on the court and the skis box is on empty snow.
+- **Pilot** (`configs/pilot_natural_qwen.yaml`, same 50 photos as pilots v1–v4, 50% overlap
+  limits, surface check at the box's bottom centre; `run_plan_2026-10-20T171733Z`, UTC):
+  **7 of 50 photos** have a spot: 84 of 150 boxes are below the minimum box (2% of the image,
+  64 px), because Qwen draws realistic tight boxes (median 0.6% of the image, 29 px short side).
+  With a 0.5% / 32 px minimum (`pilot_natural_qwen_small.yaml`, `run_plan_2026-10-20T171923Z`):
+  **22 of 50** (46 boxes still too small, 10 with the bottom on a person, 8 answers without a box).
+  Molmo pilot v2 for comparison: 27 of 50 planned, 18 verified.
+- **By eye (preview page, 22 photos):** most boxes sit in a sensible place at a sensible size
+  (a surfboard on the water by the surfer, rackets flat on the court); some do not (a sink box on
+  the floor under the counter, a train box at the image edge). Not a full fix: still needs the
+  author's judgement.
+- **Trade-off:** realistic sizes are small; the 2% minimum was added on 20 Oct against tiny,
+  smudged SDXL objects. Smaller boxes raise coverage but risk generation and verification.
+- **Next:** author decides the minimum box size and whether to run box mode on the 544 photos.
+
+---
+
+## 2026-10-21: Overlap limits raised to 50%: 389 of 544 photos have a natural spot
+
+- **Author decision:** after the planning-only pass (349 photos at 30%), raise both overlap
+  limits (person, any real object) to 50%; re-plan before generating.
+- **Re-plan** `run_plan_2026-10-20T161419Z` (UTC; 11 min, all 544 photos re-checked from saved
+  answers; 50 new Molmo questions where the class order shifted, 810 reused):
+  **389 of 544 photos (72%)** have a spot (30%: 349). 43 photos gained, 3 lost (the even class
+  balance gave them another class, which had no spot), 292 keep the same first spot, 54 changed
+  spot or class. 1,192 valid of 2,373 candidates (30%: 993 of 2,363). Within the earlier upper
+  bound (+62 photos at 50%). The 30% plan is kept as `plans_v4_30pct.jsonl` /
+  `natural_candidates_v4_30pct.jsonl`. `paper/results/task2_insertion_natural_plan_50pct.json`.
+- **Cost:** objects may now hide up to half of a person or a real object, so more edits occlude
+  real content; the human audit should watch for this.
+- **Next:** author's go-ahead for `insert` (generation + verification).
+
+---
+
+## 2026-10-20: Full natural run, planning only: 349 of 544 photos have a natural spot
+
+- **Run** `task2_insertion_natural`, `run_plan_2026-10-20T145159Z` (v4 rules: up to 30% of a
+  person or real object covered, box fill >= 25% at verification);
+  `paper/results/task2_insertion_natural_plan.json`.
+- **Result:** **349 of 544 photos (64%)** have at least one valid natural spot; 195 have none
+  (every photo has an insertable class). 993 valid of 2,363 candidate spots; 75 classes planned
+  (most: surfboard 18, toilet 12, horse 10). Main rejections: 85 outside the image, 80 covering a
+  whole person, 39 answers without a point, and many points on surfaces the class does not rest on
+  (metal, buildings, fences, walls, trees, ...).
+- **Why photos have no spot** (kinds of rejection among each photo's candidates): only wrong
+  surface 53, real-object overlap 24 (+28 with surface), people 12 (+18 with surface, +11 with
+  real), no point in Molmo's answer 21.
+- **Upper bound for looser overlap limits** (photos with a candidate rejected only for covering
+  a person/real object by at most the limit; other checks may still reject them): 40%: +50
+  photos, 50%: +62, 60%: +78. So even 60% would leave about 120 photos without a spot.
+- **Process:** speed fixes during the run (Molmo memory, CPU power mode, ~12 s per photo at the
+  end); the last restart re-checked all saved photos once from saved answers (124 Molmo
+  questions asked, 736 reused). Photos 1–28 are now planned with the depth model on the CPU, as
+  all others are.
+- **Next:** author decides: keep the v4 rules (349 photos) and start `insert`, or loosen
+  overlap limits and re-plan (minutes).
+
+---
+
+## 2026-10-20: Planning first; saved VLM answers make rule changes cheap
+
+- **Author decision:** run the planning stage of the full natural run alone first, look at how
+  many of the 544 photos get a spot, then decide whether to loosen the rules before generating.
+- **Why a code change:** re-planning with other rules used to ask Molmo every question again
+  (~2.5–4.5 h), although Molmo's points do not depend on the rules. Now each answer is saved per
+  (photo, class, prompt, model) in `natural_points.jsonl`, and every planned photo stores the
+  settings it was planned with (rules, size limits, surface check, prompt file, depth model). A
+  photo saved with other settings is re-checked with the current ones from the saved answers
+  (depth model + box rules only); Molmo is asked only for a class it never answered. The 19
+  photos planned before the stop are re-checked once this way (their answers are read back from
+  the saved progress rows). Tests: a re-check gives the same plans as a fresh run with the new
+  rules and asks Molmo nothing. No results change.
+- **Next:** planning-only run of `configs/insertion_natural.yaml`; report photos with a spot and
+  the rejection reasons; author decides on the rules; then `insert`.
+- **Slow planning fixed:** the planning-only run (started ~15:00) ran at ~80 s per photo (~11 h
+  for 544; before the laptop slept that morning it ran at ~16 s per photo). The planning process
+  held 7.8 GB of the GPU's 8 GB plus 1.2 GB in shared system memory, and the GPU was mostly idle
+  (6–24% use): Molmo had spilled out of GPU memory. Fix (author's go-ahead): the depth model
+  (Depth-Anything-V2-Small) runs on the CPU (`placement.natural.depth.device: cpu`), and cached
+  GPU memory is freed after every photo. Stopped at 28 photos and restarted; nothing was lost.
+  Depth on CPU vs GPU differs only by rounding, so already saved photos are kept.
+- **That was not enough (still 50–120 s per Molmo answer); measured cause:** Molmo's own
+  `Embedding.forward` concatenates its 152k-word table with the image-token table on every call,
+  a fresh 1.1 GB GPU block per generated token. PyTorch then kept 8.4 GB reserved for 7.5 GB in
+  use, more than the GPU has. Fixes: look the two tables up separately (same vectors), and use
+  CUDA's own allocator (`backend:cudaMallocAsync`) for planning. On 6 real planning questions:
+  reserved 8.4 → 6.9 GB, peak use 7.5 → 6.8 GB, and **all 6 answers identical** to the saved
+  ones. Time per answer 50–120 s → 33–45 s.
+- **Remaining slowness is the CPU, not the GPU:** during Molmo the GPU is ~70% idle at ~600 MHz
+  and the CPU runs at 60–84% of its base clock (Windows "Balanced" power plan, laptop power
+  mode). Molmo generates one token at a time, each driven by Python on the CPU. A
+  high-performance power mode is the author's setting to change.
+
+---
+
+## 2026-10-20: Full natural run started with looser rules (run `task2_insertion_natural`)
+
+- **Author decisions:** loosen three rules for coverage: an AI object may cover up to 30% of a
+  person (was: never) and up to 30% of any other real object (was 15%), and its outline must fill
+  at least 25% of its box (was 35%) (commit 75fe93b, `configs/pilot_natural_v4.yaml`). Then: no
+  pilot for these rules; the 50-photo pilot v4 was stopped during planning and the full run
+  started with them (`configs/insertion_natural.yaml` = v4 settings, test-checked).
+- **Expectation:** more photos than v2's 36% (rough estimate ~200; v2 lost most photos to people
+  and overlap), somewhat less natural placements; untested, so the result will tell.
+  Work dir `data/inlayfake_v3`; the random-placement run in `data/inlayfake_v2` stays.
+
+---
+
+## 2026-10-20: Full natural-placement run prepared (`configs/insertion_natural.yaml`)
+
+- **Author decision:** use the pilot-v2 settings for the full run on the 544 week-1 photos (v3's
+  extra spots and classes added one photo of 50 for twice the planning time).
+- **Config:** placement, generation and verification identical to `pilot_natural_v2.yaml` (a test
+  checks this); differences: the 544 photos, work dir `data/inlayfake_v3`, website folder
+  `week2_ai_insertion_natural`, audit sheet with every C4, and the sham rule
+  `sham_original_overlap: 0.25` from the first full run.
+- **Expected** (from pilot v2: planning 30–55 s per photo; 5.3 SDXL images per planned photo at
+  20–45 s): planning ~4.5–8 h, generation ~9–19 h, total ~14–27 h (best guess ~18 h); about 290
+  photos with a plan and 190–200 with a verified natural AI edit. GPU contention (a browser) and a
+  quiet power mode slowed the pilots 2–4×.
+
+---
+
+## 2026-10-20: Natural pilot v3: more spots and classes do not raise coverage
+
+- **Setup** (author's choice to raise coverage without loosening quality; commit 2814e86,
+  `configs/pilot_natural_v3.yaml`): v2's rules, but up to 3 classes per photo (v2: 2), up to 10
+  spots per class (v2: 5) at least 7% of the image diagonal apart (v2: 10%), 30 spot versions.
+- **Plan** (~70 min, ~100 s per photo; a browser on the GPU slowed part of it): 28 of 50 photos with
+  a spot (v2: 27); 82 valid of 332 candidates (v2: 57 of 211). Rejections: 86 covering > 15% of a
+  real object, 83 covering a person, 19 on another object, 17 outside the image, 39 on another
+  surface (windows, wall tiles, bushes, trees, metal, ...), 6 no point.
+- **Generation** (finished 04:43): verified C4 for **19 of 28**, so **19 of 50 photos** (v2: 18);
+  the 18 v2 photos are all among them. Failed C4 attempts: 58 not found by OWLv2, 36 filling < 35%
+  of the box. Same quality as v2: 68% on ground/table/water, none on walls, objects median 1.9% of
+  the image, 1 of 19 under 1%; the edits are mostly identical to v2's (Molmo answers the same
+  question the same way).
+- **Conclusion:** coverage is limited by photo content (people and other objects where the VLM
+  points) and by generation failures, not by the number of candidate spots; v3 doubled planning
+  time for one extra photo. `paper/results/task2_pilot_natural_four_way.json`; sheets
+  `data/inlayfake_pilot_natural_v3/compare/compare4_1-6.jpg`.
+
+---
+
+## 2026-10-20: Natural placement v2: three fixes, pilot re-run (`task2_pilot_natural_v2`)
+
+- **Fixes** (author approved; commit 06b1b9b; all off by default, on in
+  `configs/pilot_natural_v2.yaml`): (1) the VLM point must lie on a surface the class rests on
+  (COCO-Stuff surface sets per class group, `supports` in `configs/placement_prompts.yaml`) or on an
+  object that carries it (e.g. a cup on a dining table); a point on any other object is rejected;
+  (2) boxes ≥ 2% of the image and ≥ 64 px on the short side, depth scaling limited to ×0.7–1.4
+  (was 0.5–2); (3) `verify.min_box_fill: 0.35` rejects an AI object whose outline fills < 35% of
+  its box (a failed attempt, so it is regenerated). Hand-checked tests for each; 101 pass.
+- **Pilot v2** started 00:10 on the same 50 photos, new work dir `data/inlayfake_pilot_natural_v2`
+  (v1 kept for comparison), plan / insert / preview in separate processes. Planning runs at
+  ~80 s per photo (v1: ~20 s): the GPU is at its memory limit (7.9 of 8.2 GB) with a browser also
+  using it, so Molmo spills into system memory (back to ~25-35 s once the browser stopped).
+- **Plan v2:** 27 of 50 photos with a spot (v1: 33); of 211 candidates 57 valid. The surface rule
+  rejected 42 points: 15 on another real object, 5 on windows, 4 on bushes/trees, 3 on a bridge,
+  3 on walls/fences, 2 on metal, 2 on a floor for a table-top class, 8 other. Still the largest
+  rejections: 58 covering a person, 55 covering > 15% of a real object.
+- **Generation v2** (finished 01:49, run_verify_2026-10-19T174941Z): verified C4 for **18 of 27**
+  (9 dropped after all spots failed); C2/C3 with each: **18 of 50 photos**. Failed C4 attempts: 45
+  object not found by OWLv2, 38 object filling < 35% of its box (fix 3).
+- **Three-way comparison, same photos** (`paper/results/task2_pilot_natural_three_way.json`;
+  sheets `data/inlayfake_pilot_natural_v2/compare/compare3_1-5.jpg`):
+
+  | | random | natural v1 | natural v2 |
+  |---|---|---|---|
+  | photos with an AI edit | 50/50 | 28/50 | 18/50 |
+  | object on ground/table/water | 46% | 64% | 72% |
+  | object on wall/window/fence | 10 | 3 | 0 |
+  | object area / box (median) | 0.38 | 0.28 | 0.55 |
+  | object area / image (median) | 0.8% | 0.5% | 1.8% |
+  | objects < 1% of the image | 30/50 | 21/28 | 1/18 |
+
+- **By eye:** v2 is the most natural: about 14 of 18 plausible (cow in a field, surfboards on water,
+  bicycle on grass, apple on a counter, toothbrush by taps, car in a car park, giraffe on a hill,
+  backpack by a tent, ball on a floor, cup on a table, motorcycles on a road), about 4 poor (a sink
+  in a towel rail, a bin-like object for a toilet, an odd hair drier, a dark chair in a corner).
+  Objects are clearly visible instead of tiny smudges.
+- **Trade-off:** coverage falls to 18/50 photos. Main limits: people or other objects in the way
+  (rules), OWLv2 misses, and too-small objects now being rejected. On the full 544 this would give
+  roughly a third of the photos (estimate from the pilot rate, not measured).
+- **Next (author's call):** accept v2 with lower coverage, or loosen where it is cheapest (e.g.
+  more candidate spots per photo or a third class, which costs VLM time, not quality).
+
+
+---
+
+## 2026-10-19: Natural vs random placement on the same 50 pilot photos (comparison)
+
+- **Final natural pilot** (run_verify_2026-10-19T151526Z): verified natural AI edit for **28 of 50**
+  photos (33 planned, 5 dropped after all spots failed), each with C2 and C3. Random-placement
+  pilot (`task2_pilot_inphoto`): 50 of 50. Numbers: `paper/results/task2_pilot_natural_vs_random.json`.
+- **Placement is better:** object resting on ground/floor, table or water: random 23/50 (46%),
+  natural 18/28 (64%); on wall/window/fence: random 10/50 (20%), natural 3/28 (11%). Of the 75 valid
+  VLM points, 51 lie on a fitting surface (36 ground, 11 water, 4 table), 3 on wall, 4 in sky/trees,
+  and 17 on pixels with no COCO-Stuff surface label (often on another object, e.g. the horse placed
+  on a scoreboard). So "wall pointing" is mostly points landing on objects or unlabelled areas.
+- **Objects are smaller:** object area / box median 0.38 random vs 0.28 natural; object area / image
+  0.8% vs 0.5%; under 1% of the image 30/50 vs 21/28. Natural boxes are smaller (median 1.5% vs 2.6%
+  of the image, short side 47 vs 72 px) and the depth ratio hit its lower limit 0.5 for 27 of 75
+  candidates: VLM spots tend to lie further back than the photo's own object, and single-image
+  relative depth exaggerates the shrink. SDXL fills small boxes even less.
+- **Side by side** (`data/inlayfake_pilot_natural/compare/compare_1-4.jpg`): natural fixes cases like
+  a giraffe floating at the top edge (now in the field), a car above a bus (now on the road), a
+  surfboard in the air (now on water); it fails on a horse on a scoreboard, a giraffe head in a
+  wall, an oversized bottle over taps, a car drawn tiny in a tall box.
+- **Proposed fixes** (not yet applied): (1) the point must lie on a surface allowed for the class
+  (COCO-Stuff whitelist per group) and not on another labelled object; (2) a minimum box size (short
+  side ≥ 64 px, area ≥ 2% of the image) and gentler depth scaling (limit 0.7–1.4); (3) in
+  verification, reject an AI object filling < 35% of its box (counted as a failed attempt).
+
+---
+
+## 2026-10-19: Natural-placement pilot (run `task2_pilot_natural`, 50 pilot photos)
+
+- **Built and tested** (commits 6696760, 63e9fed, 4e3ed3e, eb2c386): `placement.natural` (see
+  ARCHITECTURE). 98 CPU tests pass, incl. hand-checked geometry and a fake end-to-end run.
+- **Models on the laptop** (RTX 4070, 8 GB): Depth Anything V2 Small works (nearness higher at the
+  image bottom, as expected). **InternVL3.5-4B** (planned fallback) loaded in 4-bit (4.2 GB) but
+  gave invented, evenly spaced points or refused, at 12–86 s per question: not usable for
+  pointing. **Molmo-7B-D** needed adapting to transformers 5.19 (its code targets transformers 4):
+  16-bit vision encoder and output layer named for 4-bit loading, single-GPU placement, an
+  (empty) tied-weights map, tie_weights accepting new arguments, and a greedy decoding loop with
+  Molmo's own tuple cache; TensorFlow (CPU) installed for its preprocessing. Then 6.7 GB in
+  4-bit, 5–18 s per pointing question, ~1 s per yes/no question, points in sensible places.
+  Molmo often lists many points along one line, so `spread_points` keeps up to 5 spots at least
+  10% of the image diagonal apart.
+- **Plan, attempt 1:** 27 of 50 photos got a natural spot; of 208 candidates 62 valid; rejected:
+  46 "outside the image" (a box centred on a point near the left/right edge could shift only
+  15%), 45 covering a person, ~50 covering > 15% of a real object. Fix: a box may slide sideways
+  up to half its width (the point still lies on its base). Attempt-1 files kept in the work
+  dir's `attempt1/`.
+- **Plan, attempt 2** (final pilot plan): **33 of 50 photos** have a natural spot; of 208
+  candidates 75 valid; rejected: 62 covering a person, 64 covering > 15% of a real object (the
+  author's rules), 4 answers without a point, 2 resting on window/ceiling/sky, 1 outside the
+  image. 17 photos: no natural spot. Size from the photo's own same-class object for 39 valid
+  candidates, from typical COCO size for 36.
+- **Visual check of 12 plans:** natural for cow on grass, sheep on a hillside, surfboard at the
+  water, bus at the roadside, apple on a counter, wine glass on a vanity; questionable: a toilet
+  box on the wall above the real toilet, a sink on a window sill, a tall thin elephant box, an
+  oversized bottle box over taps (depth ratio at its ×2 limit), a train box on the real train's
+  front. The realism check is meant to catch such cases; its numbers follow below.
+- **GPU memory bug:** planning and generation in one process left Molmo on the GPU (`del` without
+  garbage collection), and SDXL slowed from ~20 s to ~11 min per image. Fixed (gc before
+  `empty_cache` after every model); generation restarted in a fresh process 21:24.
+- **Round 1** (33 photos; ~47 s per SDXL image, GPU clock ~0.7–0.9 GHz although on mains power,
+  so probably a quiet MSI performance mode): C2 33/33 clean; OWLv2 accepted 17 of 33 C4.
+- **Realism check failed validation.** Molmo rejected all 17 accepted C4. Wording 1 was flawed: the
+  glass question was inverted ("in front of any glass" → "no" when no glass is near) and the
+  compound support question got "no" every time. Reworded (one plain question each, neutral
+  instruction, glass question expects "no") and re-asked on the same 17: still 0/17; "not resting
+  on a surface" and "not a realistic size" for all 17, "seen through glass" for 10. By eye the 17
+  are mixed: plausible (backpack on grass by a tent, ball on a floor, traffic lights at a
+  junction) and poor (tiny cow head in grass, giraffe head in a window, sink on a sill, tiny
+  motorcycle on a wall, bed as a dark smudge). So "no" was often right, but Molmo says "no" even
+  to clear cases: its yes/no answers do not separate good from bad edits and are not used.
+  Answers and a contact sheet: `data/inlayfake_pilot_natural/attempt2_realism/`.
+- **Pilot continues with the realism check off** (22:30): OWLv2 only; edits are judged by eye.
+- **Placement quality and object size:** many accepted C4 objects are much smaller than their box
+  (SDXL fills part of it; OWLv2 accepts a detection ≥ 80% inside the box), which is part of why
+  edits look odd.
+- **Status at 22:52** (run_verify_2026-10-19T145001Z, after 3 rounds): verified C4 for **25 of the
+  33** planned photos (C2 33/33 clean; C3 with each), 5 still retrying on their next natural spot,
+  3 dropped (only one valid spot, 3 seeds failed). Over all 50 pilot photos: 25 with a verified
+  natural AI edit; 17 had no spot that met the rules. Preview: `data/inlayfake_pilot_natural/
+  preview.html`; sheet of the 25: `natural_c4_sheet.jpg`. Final: 28 of 50 (entry above).
+- **By eye (25 accepted):** about half plausible (backpack by a tent, ball on a floor, car in a car
+  park, boat and surfboards on water, traffic lights at junctions, sheep on a hillside, glass and
+  bottle on counters, frisbee in the air); about half poor (horse and motorcycle on walls, giraffe
+  head in a window, cat squeezed into a cupboard, sink on a sill, tiny apple and chair, a cow
+  head, a bed as a dark smudge). Two causes: Molmo sometimes points at a wall or wrong surface, and
+  SDXL often paints the object much smaller than its box. Not yet compared with the random
+  placement on the same photos.
+- **Next (author's call):** compare with `task2_pilot_inphoto` on the same photos; options are
+  tightening the pointing prompt or a check of the surface under the point (COCO-Stuff), and a
+  minimum object-to-box size in verification; a realism judge needs a different model or approach.
+
+---
+
+## 2026-10-19: Natural placement planned: VLM pointing prompts (`configs/placement_prompts.yaml`)
+
+- **Why:** some week-2 AI objects are placed unnaturally (e.g. a skateboard in the air, a bird in
+  a window pane): ~450 of 544 boxes are random free-space or anywhere spots with no surface or
+  depth rule. Planned fix (author): a local VLM (Molmo-7B-D, not the week-3 VLMs) points at
+  natural spots, a depth model scales the box from the photo's own same-class object, SDXL
+  generates there (C2/C3 at the same box), OWLv2 + VLM yes/no checks, then the human audit.
+- **Prompts:** one fixed template, `Point to {where} where another {class} could naturally
+  {how}.`, with `where`/`how` from a class table (22 groups) covering all 79 non-person COCO classes
+  once (78 in the week-1 photos, plus toaster); worn/held items rest on surfaces (no people are
+  generated); bird, airplane, kite and frisbee may be in open sky. Four fixed yes/no check
+  questions (supported, not seen through glass, plausible size, one complete object).
+- **Status:** prompts only; not implemented or tested yet. The 50-photo pilot will show whether
+  they work; changes to them will be logged.
+- **Decision (author, 2026-10-19):** a natural-placement box may cover at most **15%** of any
+  real labelled object's area (COCO + audit adds), never a person; covered objects keep their
+  label with recomputed visibility (ignore below 10% visible, as now). No fitting spot or class:
+  the photo gets no AI edit (no random fallback). In the current set 60 of 544 AI edits cover a
+  real object (38 occlusion-rule, 22 anywhere). Stored in `configs/placement_prompts.yaml`
+  (`box_rules`).
+
+---
+
 ## 2026-10-18: Label-audit review on the results website
 
 - **Author request:** show the week-1 label-audit review on GitHub Pages, and keep it updatable

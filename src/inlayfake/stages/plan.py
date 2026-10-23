@@ -227,6 +227,29 @@ def run(cfg: dict) -> dict:
         cats = list(cfg["sampling"]["categories"])
         stats = size_stats(index, cats, pcfg["max_area_frac"])
 
+    from inlayfake.stages.natural import enabled as natural_enabled
+
+    if in_photo and natural_enabled(cfg):  # VLM-pointed, depth-scaled boxes (stages/natural.py)
+        from inlayfake.stages.natural import plan_natural
+
+        res = plan_natural(cfg, index, sources, extra, stats, wd)
+        write_jsonl(res["plans"], wd / "plans.jsonl")
+        cands = res["candidates"]
+        summary = {
+            "n_plans": len(res["plans"]),
+            "n_failed": len(res["failed"]),
+            "failed_reasons": dict(Counter(f["reason"] for f in res["failed"])),
+            "categories": dict(Counter(p["category"] for p in res["plans"])),
+            "candidates": len(cands),
+            "candidates_valid": sum(bool(c.get("ok")) for c in cands),
+            "candidate_reasons": dict(Counter(c["reason"] for c in cands)),
+            "size_from": dict(Counter(c.get("size_from") for c in cands if c.get("ok"))),
+            "vlm_questions": res.get("vlm_questions"),
+            "photos_rechecked": res.get("photos_rechecked"),
+        }
+        write_run_info(wd / "runs", "plan", cfg, summary | {"failed_sources": res["failed"]})
+        return summary
+
     n_outside = cfg["edit"].get("max_outside_classes", 0) if in_photo else 0
 
     def outside_plan(src: dict, anns: list[dict], supports_for):

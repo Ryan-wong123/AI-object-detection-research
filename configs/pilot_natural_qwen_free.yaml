@@ -1,0 +1,48 @@
+# Box mode without rules (author, 2026-10-21): "scrap all rules; Qwen takes a class from the photo's
+# week-1 labels, understands the photo and places the object where it makes most sense".
+# Per photo, classes in balanced order (COCO labels + week-1 audit adds, never person); Qwen draws
+# up to 3 boxes for one more object of the first class (configs/placement_prompts.yaml,
+# box_template; it is told where the photo's own objects of that class are); every box is used as
+# drawn (no surface, size, overlap or window/sky rule); the next class is asked only if Qwen
+# answers with no box. Box 1 is generated first, 2 and 3 if the verifier rejects it.
+# Own work dir; Qwen answers copied from data/inlayfake_pilot_natural_qwen (same 50 photos).
+#
+#   python -m inlayfake plan  --config configs/pilot_natural_qwen_free.yaml
+#   python -m inlayfake spots --config configs/pilot_natural_qwen_free.yaml --serve   (optional)
+inherit: pilot_natural_qwen.yaml
+run_name: task2_pilot_natural_qwen_free
+placement:
+  natural:
+    free: true
+    classes_per_photo: 99
+    stop_when_valid: true
+    retry: false
+    any_class: false
+    # close-ups and full scenes where every class got no place (author, 21 Oct): ask the same
+    # classes again, allowing the new object cut off by the photo's edge or further back
+    # merged first question (author, 21 Oct): every requirement and the order of preference in
+    # one prompt; one re-ask with the concrete failures; then the next class. No separate
+    # foreground or last-resort questions.
+    merged: true
+    last_resort: false
+    # size and shape the generator and verifier can handle (author, 21 Oct): a hint in every
+    # question, and boxes under 32 px / 0.5% of the image or > 3x thinner than the class usually
+    # is are re-asked with the reason, up to 2 times per question
+    shape_check:
+      hint: true
+      # measured (author request, 21 Oct; scripts/size_limit_test.py, 42 boxes x 3 seeds): edits
+      # pass the verifier as often at 10-16 px as at 32-48 px; tiny passes look like the object
+      # down to ~15 px by eye (skis 15.7 px, glove 15 px). Was 32 px / 0.5% (an estimate).
+      min_side_px: 15
+      min_area_frac: 0.001
+      max_elongation_factor: 3.0
+      # insertion, not replacement (author, 21 Oct): a box may cover at most 30% of any labelled
+      # object or person (COCO + audit adds); otherwise re-asked with the reason
+      max_cover_labelled: 0.30
+      retries: 1
+      foreground_last: false
+    more_questions: false
+    review:
+      enabled: false
+paths:
+  work: data/inlayfake_pilot_natural_qwen_free

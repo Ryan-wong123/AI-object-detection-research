@@ -1,0 +1,18 @@
+# Task 3: detection and forensics on the edited images (PRD §8, week 3), on the frozen benchmark:
+# the natural-placement run (configs/insertion_natural_box.yaml, ledger data/inlayfake_v4/
+# ledger.jsonl; frozen 2026-10-23, see docs/RESEARCH_LOG.md). Inheriting that config keeps the
+# work dir, conditions (C0-C4), week-1 label-audit decisions and verify settings identical; only
+# the run name (outputs go to runs/task3_detection_natural/), the website block and the final-
+# table bootstrap differ.
+#
+#   python -m inlayfake detect    --config configs/task3_detection_natural.yaml
+#   python -m inlayfake forensics --config configs/task3_detection_natural.yaml
+#   python -m inlayfake evaluate  --config configs/task3_detection_natural.yaml
+inherit: insertion_natural_box.yaml
+run_name: task3_detection_natural
+site:
+  week: 3
+  title: Detection on edited images
+  folder: week3_detection
+eval:
+  ap_bootstrap: 200                    # final-table setting, as in Task 1

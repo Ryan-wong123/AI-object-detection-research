@@ -1,0 +1,18 @@
+{
+ "runs": {"natural": "task2_pilot_natural (final verify run_verify_2026-10-19T151526Z)", "random": "task2_pilot_inphoto (final ledger)"},
+ "photos": 50,
+ "with_ai_edit": {"random": 50, "natural": 28},
+ "natural_plan": {"with_spot": 33, "no_spot_meeting_rules": 17, "dropped_after_retries": 5},
+ "surface_under_object": {
+   "random": {"ground/floor": 16, "wall/window/fence": 10, "no label": 7, "other/none": 6, "sky/trees": 4, "water": 4, "table/counter/shelf": 3},
+   "natural": {"ground/floor": 11, "water": 5, "wall/window/fence": 3, "no label": 3, "sky/trees": 2, "table/counter/shelf": 2, "other/none": 2}
+ },
+ "object_area_over_box_median": {"random": 0.38, "natural": 0.28},
+ "object_area_over_image_median": {"random": 0.008, "natural": 0.005},
+ "objects_under_1pct_of_image": {"random": "30/50", "natural": "21/28"},
+ "box_area_over_image_median": {"random": 0.026, "natural": 0.015},
+ "box_short_side_median_px": {"random": 72, "natural": 47},
+ "natural_valid_points_surface": {"ground/floor": 36, "water": 11, "table/counter/shelf": 4, "sky/trees": 4, "wall/window/fence": 3, "no label": 12, "other/none": 5, "n": 75},
+ "natural_depth_ratio_at_limit": {"0.5": 27, "2.0": 6, "n": 75},
+ "note": "read-only comparison on the same 50 pilot photos; surface = COCO-Stuff label just below the AI object's base (from SAM box). 'no label' = no COCO-Stuff stuff class there (often a labelled object)."
+}

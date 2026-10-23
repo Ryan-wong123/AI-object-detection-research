@@ -28,7 +28,13 @@ from inlayfake.edit.paste import choose_donor, paste_instance
 from inlayfake.edit.placement import box_area, intersection
 from inlayfake.ledger import EditInfo, ImageRecord, Instance, Origin
 from inlayfake.runlog import write_run_info
-from inlayfake.stages.common import load_coco, read_jsonl, work_dir
+from inlayfake.stages.common import (
+    derive_seed,
+    load_coco,
+    read_jsonl,
+    work_dir,
+    write_text_atomic,
+)
 from inlayfake.stages.replan import (
     ADOPT,
     FREE,
@@ -41,6 +47,7 @@ from inlayfake.stages.replan import (
     next_job,
     track_version,
 )
+from inlayfake.stages.verify import rejected_images
 
 
 def _original_instances(index, source_id: int) -> list[Instance]:
@@ -63,9 +70,8 @@ def _save_mask(mask: np.ndarray, path: Path) -> str:
 
 
 def _write_record(rec: ImageRecord, wd: Path) -> None:
-    p = wd / "records" / f"{rec.image_id}.json"
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(rec.to_dict(), indent=1), encoding="utf-8")
+    # crash-safe: a record exists only once its image is saved and the record is complete
+    write_text_atomic(wd / "records" / f"{rec.image_id}.json", json.dumps(rec.to_dict(), indent=1))
 
 
 def _exists(wd: Path, image_id: str) -> bool:
@@ -125,6 +131,12 @@ def _non_generative(cfg, index, plan, src, wd, enc) -> int:
         version = plan.get("free_version", 0)  # C3 follows the C4 box (re-plan on failure)
         seed = job_seed(cfg, sid, "C3", None, 0, version)
         rid = ImageRecord.make_id(sid, "C3", None, seed)
+        rejected = rejected_images(wd)
+        redo = 0
+        while rid in rejected:  # rejected in the author's review: another donor (new seed)
+            redo += 1
+            seed = derive_seed(cfg["seed"], sid, "C3", f"v{version}", "review", redo)
+            rid = ImageRecord.make_id(sid, "C3", None, seed)
         if not _exists(wd, rid):
             rng = np.random.default_rng(seed)
             donor = choose_donor(index, plan["category"], sid, plan["box_free"], rng)
@@ -280,9 +292,8 @@ def _pending(cfg, plan, cond, gen, state, versions, wd: Path) -> bool:
 
 def consolidate(wd: Path) -> int:
     rows = sorted((wd / "records").glob("*.json"))
-    with (wd / "ledger_generated.jsonl").open("w", encoding="utf-8") as f:
-        for p in rows:
-            f.write(json.dumps(json.loads(p.read_text(encoding="utf-8"))) + "\n")
+    lines = [json.dumps(json.loads(p.read_text(encoding="utf-8"))) + "\n" for p in rows]
+    write_text_atomic(wd / "ledger_generated.jsonl", "".join(lines))
     return len(rows)
 
 
@@ -345,6 +356,9 @@ def run(cfg: dict, limit: int | None = None) -> dict:
             )
         counts[gen] = done
         del inpainter
+        import gc
+
+        gc.collect()  # large models keep reference cycles; free SDXL before verify loads
         try:
             import torch
 

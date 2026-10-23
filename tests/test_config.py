@@ -40,3 +40,51 @@ def test_full_run_uses_the_pilot_settings():
 
 def test_cli_help():
     assert main([]) == 0
+
+
+def test_natural_full_run_uses_pilot_v4_settings():
+    """configs/insertion_natural.yaml = pilot v4's placement, edit and verify settings (v2's method
+    with looser person/overlap/fill rules) on the 544 week-1 photos; only the photo set, folders,
+    website block, audit sheet and the sham rule from the first full run differ."""
+    full = load_config(ROOT / "configs" / "insertion_natural.yaml")
+    pilot = load_config(ROOT / "configs" / "pilot_natural_v4.yaml")
+    for key in ("edit", "generators_enabled", "encoding", "generation", "conditions"):
+        assert full[key] == pilot[key], key
+    # overlap limits raised from v4's 30% to 50% after the planning-only pass (author, 21 Oct)
+    rules = full["placement"]["natural"].pop("box_rules")
+    assert rules == {"max_cover_person": 0.50, "max_cover_real": 0.50}
+    pilot["placement"]["natural"].pop("box_rules")
+    assert full["placement"] == pilot["placement"]
+    extra = ("audit_all_conditions", "audit_only_conditions", "sham_original_overlap")
+    strip = lambda v: {k: x for k, x in v.items() if k not in extra}  # noqa: E731
+    assert strip(full["verify"]) == strip(pilot["verify"])
+    assert full["sampling"]["only_sources"] == "data/inlayfake/plans.jsonl"
+    assert full["paths"]["work"] == "data/inlayfake_v3"
+
+
+def test_box_mode_full_run_uses_the_pilot_settings():
+    """configs/insertion_natural_box.yaml = the no-rules box-mode pilot's placement, edit,
+    generation and encoding on the 544 week-1 photos; verify differs only by the full-run audit
+    sheet and the sham rule from the first full run."""
+    full = load_config(ROOT / "configs" / "insertion_natural_box.yaml")
+    pilot = load_config(ROOT / "configs" / "pilot_natural_qwen_free.yaml")
+    for key in ("placement", "edit", "generators_enabled", "encoding", "generation", "conditions"):
+        assert full[key] == pilot[key], key
+    extra = ("audit_all_conditions", "audit_only_conditions", "sham_original_overlap")
+    strip = lambda v: {k: x for k, x in v.items() if k not in extra}  # noqa: E731
+    assert strip(full["verify"]) == strip(pilot["verify"])
+    assert full["sampling"]["only_sources"] == "data/inlayfake/plans.jsonl"
+    assert full["paths"]["work"] == "data/inlayfake_v4"
+    assert full["placement"]["natural"]["review"]["enabled"] is False  # author: no gate
+
+
+def test_task3_config_reads_the_frozen_benchmark():
+    """configs/task3_detection_natural.yaml scores the natural-placement benchmark
+    (data/inlayfake_v4) with the same conditions and label-audit decisions, into its own run."""
+    t3 = load_config(ROOT / "configs" / "task3_detection_natural.yaml")
+    full = load_config(ROOT / "configs" / "insertion_natural_box.yaml")
+    assert t3["paths"]["work"] == "data/inlayfake_v4"
+    assert t3["conditions"] == ["C0", "C1", "C2", "C3", "C4"] == full["conditions"]
+    assert t3["audit"]["decisions"] == full["audit"]["decisions"]
+    assert t3["run_name"] == "task3_detection_natural" != full["run_name"]
+    assert t3["eval"]["ap_bootstrap"] == 200

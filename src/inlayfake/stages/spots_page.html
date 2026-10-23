@@ -1,0 +1,86 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spot review</title><style>__CSS__
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+.wrap{position:relative;line-height:0;margin:6px 0}
+.wrap img{width:100%;display:block;border-radius:4px}
+.bx{position:absolute;border:3px solid var(--plan);box-shadow:0 0 0 1px #000}
+.bx b{position:absolute;left:2px;top:1px;font:700 12px/1 system-ui;color:#fff;
+  text-shadow:0 0 3px #000}
+.bx.accept{border-color:var(--tp)} .bx.reject{border-color:var(--fp);border-style:dashed}
+.bx.first{border-width:4px}
+.spot{display:flex;gap:6px;align-items:center;margin:4px 0;font-size:13px}
+.spot .lab{flex:1} .spot button.on.a{background:var(--tp);color:#fff}
+.spot button.on.r{background:var(--fp);color:#fff}
+.pill{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;
+  color:var(--muted)}
+.done{opacity:.6}
+</style></head><body>
+<header><h1>__TITLE__ <span>· review planned spots</span></h1>
+<span id="count" class="muted"></span>
+<label>show <select id="flt">
+<option value="todo">to review</option><option value="all">all</option>
+<option value="acc">with an accepted spot</option><option value="none">all rejected</option>
+</select></label><span id="save" class="muted"></span></header>
+<main>
+<p class="note">Accept a spot if an object of that class there would look natural and make sense
+in the scene; reject it otherwise. The photo uses its first accepted spot (1 = the planned one,
+2, 3 = backups, tried in order if generation fails). Photos without an accepted spot get no AI
+edit. Every click is saved at once.</p>
+<p class="legend"><span><i class="sw" style="border-color:var(--plan)"></i>not reviewed</span>
+<span><i class="sw" style="border-color:var(--tp)"></i>accepted</span>
+<span><i class="sw" style="border-color:var(--fp)"></i>rejected</span></p>
+<div class="grid" id="grid"></div></main>
+<script>
+const PHOTOS = __DATA__;
+let DEC = {};
+const grid = document.getElementById('grid');
+function state(p){ const d = p.spots.map(s => DEC[s.id]);
+  if (d.includes('accept')) return 'acc';
+  if (d.every(x => x === 'reject')) return 'none';
+  return 'todo'; }
+function render(){
+  const f = document.getElementById('flt').value; grid.innerHTML = '';
+  let nAcc = 0, nDone = 0;
+  for (const p of PHOTOS){
+    const st = state(p); if (st === 'acc') nAcc++; if (st !== 'todo') nDone++;
+    if (f !== 'all' && f !== st) continue;
+    const c = document.createElement('div'); c.className = 'card';
+    let boxes = '', list = '';
+    p.spots.forEach((s, i) => {
+      const [x, y, w, h] = s.box, d = DEC[s.id] || '';
+      boxes += `<div class="bx ${d} ${i ? '' : 'first'}" style="left:${x / p.W * 100}%;` +
+        `top:${y / p.H * 100}%;width:${w / p.W * 100}%;height:${h / p.H * 100}%"><b>${i + 1}</b></div>`;
+      const rd = String(s.round), sz = rd.includes('+size') ?
+        '<span class="pill">re-asked: size/shape</span>' : '';
+      const tag = sz + (rd.startsWith('2') ? '<span class="pill">2nd question</span>' :
+        rd.startsWith('edge') ? '<span class="pill">last resort: edge or further back</span>' :
+        rd.startsWith('any') ? '<span class="pill">other class' +
+        (s.in_photo ? '' : ', not in photo') + '</span>' : '');
+      list += `<div class="spot"><span class="lab"><b>${i + 1}.</b> ${s.cat} ${tag}</span>` +
+        `<button class="a ${d === 'accept' ? 'on' : ''}" data-id="${s.id}" data-d="accept">Accept</button>` +
+        `<button class="r ${d === 'reject' ? 'on' : ''}" data-id="${s.id}" data-d="reject">Reject</button></div>`;
+    });
+    c.innerHTML = `<h2>${p.n}. ${p.spots[0].cat} <span>photo ${p.sid} · ${p.split}</span></h2>` +
+      `<div class="wrap"><img loading="lazy" src="img/${p.sid}.jpg">${boxes}</div>${list}`;
+    grid.appendChild(c);
+  }
+  document.getElementById('count').textContent =
+    `${nDone} of ${PHOTOS.length} photos reviewed · ${nAcc} with an accepted spot`;
+}
+grid.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-id]'); if (!b) return;
+  const id = b.dataset.id, d = DEC[id] === b.dataset.d ? '' : b.dataset.d;
+  const msg = document.getElementById('save');
+  try {
+    const r = await fetch('decision', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id, decision: d})});
+    if (!r.ok) throw new Error(r.status);
+    if (d) DEC[id] = d; else delete DEC[id];
+    msg.textContent = 'saved'; render();
+  } catch (err) { msg.textContent = 'NOT saved: start the page with  python -m inlayfake spots --serve'; }
+});
+document.getElementById('flt').onchange = render;
+fetch('decisions.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}))
+  .then(d => { DEC = d || {}; render(); });
+</script></body></html>

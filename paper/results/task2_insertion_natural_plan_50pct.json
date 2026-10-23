@@ -1,0 +1,1142 @@
+{
+  "stage": "plan",
+  "utc": "2026-10-20T16:14:19Z",
+  "git_commit": "55815608c3a7d052999bef5c8ea76c7f296936f5",
+  "git_dirty": true,
+  "config_hash": "c39d127d573f",
+  "seed": 20261008,
+  "python": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU (8.0 GiB)",
+  "packages": {
+    "numpy": "2.4.6",
+    "pillow": "12.3.0",
+    "torch": "2.6.0+cu124",
+    "diffusers": "0.41.0",
+    "transformers": "5.19.0",
+    "ultralytics": "8.4.174",
+    "pycocotools": "2.0.11"
+  },
+  "n_plans": 389,
+  "n_failed": 155,
+  "failed_reasons": {
+    "no natural spot": 155
+  },
+  "categories": {
+    "skis": 9,
+    "bowl": 3,
+    "surfboard": 17,
+    "baseball glove": 5,
+    "suitcase": 7,
+    "baseball bat": 7,
+    "kite": 10,
+    "fire hydrant": 4,
+    "sheep": 4,
+    "spoon": 2,
+    "hot dog": 2,
+    "broccoli": 2,
+    "tennis racket": 9,
+    "chair": 6,
+    "cow": 5,
+    "knife": 3,
+    "sports ball": 8,
+    "book": 4,
+    "car": 8,
+    "dining table": 4,
+    "vase": 6,
+    "skateboard": 7,
+    "handbag": 6,
+    "bottle": 5,
+    "cup": 3,
+    "snowboard": 8,
+    "pizza": 4,
+    "toilet": 12,
+    "parking meter": 3,
+    "keyboard": 3,
+    "bed": 6,
+    "bird": 6,
+    "remote": 4,
+    "sink": 5,
+    "mouse": 3,
+    "truck": 8,
+    "refrigerator": 3,
+    "giraffe": 7,
+    "banana": 2,
+    "horse": 11,
+    "elephant": 6,
+    "backpack": 7,
+    "sandwich": 2,
+    "donut": 3,
+    "airplane": 8,
+    "traffic light": 8,
+    "couch": 3,
+    "dog": 7,
+    "bus": 8,
+    "laptop": 3,
+    "boat": 9,
+    "cat": 6,
+    "motorcycle": 8,
+    "train": 3,
+    "zebra": 7,
+    "potted plant": 4,
+    "frisbee": 8,
+    "tv": 4,
+    "bench": 7,
+    "hair drier": 1,
+    "bear": 3,
+    "bicycle": 6,
+    "clock": 4,
+    "toothbrush": 2,
+    "teddy bear": 2,
+    "umbrella": 6,
+    "fork": 3,
+    "stop sign": 4,
+    "oven": 3,
+    "microwave": 2,
+    "cell phone": 4,
+    "wine glass": 2,
+    "cake": 2,
+    "carrot": 1,
+    "apple": 1,
+    "orange": 1
+  },
+  "candidates": 2373,
+  "candidates_valid": 1192,
+  "candidate_reasons": {
+    "ok": 1192,
+    "point on a real bowl": 1,
+    "outside the image": 86,
+    "point on curtain": 10,
+    "point on wall-concrete": 15,
+    "point on cage": 10,
+    "point on a real tv": 4,
+    "covers 66% of a person": 3,
+    "covers 64% of a person": 5,
+    "covers 58% of a person": 4,
+    "point on a real person": 26,
+    "covers 52% of a person": 4,
+    "covers 68% of a real sheep": 1,
+    "covers 76% of a real chair": 1,
+    "covers 100% of a real bottle": 7,
+    "point on rug": 1,
+    "point on wall-wood": 11,
+    "point on shelf": 1,
+    "point on cardboard": 6,
+    "no point in the answer": 38,
+    "point on furniture-other": 17,
+    "point on a real dining table": 8,
+    "covers 83% of a person": 2,
+    "point on tree": 15,
+    "covers 100% of a person": 95,
+    "point on a real car": 7,
+    "covers 88% of a real vase": 1,
+    "point on carpet": 5,
+    "covers 100% of a real knife": 2,
+    "covers 79% of a real bottle": 1,
+    "point on a real teddy bear": 8,
+    "covers 63% of a real teddy bear": 1,
+    "point on table": 12,
+    "covers 69% of a person": 2,
+    "point on blanket": 2,
+    "point on a real bed": 11,
+    "covers 100% of a real tv": 1,
+    "covers 100% of a real car": 23,
+    "covers 54% of a real car": 1,
+    "point on metal": 23,
+    "point on a real fire hydrant": 1,
+    "point on a real pizza": 6,
+    "point on a real laptop": 3,
+    "covers 95% of a real horse": 1,
+    "covers 100% of a real horse": 1,
+    "covers 51% of a real laptop": 1,
+    "point on a real bottle": 1,
+    "covers 70% of a real parking meter": 1,
+    "covers 50% of a real parking meter": 1,
+    "point on a real bench": 8,
+    "covers 57% of a real bench": 2,
+    "covers 63% of a real bench": 2,
+    "covers 58% of a real bench": 1,
+    "covers 61% of a real cell phone": 1,
+    "covers 92% of a real cell phone": 1,
+    "point on a real book": 3,
+    "covers 71% of a real potted plant": 1,
+    "covers 100% of a real bicycle": 1,
+    "point on ground-other": 1,
+    "covers 64% of a real dog": 1,
+    "covers 100% of a real mouse": 3,
+    "point on a real keyboard": 1,
+    "covers 95% of a real truck": 2,
+    "covers 100% of a real truck": 2,
+    "covers 60% of a real truck": 1,
+    "covers 78% of a person": 1,
+    "covers 88% of a person": 3,
+    "covers 83% of a real tv": 1,
+    "point on textile-other": 2,
+    "point on moss": 1,
+    "covers 84% of a real bowl": 1,
+    "covers 51% of a real bottle": 2,
+    "covers 97% of a person": 2,
+    "covers 98% of a real umbrella": 1,
+    "point on mountain": 3,
+    "point on an unlabelled object": 13,
+    "point on sky-other": 6,
+    "point on fence": 18,
+    "covers 68% of a real horse": 1,
+    "point on branch": 2,
+    "point on wood": 1,
+    "point on ceiling-other": 1,
+    "covers 70% of a person": 3,
+    "covers 90% of a person": 3,
+    "covers 61% of a person": 5,
+    "point on house": 6,
+    "covers 65% of a real tv": 1,
+    "covers 61% of a real pizza": 1,
+    "covers 54% of a real pizza": 1,
+    "covers 68% of a real car": 1,
+    "covers 60% of a person": 4,
+    "point on bush": 12,
+    "covers 56% of a person": 5,
+    "covers 82% of a real sandwich": 1,
+    "covers 63% of a real donut": 1,
+    "covers 52% of a real skis": 1,
+    "covers 65% of a real elephant": 2,
+    "covers 70% of a real elephant": 1,
+    "covers 68% of a real elephant": 1,
+    "covers 69% of a real elephant": 1,
+    "covers 55% of a person": 2,
+    "covers 55% of a real tennis racket": 1,
+    "point on sea": 4,
+    "point on wall-other": 3,
+    "point on floor-tile": 11,
+    "point on a real sink": 5,
+    "point on wall-tile": 6,
+    "covers 100% of a real book": 6,
+    "covers 65% of a real dog": 2,
+    "point on bridge": 3,
+    "covers 54% of a real truck": 2,
+    "covers 52% of a real truck": 1,
+    "covers 64% of a real bottle": 1,
+    "point on plastic": 17,
+    "covers 59% of a real laptop": 1,
+    "point on a real cat": 2,
+    "covers 66% of a real boat": 1,
+    "covers 55% of a real boat": 1,
+    "covers 57% of a real suitcase": 1,
+    "covers 58% of a real suitcase": 1,
+    "point on wall-stone": 1,
+    "point on river": 6,
+    "covers 89% of a real motorcycle": 1,
+    "covers 57% of a person": 5,
+    "covers 94% of a person": 3,
+    "point on pavement": 8,
+    "point on building-other": 21,
+    "covers 89% of a real fire hydrant": 1,
+    "covers 57% of a real potted plant": 1,
+    "covers 100% of a real spoon": 4,
+    "covers 53% of a real cup": 1,
+    "covers 58% of a real train": 1,
+    "covers 62% of a real train": 1,
+    "covers 92% of a real dog": 1,
+    "covers 55% of a real car": 1,
+    "covers 75% of a real car": 1,
+    "covers 100% of a real boat": 5,
+    "covers 52% of a real boat": 1,
+    "covers 72% of a real tv": 1,
+    "point on a real clock": 4,
+    "point on tent": 8,
+    "point on floor-wood": 4,
+    "covers 100% of a real vase": 3,
+    "covers 61% of a real horse": 1,
+    "covers 84% of a real chair": 1,
+    "covers 51% of a real chair": 1,
+    "covers 55% of a real pizza": 1,
+    "covers 90% of a real chair": 1,
+    "point on a real truck": 5,
+    "covers 81% of a real motorcycle": 1,
+    "covers 82% of a real motorcycle": 2,
+    "covers 87% of a real motorcycle": 1,
+    "covers 66% of a real motorcycle": 1,
+    "covers 69% of a real dog": 1,
+    "covers 98% of a real dog": 1,
+    "covers 61% of a real dog": 1,
+    "covers 51% of a real bench": 1,
+    "covers 93% of a person": 2,
+    "covers 98% of a person": 1,
+    "covers 88% of a real elephant": 1,
+    "covers 80% of a real elephant": 1,
+    "covers 60% of a real car": 2,
+    "covers 98% of a real wine glass": 1,
+    "covers 100% of a real wine glass": 1,
+    "covers 70% of a real bottle": 1,
+    "covers 100% of a real cup": 2,
+    "point on a real skis": 3,
+    "covers 100% of a real bench": 2,
+    "covers 63% of a person": 4,
+    "point on water-other": 11,
+    "covers 66% of a real keyboard": 1,
+    "point on a real carrot": 1,
+    "covers 69% of a real umbrella": 2,
+    "covers 76% of a real umbrella": 1,
+    "covers 77% of a real umbrella": 1,
+    "covers 87% of a real bench": 1,
+    "covers 52% of a real bench": 1,
+    "covers 64% of a real motorcycle": 1,
+    "covers 89% of a real chair": 3,
+    "covers 61% of a real vase": 1,
+    "point on a real chair": 7,
+    "covers 100% of a real cow": 1,
+    "covers 86% of a person": 1,
+    "covers 64% of a real traffic light": 1,
+    "covers 71% of a real fire hydrant": 1,
+    "covers 83% of a real backpack": 1,
+    "point on road": 2,
+    "point on a real motorcycle": 4,
+    "covers 65% of a person": 4,
+    "covers 61% of a real car": 2,
+    "point on a real donut": 1,
+    "point on a real cup": 7,
+    "point on a real elephant": 1,
+    "covers 81% of a real elephant": 1,
+    "covers 64% of a real elephant": 2,
+    "covers 77% of a real elephant": 1,
+    "covers 63% of a real elephant": 1,
+    "covers 53% of a real sports ball": 1,
+    "covers 61% of a real cup": 1,
+    "covers 73% of a real bicycle": 1,
+    "covers 81% of a real bicycle": 2,
+    "covers 79% of a real bicycle": 1,
+    "covers 66% of a real bus": 1,
+    "covers 92% of a real car": 1,
+    "covers 85% of a real wine glass": 1,
+    "covers 53% of a real wine glass": 1,
+    "covers 52% of a real wine glass": 1,
+    "point on a real toilet": 3,
+    "covers 62% of a real dining table": 1,
+    "covers 59% of a real teddy bear": 1,
+    "covers 89% of a real teddy bear": 1,
+    "covers 59% of a real dining table": 1,
+    "covers 52% of a real bus": 1,
+    "covers 99% of a real car": 1,
+    "covers 100% of a real cake": 4,
+    "point on a real cake": 3,
+    "point on a real umbrella": 1,
+    "covers 67% of a real surfboard": 1,
+    "covers 55% of a real vase": 1,
+    "covers 72% of a person": 1,
+    "point on paper": 2,
+    "point on a real dog": 6,
+    "point on wall-brick": 1,
+    "covers 100% of a real umbrella": 1,
+    "point on a real suitcase": 2,
+    "covers 100% of a real suitcase": 1,
+    "covers 62% of a real cup": 1,
+    "covers 59% of a person": 2,
+    "covers 59% of a real toilet": 1,
+    "covers 64% of a real train": 1,
+    "covers 100% of a real train": 1,
+    "point on a real banana": 4,
+    "point on a real handbag": 1,
+    "covers 100% of a real skis": 1,
+    "point on a real boat": 5,
+    "covers 87% of a real car": 1,
+    "covers 70% of a real car": 1,
+    "covers 81% of a real car": 1,
+    "covers 94% of a real skateboard": 1,
+    "point on clothes": 1,
+    "covers 100% of a real dog": 1,
+    "point on floor-other": 2,
+    "covers 100% of a real traffic light": 3,
+    "covers 81% of a real cup": 1,
+    "covers 75% of a real hot dog": 1,
+    "covers 66% of a real hot dog": 1,
+    "covers 79% of a real backpack": 2,
+    "covers 100% of a real backpack": 2,
+    "covers 100% of a real giraffe": 1,
+    "covers 53% of a real boat": 1,
+    "point on a real oven": 3,
+    "covers 80% of a real cup": 1,
+    "covers 55% of a real tv": 1,
+    "covers 58% of a real baseball bat": 2,
+    "covers 50% of a person": 3,
+    "covers 100% of a real pizza": 2,
+    "covers 75% of a real pizza": 1,
+    "covers 94% of a real car": 1,
+    "covers 58% of a real bottle": 1,
+    "covers 85% of a real bottle": 1,
+    "covers 65% of a real broccoli": 1,
+    "covers 77% of a person": 2,
+    "covers 58% of a real horse": 2,
+    "covers 53% of a real horse": 2,
+    "point on railing": 6,
+    "covers 85% of a person": 3,
+    "covers 71% of a person": 1,
+    "covers 87% of a real sink": 1,
+    "covers 97% of a real chair": 1,
+    "covers 51% of a real microwave": 1,
+    "covers 55% of a real microwave": 1,
+    "covers 53% of a real bowl": 1,
+    "point on floor-stone": 3,
+    "covers 86% of a real knife": 1,
+    "covers 81% of a real knife": 2,
+    "covers 77% of a real car": 1,
+    "covers 59% of a real train": 1,
+    "covers 56% of a real chair": 1,
+    "covers 52% of a real laptop": 1,
+    "covers 50% of a real laptop": 1,
+    "point on structural-other": 4,
+    "point on a real vase": 6,
+    "covers 86% of a real vase": 1,
+    "covers 100% of a real laptop": 3,
+    "covers 90% of a real book": 1,
+    "point on a real spoon": 1,
+    "covers 61% of a real keyboard": 1,
+    "covers 100% of a real skateboard": 2,
+    "covers 95% of a real giraffe": 1,
+    "point on a real sports ball": 2,
+    "point on a real mouse": 1,
+    "point on door-stuff": 1,
+    "covers 51% of a person": 2,
+    "covers 87% of a real backpack": 1,
+    "covers 66% of a real bench": 1,
+    "covers 70% of a real bench": 1,
+    "covers 70% of a real mouse": 1,
+    "covers 91% of a real mouse": 1,
+    "covers 76% of a real mouse": 1,
+    "covers 64% of a real skis": 1,
+    "covers 62% of a real teddy bear": 1,
+    "covers 53% of a person": 2,
+    "covers 80% of a real chair": 2,
+    "covers 60% of a real chair": 2,
+    "covers 78% of a real car": 2,
+    "covers 97% of a real cat": 1,
+    "covers 100% of a real surfboard": 1,
+    "point on plant-other": 1,
+    "point on a real horse": 1,
+    "point on a real kite": 1,
+    "rests on window, mirror, ceiling or sky": 1,
+    "covers 54% of a real wine glass": 1,
+    "covers 81% of a person": 1,
+    "point on a real baseball glove": 1,
+    "covers 56% of a real boat": 1,
+    "covers 76% of a real car": 1,
+    "covers 79% of a real car": 1,
+    "point on a real bird": 1,
+    "covers 100% of a real bird": 1,
+    "covers 96% of a real giraffe": 1,
+    "covers 75% of a real baseball bat": 1,
+    "covers 100% of a real baseball bat": 1,
+    "point on a real apple": 2,
+    "covers 79% of a real kite": 1,
+    "covers 83% of a real fork": 1,
+    "covers 80% of a person": 3,
+    "point on banner": 1,
+    "covers 58% of a real traffic light": 1,
+    "covers 84% of a person": 1,
+    "covers 67% of a person": 1,
+    "covers 62% of a person": 1,
+    "covers 90% of a real apple": 1,
+    "covers 100% of a real chair": 7,
+    "covers 100% of a real handbag": 1,
+    "covers 87% of a person": 2,
+    "covers 86% of a real dog": 1,
+    "covers 57% of a real boat": 1,
+    "covers 100% of a real tennis racket": 1,
+    "covers 75% of a real airplane": 1,
+    "covers 77% of a real suitcase": 1,
+    "covers 88% of a real toilet": 1,
+    "covers 84% of a real toilet": 1,
+    "covers 92% of a real toilet": 1,
+    "covers 62% of a real handbag": 1,
+    "covers 66% of a real toilet": 1,
+    "covers 58% of a real chair": 1,
+    "covers 67% of a real chair": 2,
+    "covers 88% of a real chair": 1,
+    "covers 94% of a real chair": 1,
+    "covers 77% of a real chair": 2,
+    "covers 76% of a person": 1,
+    "covers 70% of a real skis": 1,
+    "covers 51% of a real bear": 1,
+    "covers 95% of a real chair": 1,
+    "covers 78% of a real bowl": 1,
+    "covers 73% of a real dog": 1,
+    "covers 65% of a real bottle": 1,
+    "covers 56% of a real pizza": 1,
+    "point on mirror-stuff": 3,
+    "point on window-other": 5,
+    "covers 52% of a real car": 1,
+    "covers 64% of a real pizza": 1,
+    "covers 54% of a real fork": 1,
+    "covers 100% of a real oven": 1,
+    "covers 63% of a real cup": 1,
+    "covers 58% of a real fork": 1,
+    "point on a real couch": 4,
+    "covers 57% of a real skateboard": 3,
+    "covers 100% of a real clock": 2,
+    "point on stone": 1,
+    "covers 50% of a real chair": 1,
+    "point on a real bus": 1,
+    "covers 80% of a real book": 1,
+    "covers 76% of a real book": 1,
+    "covers 75% of a real fork": 1,
+    "covers 65% of a real horse": 1,
+    "point on a real potted plant": 1,
+    "covers 79% of a person": 1,
+    "covers 55% of a real sandwich": 1,
+    "covers 100% of a real bowl": 2,
+    "covers 56% of a real fork": 1,
+    "covers 94% of a real elephant": 1,
+    "covers 72% of a real skateboard": 1,
+    "covers 68% of a real chair": 1,
+    "point on fog": 1,
+    "covers 88% of a real cow": 1,
+    "covers 79% of a real cow": 1,
+    "covers 84% of a real cup": 1,
+    "covers 100% of a real sheep": 1,
+    "covers 61% of a real fork": 1,
+    "point on grass": 1,
+    "point on a real train": 3,
+    "covers 56% of a real bicycle": 1,
+    "covers 73% of a person": 1,
+    "covers 61% of a real couch": 1,
+    "point on a real toothbrush": 1,
+    "covers 60% of a real sink": 1,
+    "covers 57% of a real umbrella": 1,
+    "covers 60% of a real dog": 1,
+    "covers 92% of a real mouse": 1,
+    "covers 62% of a real keyboard": 1,
+    "covers 56% of a real keyboard": 1,
+    "covers 67% of a real motorcycle": 1,
+    "covers 64% of a real chair": 1
+  },
+  "size_from": {
+    "coco_typical": 685,
+    "reference": 507
+  },
+  "vlm_questions": {
+    "asked": 50,
+    "reused": 810
+  },
+  "photos_rechecked": 544,
+  "failed_sources": [
+    {
+      "source_id": 10092,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 10995,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 12062,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 19742,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 24144,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 26204,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 35963,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 40757,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 42296,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 51008,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 51309,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 51610,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 58393,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 71451,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 71711,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 72813,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 73153,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 74058,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 80274,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 84362,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 89697,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 94852,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 96960,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 103723,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 107851,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 108440,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 121031,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 123585,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 127530,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 127624,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 128699,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 129062,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 133000,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 133233,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 135890,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 137294,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 139684,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 140929,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 144114,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 148719,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 149406,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 163118,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 163314,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 172856,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 173057,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 174004,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 174482,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 176847,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 177489,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 180792,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 185157,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 194506,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 203095,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 203546,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 207306,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 221017,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 223738,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 226417,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 227491,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 236426,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 239274,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 242287,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 244750,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 260470,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 266768,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 269314,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 274708,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 279887,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 280325,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 283038,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 287545,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 288042,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 289516,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 289741,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 290768,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 290771,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 292446,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 293794,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 297681,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 297830,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 300659,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 308394,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 308545,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 314251,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 315257,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 316666,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 320232,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 322844,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 323355,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 323751,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 327780,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 328238,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 333402,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 352760,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 359540,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 360137,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 376856,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 377670,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 377723,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 384651,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 395801,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 396274,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 397133,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 402118,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 402334,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 411665,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 416991,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 419408,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 420069,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 425906,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 440475,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 442456,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 442661,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 445834,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 450303,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 453708,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 454661,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 455301,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 463522,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 468501,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 471567,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 472678,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 473015,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 473821,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 474786,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 477441,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 478862,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 482477,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 488166,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 491216,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 497628,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 497867,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 500270,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 502599,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 515579,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 520009,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 523033,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 534673,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 537964,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 544306,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 546219,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 546556,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 549930,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 555972,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 556873,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 558073,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 558213,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 560474,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 561256,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 561335,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 562561,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 563648,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 566042,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 575372,
+      "reason": "no natural spot"
+    },
+    {
+      "source_id": 578500,
+      "reason": "no natural spot"
+    }
+  ]
+}

@@ -295,3 +295,24 @@ def test_detector_matches_hand_example():
         "d": [],
     }
     assert detector_matches(box, "cup", dets) == {"a": 0.95, "b": None, "c": 0.4, "d": None}
+
+
+def test_crash_safe_files(tmp_path):
+    """A cut-off last line is skipped (that item is redone); damage elsewhere still fails;
+    atomic writes leave no temporary file behind."""
+    import json
+
+    import pytest
+
+    from inlayfake.stages.common import read_jsonl, write_jsonl, write_text_atomic
+
+    p = tmp_path / "log.jsonl"
+    p.write_text('{"a": 1}\n{"a": 2}\n{"a": 3, "b"')  # power lost while appending row 3
+    assert read_jsonl(p) == [{"a": 1}, {"a": 2}]
+    p.write_text('{"a": 1}\n{"a\n{"a": 3}\n')
+    with pytest.raises(json.JSONDecodeError):
+        read_jsonl(p)
+    write_jsonl([{"x": 1}], tmp_path / "out.jsonl")
+    write_text_atomic(tmp_path / "rec.json", "{}")
+    assert read_jsonl(tmp_path / "out.jsonl") == [{"x": 1}]
+    assert not list(tmp_path.glob("*.tmp"))

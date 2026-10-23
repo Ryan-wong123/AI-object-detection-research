@@ -27,19 +27,57 @@ def derive_seed(*parts: object) -> int:
     return int.from_bytes(h[:4], "big") & 0x7FFFFFFF
 
 
-def write_jsonl(rows: Iterable[dict], path: Path) -> int:
+def write_text_atomic(path: Path, text: str) -> None:
+    """Write a whole file so that a crash or power loss leaves the old or the new version, never
+    a half-written one: write a temporary file next to it, then rename it in one step."""
+    import os
+
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    n = 0
-    with path.open("w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r) + "\n")
-            n += 1
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def open_append(path: Path):
+    """Open a JSON-lines file for appending, crash-safely. A power cut while appending can leave
+    a cut-off last line without a newline; appending after it would glue the next row onto that
+    line, which ``read_jsonl`` then cannot read (a broken line that is no longer the last one).
+    So a cut-off last line is removed first (that item is redone)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        data = path.read_bytes()
+        if data and not data.endswith(b"\n"):
+            with path.open("r+b") as f:
+                f.truncate(data.rfind(b"\n") + 1)  # 0 if the only line was cut off
+    return path.open("a", encoding="utf-8")
+
+
+def write_jsonl(rows: Iterable[dict], path: Path) -> int:
+    lines = [json.dumps(r) + "\n" for r in rows]
+    write_text_atomic(path, "".join(lines))
+    n = len(lines)
     return n
 
 
 def read_jsonl(path: Path) -> list[dict]:
+    """Rows of a JSON-lines file. A cut-off *last* line (a crash or power loss while appending)
+    is skipped, so that item is simply redone; a broken line anywhere else is an error."""
     with path.open(encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
+        lines = [line for line in f if line.strip()]
+    out = []
+    for i, line in enumerate(lines):
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            if i == len(lines) - 1:
+                break
+            raise
+    return out
 
 
 def run_dir(cfg: dict) -> Path:
