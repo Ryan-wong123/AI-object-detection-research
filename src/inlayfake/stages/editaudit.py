@@ -79,6 +79,80 @@ def write_review_csv(wd: Path, current: dict[str, dict]) -> int:
     return len(rows)
 
 
+def _missing_cards(cfg: dict, wd: Path, with_c4: set[int], crops: Path) -> list[dict]:
+    """Photos without a verified AI object (author request, 2026-10-23: show them too): the photo
+    with the model's planned boxes, and every failed C4 attempt with the verifier's reason.
+    View only; nothing from them is in the benchmark."""
+    from inlayfake.ledger import ImageRecord
+    from inlayfake.stages.common import load_coco, read_jsonl
+
+    vcfg = cfg["verify"]
+    sources = read_jsonl(wd / "sources.jsonl")
+    only = cfg["sampling"].get("only_sources")
+    if only:
+        keep = {r["source_id"] for r in read_jsonl(Path(only))}
+        sources = [x for x in sources if x["source_id"] in keep]
+    plans = {r["source_id"]: r for r in read_jsonl(wd / "plans.jsonl")}
+    boxes: dict[int, list[dict]] = defaultdict(list)
+    cands = wd / "natural_candidates.jsonl"
+    for r in read_jsonl(cands) if cands.exists() else []:
+        if r.get("ok"):
+            boxes[r["source_id"]].append(r)
+    fails: dict[int, list[dict]] = defaultdict(list)
+    vpath = wd / "verify.jsonl"
+    for r in read_jsonl(vpath) if vpath.exists() else []:
+        if r["condition"] == "C4" and not r["passed"]:
+            fails[int(r["key"].split("|")[0])].append(r)
+    index = None
+    out = []
+    for src in sources:
+        sid = src["source_id"]
+        if sid in with_c4:
+            continue
+        W, H = src["width"], src["height"]
+        full = crops / f"{sid}_full.jpg"
+        if not full.exists():
+            index = index or load_coco(cfg)
+            im = Image.open(index.image_path(sid)).convert("RGB")
+            k = 720 / max(im.size)
+            im.resize((round(im.width * k), round(im.height * k))).save(full, quality=85)
+        planned = sorted(boxes.get(sid, []), key=lambda r: r["valid_rank"])
+        overlay = "".join(_box_span(r["box"], 0, 0, W, H, "plan") for r in planned)
+        tries = []
+        for row in sorted(fails.get(sid, []), key=lambda r: (r.get("version", 0), r["attempt"])):
+            rp = wd / "records" / f"{row['image_id']}.json"
+            if not rp.exists():
+                continue
+            rec = ImageRecord(**json.loads(rp.read_text(encoding="utf-8")))
+            x0, y0, x1, y1 = verify_window(rec, rec.width, rec.height, vcfg)
+            crop = crops / f"{rec.image_id}_crop.jpg"
+            if not crop.exists():
+                Image.fromarray(load_rgb(rec.path)[y0:y1, x0:x1]).save(crop, quality=90)
+            tries.append(
+                {
+                    "src": f"audit_crops/{crop.name}",
+                    "boxes": _box_span(rec.edit.plan_box, x0, y0, x1, y1, "plan"),
+                    "label": f"box {row.get('version', 0) + 1}, seed {row['attempt']}: "
+                    + row["reason"],
+                }
+            )
+        if sid not in plans:
+            reason = "no box from planning (Qwen found no usable place)"
+        else:
+            reason = f"{len(planned)} box(es) tried, {len(tries)} images, none verified"
+        out.append(
+            {
+                "kind": "missing",
+                "sid": sid,
+                "category": plans[sid]["category"] if sid in plans else "no box",
+                "reason": reason,
+                "full": {"src": f"audit_crops/{full.name}", "boxes": overlay},
+                "fails": tries,
+            }
+        )
+    return out
+
+
 def build_page(cfg: dict) -> dict:
     wd = work_dir(cfg)
     vcfg = cfg["verify"]
@@ -133,6 +207,9 @@ def build_page(cfg: dict) -> dict:
             }
         )
     n_rows = write_review_csv(wd, current)
+    with_c4 = {sid for sid, conds in by_sid.items() if "C4" in conds}
+    missing = _missing_cards(cfg, wd, with_c4, crops)
+    cards += missing
     page = (
         PAGE_FILE.read_text(encoding="utf-8")
         .replace("__CSS__", SITE_CSS)
@@ -140,7 +217,12 @@ def build_page(cfg: dict) -> dict:
         .replace("__DATA__", json.dumps(cards))
     )
     write_text_atomic(wd / "edit_audit.html", page)
-    return {"page": str(wd / "edit_audit.html"), "photos": len(cards), "csv_rows": n_rows}
+    return {
+        "page": str(wd / "edit_audit.html"),
+        "photos": len(cards) - len(missing),
+        "photos_without_ai_object": len(missing),
+        "csv_rows": n_rows,
+    }
 
 
 def save_click(wd: Path, key: str, field: str, value: str) -> dict:
