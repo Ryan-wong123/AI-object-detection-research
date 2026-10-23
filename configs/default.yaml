@@ -230,5 +230,7 @@ eval:
   fixed_fpr: 0.05
   fixed_tpr: 0.80
   recall_score: 0.5                    # a GT object counts as detected at score >= this
-  ap_bootstrap: 20                     # resamples for AP CIs; each is a full COCOeval (~2-5 s).
+  all_objects_ap_conditions: [C0, C1]  # all-object AP (Task 1 table); edited conditions get
+                                       # origin-subset AP instead (Task 3, eval/matched.py)
+  ap_bootstrap: 20                     # resamples for AP CIs; each re-accumulates one COCOeval
                                        # 20 for quick runs; raise to 200 for the paper's final tables.
