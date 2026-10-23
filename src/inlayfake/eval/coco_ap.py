@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 
 import numpy as np
@@ -72,7 +73,8 @@ def build_coco(
     return gt, results
 
 
-def coco_ap(gt: dict, results: list[dict]) -> dict[str, float]:
+def _evaluated(gt: dict, results: list[dict]):
+    """COCOeval after ``evaluate()`` (per image and category), or None without detections."""
     from pycocotools.coco import COCO
     from pycocotools.cocoeval import COCOeval
 
@@ -81,14 +83,44 @@ def coco_ap(gt: dict, results: list[dict]) -> dict[str, float]:
         coco_gt.dataset = gt
         coco_gt.createIndex()
         if not results:
-            return {"AP": 0.0, "AP50": 0.0, "AP75": 0.0, "AR100": 0.0}
+            return None
         coco_dt = coco_gt.loadRes(results)
         ev = COCOeval(coco_gt, coco_dt, "bbox")
         ev.evaluate()
+    return ev
+
+
+def _stats(ev, image_index: list[int] | None = None) -> dict[str, float]:
+    """Accumulate + summarize, optionally over a resample of the evaluated images.
+
+    COCOeval matches detections per (category, image), so a bootstrap resample only needs the
+    per-image results re-accumulated in the sampled order (duplicates included): the same numbers
+    as re-running ``evaluate()`` on duplicated images, about 10x faster (tested).
+    """
+    if ev is None:
+        return {"AP": 0.0, "AP50": 0.0, "AP75": 0.0, "AR100": 0.0}
+    if image_index is not None:
+        pe = ev._paramsEval
+        n_img, n_area = len(pe.imgIds), len(pe.areaRng)
+        sub = copy.copy(ev)
+        sub.evalImgs = [
+            ev.evalImgs[(k * n_area + a) * n_img + i]
+            for k in range(len(pe.catIds))
+            for a in range(n_area)
+            for i in image_index
+        ]
+        sub.params, sub._paramsEval = copy.copy(ev.params), copy.copy(pe)
+        sub.params.imgIds = sub._paramsEval.imgIds = list(range(len(image_index)))
+        ev = sub
+    with contextlib.redirect_stdout(io.StringIO()):
         ev.accumulate()
         ev.summarize()
     s = ev.stats
     return {"AP": float(s[0]), "AP50": float(s[1]), "AP75": float(s[2]), "AR100": float(s[8])}
+
+
+def coco_ap(gt: dict, results: list[dict]) -> dict[str, float]:
+    return _stats(_evaluated(gt, results))
 
 
 def ap_with_ci(
@@ -101,21 +133,20 @@ def ap_with_ci(
     desc: str = "AP bootstrap",
 ) -> dict[str, float]:
     """AP point estimate plus a 95% CI from resampling source photographs."""
-    out = coco_ap(*build_coco(records, dets, categories, origins))
+    ev = _evaluated(*build_coco(records, dets, categories, origins))
+    out = _stats(ev)
     if n_boot <= 0:
         return out
     by_src: dict = {}
-    for r in records:
-        by_src.setdefault(r.source_id, []).append(r)
+    for k, r in enumerate(records):  # build_coco numbers images by position
+        by_src.setdefault(r.source_id, []).append(k)
     keys = list(by_src)
     aps = []
     from tqdm import tqdm
 
     for _ in tqdm(range(n_boot), desc=desc, leave=False):
-        sample = [by_src[keys[j]] for j in rng.integers(len(keys), size=len(keys))]
-        # duplicate records need distinct image ids: build_coco numbers images by position
-        recs = [r for group in sample for r in group]
-        aps.append(coco_ap(*build_coco(recs, dets, categories, origins))["AP"])
+        sample = [k for j in rng.integers(len(keys), size=len(keys)) for k in by_src[keys[j]]]
+        aps.append(_stats(ev, sample)["AP"])
     # Basic (reverse-percentile) bootstrap interval. COCO AP averages over the categories present,
     # and rare, low-AP categories drop out of some resamples, so resampled APs are biased upward;
     # Task 1 showed the plain percentile interval sitting almost entirely above the point

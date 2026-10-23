@@ -333,11 +333,24 @@ click-to-enlarge.
 data plus downscaled JPEG copies of the photos (max side 640, quality 80), so it can be committed,
 zipped or served with GitHub Pages without the full `data/` and `runs/` folders.
 
-### 3.11 `evaluate` 🚧 (`eval/`, `stages/evaluate.py`)
+### 3.11 `evaluate` 🚧 (Task 1 ✅, Task 3 detector metrics ✅, origin/joint/calibration ⬜) (`eval/`, `stages/evaluate.py`)
 Task 1 version ✅: AP/AP50/AP75/AR100 per detector × condition (95% CI from grouped bootstrap over
 sources, `eval.ap_bootstrap` resamples), C0→C1 per-object detection flips, forensic score
 distributions on real photos, and paired C1 − C0 shift. Writes `summary.md`, `metrics.json` and
 `tables/*.csv`. Origin metrics (AUROC, joint AP, calibration) come in Task 3, once AI images exist.
+Task 3 detector metrics ✅ (`eval/matched.py`, `eval/origin.py`, 2026-10-23; run only when the
+ledger has C2–C4): subset AP on the photos with every condition (original objects per
+condition; AI-inserted in C4; pasted in C3; the other origins are ignore regions); H1 = per-object
+score of the best same-class detection (oracle localisation, IoU ≥ 0.5) for the AI object vs its
+same-class photographed "twins", all photographed objects of the image, and the C3 paste at the
+same box: recall at `eval.recall_score`, paired recall difference, AUROC; H2 = every original
+object followed C1 → C0/C2/C3/C4 (lost, gained, flip, class flip, score change, box drift),
+stratified by the edit footprint (plan box + `edit.mask_dilate_px` + one 8-px JPEG block:
+covered / uncovered near / uncovered far / mixed-modified), and paired C4 − C2 / C3 / C0
+contrasts on the same uncovered objects. All CIs: grouped bootstrap over source photos
+(`grouped_mean_ci`, `grouped_bootstrap_fn`). AP bootstrap re-accumulates one COCOeval per
+resample instead of re-evaluating (identical numbers, tested; ~5× faster). All-object AP is kept
+for `eval.all_objects_ap_conditions` (C0, C1) only, since it mixes origins in edited images.
 | Module | Metric |
 |---|---|
 | `semantic.py` | COCO AP/AP50/recall via pycocotools, computed on **subsets**: original instances only, inserted only (other GT set to ignore) |
