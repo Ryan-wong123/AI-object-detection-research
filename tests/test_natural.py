@@ -1003,3 +1003,35 @@ def test_edit_review_accept_reject_and_redo(cfg, tmp_path):
     assert rows2[ids["C4"]]["current"] == "n" and rows2[ids["C4"]]["decision"] == "reject"
     assert rows2[now["C4"]]["current"] == "y" and rows2[now["C4"]]["decision"] == ""
     assert res2["photos"] == res["photos"]
+
+
+def test_review_page_lists_photos_without_an_ai_object(cfg, tmp_path, monkeypatch):
+    """Photos that end without a verified AI object (here: no box from planning) appear on the
+    review page as view-only 'missing' cards with a reason; they are not in the review CSV."""
+    import inlayfake.edit.scene as scene
+    from inlayfake.stages import editaudit, insert, plan, sample
+
+    orig = scene.FakeVLM.boxes
+    state = {"n": 0}
+
+    def boxes(self, img, prompt):
+        state["n"] += 1
+        if state["n"] == 1:  # the first photo asked gets no box at all
+            return [], "[]"
+        return orig(self, img, prompt)
+
+    monkeypatch.setattr(scene.FakeVLM, "boxes", boxes)
+    sc = {"min_side_px": 15, "min_area_frac": 0.001, "max_cover_labelled": 0.3, "retries": 0}
+    c = _natural_cfg(cfg, mode="box", free=True, merged=True, classes_per_photo=1, shape_check=sc)
+    sample.run(c)
+    summary = plan.run(c)
+    insert.run(c)
+    res = editaudit.run(c)
+    assert res["photos_without_ai_object"] >= summary["n_failed"] >= 1
+    page = Path(res["page"]).read_text(encoding="utf-8")
+    cards = json.loads(page.split("const CARDS = ")[1].split(";\nconst LABEL")[0])
+    missing = [k for k in cards if k.get("kind") == "missing"]
+    assert missing and all(
+        "no box" in k["reason"] or "none verified" in k["reason"] for k in missing
+    )
+    assert all(not k.get("figs") for k in missing)  # view only: no accept/reject

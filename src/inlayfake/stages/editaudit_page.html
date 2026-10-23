@@ -20,6 +20,9 @@ figure.acc .w{outline:3px solid var(--tp)}
 .missing{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:4px;
   padding:20px 6px;text-align:center}
 .notes{width:100%;margin-top:6px}
+.fails{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:8px}
+.fails figcaption{font-size:11px;color:var(--muted)}
+.full{max-width:520px}
 .pill{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}
 </style></head><body>
 <header><h1>__TITLE__ <span>· review C2 / C3 / C4</span></h1>
@@ -27,7 +30,7 @@ figure.acc .w{outline:3px solid var(--tp)}
 <label>show <select id="flt">
 <option value="todo">to review</option><option value="all">all</option>
 <option value="reject">with a reject</option><option value="random">random sample</option>
-<option value="done">reviewed</option>
+<option value="done">reviewed</option><option value="missing">no AI object (view only)</option>
 </select></label><span id="save" class="muted"></span></header>
 <main>
 <p class="note">Per photo: C1 is the matched resave (before); C2 the sham edit (box repainted, no
@@ -48,11 +51,27 @@ function esc(s){ return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&l
 function render(){
   const f = document.getElementById('flt').value; box.innerHTML = '';
   let nDone = 0, nRej = 0, nRand = 0, nRandDone = 0;
+  let nMissing = 0;
   for (const c of CARDS){
+    if (c.kind === 'missing'){
+      nMissing++;
+      if (f !== 'missing' && f !== 'all') continue;
+      const el = document.createElement('div'); el.className = 'card';
+      const tries = c.fails.map(t => `<figure><span class="w"><img loading="lazy" src="${t.src}">` +
+        `${t.boxes}</span><figcaption>${esc(t.label)}</figcaption></figure>`).join('');
+      el.innerHTML = `<h2>${esc(c.category)} <span>photo ${c.sid}</span> ` +
+        `<span class="pill">no AI object: ${esc(c.reason)}</span></h2>` +
+        `<figure class="full"><figcaption>photo with the planned boxes</figcaption>` +
+        `<span class="w"><img loading="lazy" src="${c.full.src}">${c.full.boxes}</span></figure>` +
+        (tries ? `<div class="fails">${tries}</div>` : '');
+      box.appendChild(el);
+      continue;
+    }
     const ds = ids(c).map(dec), isDone = ds.every(Boolean), hasRej = ds.includes('reject');
     const rnd = c.figs.some(g => g.random);
     if (isDone) nDone++; if (hasRej) nRej++;
     if (rnd){ nRand++; if (isDone) nRandDone++; }
+    if (f === 'missing') continue;
     if (f === 'todo' && isDone) continue;
     if (f === 'done' && !isDone) continue;
     if (f === 'reject' && !hasRej) continue;
@@ -75,8 +94,10 @@ function render(){
       `value="${esc((DEC[c.photo] || {}).notes || '')}">`;
     box.appendChild(el);
   }
+  const nReview = CARDS.length - nMissing;
   document.getElementById('count').textContent =
-    `${nDone} of ${CARDS.length} photos reviewed · ${nRej} with a reject · random sample ${nRandDone} of ${nRand}`;
+    `${nDone} of ${nReview} photos reviewed · ${nRej} with a reject · random sample ${nRandDone} of ${nRand}` +
+    ` · ${nMissing} without an AI object`;
 }
 async function save(id, field, value){
   const msg = document.getElementById('save');

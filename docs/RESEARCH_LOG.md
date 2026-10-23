@@ -24,6 +24,10 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
   object (SAM box) median 0.82%. C4 attempts: 286 first, 93 second, 48 third (of the edit's box).
 - **Next:** the author's review of C2/C3/C4 per photo (`editaudit`), redo of rejects (same run
   command), then week-3 detection/forensics on the final ledger.
+- **Review page** (author request): also lists the **117 photos without an AI object** (26 no box,
+  91 all boxes failed) as view-only cards with the planned boxes and every failed C4 attempt and
+  its verifier reason; filter "no AI object". 427 photos to review (1279 images), 44 in the
+  random sample.
 
 ---
 
