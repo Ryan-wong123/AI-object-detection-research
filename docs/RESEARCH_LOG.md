@@ -7,6 +7,46 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-25: H1/H2 detector metrics evaluated (run `task3_detection_natural`)
+
+- **Code (commit 90f3463):** `eval/matched.py`, `eval/origin.py`; `evaluate` adds subset AP,
+  H1 (detector score as origin signal) and H2 (matched-instance changes) when the ledger has
+  C2–C4. The AP bootstrap now re-accumulates one COCOeval per resample instead of re-evaluating
+  (identical numbers, tested; ~5× faster). All-object AP is limited to C0/C1, where origins are
+  not mixed. Commit 072cd58: each stage opts out of Windows power throttling.
+- **Check:** detectors are deterministic: on the 518 identical C0 images, the week-1 run and this
+  run give bit-identical detections for all four detectors. So C1 → Cx changes are caused by the
+  edit, not by run-to-run noise.
+- **Ran:** `evaluate` (200 AP resamples, 1,000 for everything else), 25 Oct 19:18–20:08 (50 min).
+  Two earlier attempts on 23 Oct were lost: one closed after 5 min (exit 0xC000013A, its console
+  window closed), and one ran ~5× slower because Windows throttled the windowless process
+  (2.3–3.3 s per resample instead of 0.5 s), then died without an error line between 23 Oct
+  evening and the 25 Oct 18:48 boot that installed Windows 11 26H2 (build 26200 → 26300). Hence
+  the throttling opt-out. Results: `paper/results/task3_*.csv`, `task3_evaluate_summary.md`.
+- **Subset AP (425 photos with all five conditions):** original objects C1 → C4 drop by
+  0.007–0.009 for every detector (inside CIs; e.g. Faster R-CNN 0.502 [0.455, 0.522] → 0.493).
+  AP on AI-inserted objects 0.38–0.41, on pasted real objects 0.34–0.43.
+- **H1:** AUROC of the detector score, AI object vs same-class photographed twins in the same C4
+  image: 0.41–0.45 (Faster R-CNN 0.441 [0.399, 0.478], YOLO 0.411, RT-DETR 0.432, Grounding DINO
+  0.439); recall 6–9 points lower for AI objects (Grounding DINO CI includes 0). Against the real
+  object pasted at the same box (C3): AUROC 0.51–0.57, AI recall 0–8 points *higher*.
+  **Interpretation:** confidence is a poor origin signal (≤ 0.09 from chance) and its sign depends
+  on the real comparison group; the gap to twins follows compositing into a planned box, not
+  generation. Caveat: AI objects all passed OWLv2, pasted ones were not verified.
+- **H2:** flip rate (detected ↔ missed at score 0.5) of uncovered original objects C1 → C4:
+  0.20% / 0.68% / 1.27% / 1.67% (Faster R-CNN / YOLO / RT-DETR / Grounding DINO). Paired C4 − C2 on
+  the same objects: −0.04 [−0.21, 0.12], +0.28 [−0.04, 0.59], +0.52 [0.08, 0.97], +0.96 [0.45,
+  1.48] points; C4 − C3: −0.04, 0.00, +0.60 [0.30, 0.93], +0.64 [0.15, 1.15]. Re-encoding the
+  whole photo (C0 vs C1) flips 1.0–1.2% for every detector. Near the edit more than far
+  (Grounding DINO 2.6% vs 1.3%). Covered objects 0.6–6.7%, mixed/modified 8–19%.
+  **Interpretation:** H2 partly supported: a small excess collateral effect of AI insertion over
+  the sham edit and the paste exists only for the two transformer detectors (global attention),
+  of the size of a JPEG re-encode; none for the CNNs.
+- **Paper:** Abstract H1/H2 sentences, §6 strata, §7.2 (Tables 2c, 2d), §7.3 (Table 2e), Status box.
+- **Next:** Figure 2 (H2 by distance); TruFor and UnivFD; `vlm` stage.
+
+---
+
 ## 2026-10-23: Task 3 `detect` and hand-crafted `forensics` complete (run `task3_detection_natural`)
 
 - **Branch** `week-3-detection` from `main`. Plan agreed with the author: detection + hand-crafted
