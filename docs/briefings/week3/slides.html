@@ -19,7 +19,7 @@ figcaption{margin-top:8px;line-height:1.5;color:#33415c}
 <p style="font-size:32px;font-weight:600;color:#E8A06A;letter-spacing:4px;text-transform:uppercase">CVPR 2027 project · Progress briefing</p>
 <h1 style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1.05;color:#F7F6F2">InlayFake: Week 3</h1>
 <p style="font-size:44px;line-height:1.3;color:#C9D2E3;width:1400px">Detectors and forensic methods on the edited images</p>
-<p style="position:absolute;left:128px;bottom:64px;width:1200px;font-size:24px;color:#9AA6BD">22–28 October 2026 · Ryan Wong · last updated 23 October 2026</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1200px;font-size:24px;color:#9AA6BD">22–28 October 2026 · Ryan Wong · last updated 25 October 2026</p>
 </section></div><figcaption><b>Slide 1.</b> Week 3 of five. The benchmark was frozen on 23 October; detection and hand-crafted forensics ran on all of it the same day (run task3_detection_natural).</figcaption></figure>
 <figure class="slide"><div class="frame"><section id="done" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:48px">
 <p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Done</p>
@@ -32,11 +32,23 @@ figcaption{margin-top:8px;line-height:1.5;color:#33415c}
 </table>
 <p style="font-size:28px;line-height:1.45;color:#4A5568;width:1600px">Benchmark: C0 518, C1 518, C2 425, C3 427, C4 427; 425 photos with all five conditions.</p>
 </section></div><figcaption><b>Slide 2.</b> Times from run task3_detection_natural. The run stopped once when the app that started it restarted, and resumed without losing results.</figcaption></figure>
+<figure class="slide"><div class="frame"><section id="h1h2" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:44px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Results · H1 and H2</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:60px;font-weight:600;line-height:1.15;width:1650px">Confidence barely reveals origin; insertions barely disturb real objects</h2>
+<table style="font-size:28px;width:1660px">
+<tr><th style="text-align:left">Detector</th><th>AUROC AI vs same-class real</th><th>AUROC AI vs pasted real</th><th>Extra flips C4 − C2 (uncovered)</th></tr>
+<tr><td>Faster R-CNN</td><td>0.44</td><td>0.56</td><td>−0.04 pp (n.s.)</td></tr>
+<tr><td>YOLO11-m</td><td>0.41</td><td>0.51</td><td>+0.28 pp (n.s.)</td></tr>
+<tr><td>RT-DETR</td><td>0.43</td><td>0.54</td><td>+0.52 pp</td></tr>
+<tr><td>Grounding DINO</td><td>0.44</td><td>0.57</td><td>+0.96 pp</td></tr>
+</table>
+<p style="font-size:28px;line-height:1.45;color:#4A5568;width:1650px">0.5 = chance. Re-encoding the whole photo flips 1.0–1.2% of objects; AP on real objects drops 0.007–0.009 with an insertion (inside CIs).</p>
+</section></div><figcaption><b>Slide 3.</b> Run task3_detection_natural, evaluate of 25 October, 425 photos with all five conditions, grouped bootstrap CIs. AI objects score below the photo's own same-class objects but above real objects pasted into the same box, so confidence follows compositing rather than generation. Only the two transformer detectors show a significant extra effect of the AI object on untouched real objects.</figcaption></figure>
 <figure class="slide"><div class="frame"><section id="next" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:48px">
 <p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Next and to discuss</p>
-<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;width:1600px">H1/H2 metrics, learned forensics, VLM prompts</h2>
-<ul style="font-size:30px;line-height:1.5;color:#4A5568;width:1600px"><li>H1/H2 metrics in <code>evaluate</code>: AP on originals per condition, recall and confidence AUROC for AI vs photographed, matched-instance changes [[TBD]]</li><li>TruFor and UnivFD, then the <code>vlm</code> stage (Florence-2, Qwen2.5-VL-3B), plain and grounded prompts</li><li>To discuss: C3 pastes do not update the labels they cover, so H2 leaves covered objects out of the C3 contrast</li></ul>
-</section></div><figcaption><b>Slide 3.</b> No metric results yet; they follow from evaluate on these detections.</figcaption></figure>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;width:1600px">Learned forensics, VLM prompts</h2>
+<ul style="font-size:30px;line-height:1.5;color:#4A5568;width:1600px"><li>Figure 2: H2 flip rates by distance to the edit</li><li>TruFor and UnivFD, then the <code>vlm</code> stage (Florence-2, Qwen2.5-VL-3B), plain and grounded prompts</li><li>To discuss: C3 pastes do not update the labels they cover, so H2 leaves covered objects out of the C3 contrast</li></ul>
+</section></div><figcaption><b>Slide 4.</b> Learned forensics and the VLM stage are next; H3–H5 results are not yet available.</figcaption></figure>
 <script>
 function fit(){document.querySelectorAll('.frame').forEach(f=>{f.firstElementChild.style.transform='scale('+f.clientWidth/1920+')';});}
 addEventListener('resize',fit);fit();
