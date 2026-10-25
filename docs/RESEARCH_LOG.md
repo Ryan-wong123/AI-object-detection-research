@@ -7,6 +7,26 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-25: Figure 2: H2 flip rates by distance to the edit (run `task3_detection_natural`)
+
+- **Code:** `scripts/figure_h2_distance.py <config>` reads `h2_instances.csv` from `evaluate` and the
+  ledger, bins every original object by its gap to the edit footprint (in units of the
+  footprint's longer side: covered, < 0.5, 0.5–1, 1–2, 2–4, ≥ 4; mixed/modified left out), and
+  writes `paper/results/task3_h2_by_distance.csv` (flip rate per detector × condition × bin and
+  the paired C4 − C2 difference, 1,000 grouped-bootstrap resamples) and
+  `paper/figures/fig2_h2_distance.{png,pdf}`. 357–714 objects per bin.
+- **Findings:** edit-induced flips concentrate on and right next to the edit. Faster R-CNN
+  changes nothing beyond half a box length (0–0.3% in C2–C4). Grounding DINO's excess over the
+  sham edit persists far away: C4 − C2 +1.4 [0.7, 2.4] points at 1–2 box lengths, +1.1 [0.4, 2.0]
+  at 2–4 (C4 flips 4.0% within half a box length). RT-DETR: largest next to the edit (+1.3 [0.0,
+  2.9] within half a box length), not significant in any single bin further away. C0 (re-encoding
+  every pixel) flips 0–1.9% without a distance trend.
+- **Interpretation:** the collateral effect of an AI object is local for the CNNs and long-range
+  only for Grounding DINO (text-conditioned global attention).
+- **Paper:** §7.3 Figure 2 with caption and a "Distance" paragraph; Status box.
+
+---
+
 ## 2026-10-25: H1/H2 detector metrics evaluated (run `task3_detection_natural`)
 
 - **Code (commit 90f3463):** `eval/matched.py`, `eval/origin.py`; `evaluate` adds subset AP,
