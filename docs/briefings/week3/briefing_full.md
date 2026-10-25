@@ -64,6 +64,13 @@ The run took 50 min (25 Oct). Two earlier attempts were lost: a console window w
 Windows throttled the windowless run ~5× and then restarted for the 26H2 update. Each stage now
 opts out of that throttling.
 
+### 3. Figure 2: H2 by distance to the edit (25 Oct)
+
+`scripts/figure_h2_distance.py` bins every real object by its distance to the edit
+(`paper/figures/fig2_h2_distance.png`). Flips concentrate on and right next to the edit for every
+detector. Faster R-CNN changes nothing beyond half a box length; Grounding DINO's extra flips
+over the sham edit persist 1–4 box lengths away.
+
 ## Results
 
 | Item | Value |
@@ -74,13 +81,13 @@ opts out of that throttling.
 | AP on original objects, C1 → C4 (425 photos) | Faster R-CNN 0.502 → 0.493, YOLO 0.536 → 0.528, RT-DETR 0.522 → 0.514, Grounding DINO 0.516 → 0.509 (drops inside CIs) <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 | AP on AI-inserted (C4) / pasted real (C3) objects | 0.38–0.41 / 0.34–0.43 <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 | Recall, AI object vs same-class photographed in the same photo (H1) | 6–9 points lower for AI objects (e.g. RT-DETR 0.522 vs 0.613; Grounding DINO's CI includes 0); vs the C3 paste at the same box: 0–8 points higher <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
+| H2 by distance: Grounding DINO C4 − C2 at 1–2 / 2–4 box lengths | +1.4 [0.7, 2.4] / +1.1 [0.4, 2.0] pp; Faster R-CNN 0–0.3% flips beyond half a box length <!-- run:task3_detection_natural, file:paper/results/task3_h2_by_distance.csv --> |
 | Origin AUROC of detector confidence (H1) | vs same-class photographed 0.41–0.45; vs C3 paste 0.51–0.57 (0.5 = chance) <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 | Flip rate of uncovered real objects C1 → C4; excess over C2 sham (H2) | Faster R-CNN 0.20% (−0.04 pp, n.s.), YOLO 0.68% (+0.28 pp, n.s.), RT-DETR 1.27% (+0.52 pp [0.08, 0.97]), Grounding DINO 1.67% (+0.96 pp [0.45, 1.48]); re-encoding the photo (C0 vs C1) flips 1.0–1.2% <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 
 ## Next steps
 
-1. Figure 2: H2 flip rates by distance to the edit.
-2. Write TruFor and UnivFD (CPU tests with fakes); give the author the download and run commands.
+1. Write TruFor and UnivFD (CPU tests with fakes); give the author the download and run commands.
 3. Write the `vlm` stage and caption metrics; plain and grounded prompts on the GPU.
 4. The author's audit of C4 edits can continue in parallel. A rejected edit means regenerating it,
    then re-running detection and forensics for the changed images only.
