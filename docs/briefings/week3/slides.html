@@ -44,11 +44,23 @@ figcaption{margin-top:8px;line-height:1.5;color:#33415c}
 </table>
 <p style="font-size:28px;line-height:1.45;color:#4A5568;width:1650px">0.5 = chance. Re-encoding the whole photo flips 1.0–1.2% of objects; AP on real objects drops 0.007–0.009 with an insertion (inside CIs).</p>
 </section></div><figcaption><b>Slide 3.</b> Run task3_detection_natural, evaluate of 25 October, 425 photos with all five conditions, grouped bootstrap CIs. AI objects score below the photo's own same-class objects but above real objects pasted into the same box, so confidence follows compositing rather than generation. Only the two transformer detectors show a significant extra effect of the AI object on untouched real objects.</figcaption></figure>
+<figure class="slide"><div class="frame"><section id="h3h5" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:44px">
+<p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Results · H3 and Stage 2</p>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:60px;font-weight:600;line-height:1.15;width:1650px">Forensics find edited regions, not AI objects; VLMs miss AI objects</h2>
+<table style="font-size:28px;width:1660px">
+<tr><th style="text-align:left">Per object (test)</th><th>AUROC vs real objects</th><th>AUROC vs pasted real objects</th><th>Sham-edit boxes flagged</th></tr>
+<tr><td>TruFor, pooled over the object</td><td>0.907</td><td>0.532</td><td>44%</td></tr>
+<tr><td>TruFor, whole image</td><td>0.636</td><td>0.509</td><td>72%</td></tr>
+<tr><td>UnivFD, object crop</td><td>0.675</td><td>0.334</td><td>94%</td></tr>
+<tr><td>Best hand-crafted</td><td>≤ 0.61</td><td>≤ 0.60</td><td>28–98%</td></tr>
+</table>
+<p style="font-size:28px;line-height:1.45;color:#4A5568;width:1650px">VLMs (270 test images): no real object called AI, but only 1 of 90 AI objects called AI (Qwen2.5-VL, with detector boxes); Florence-2 never states an origin.</p>
+</section></div><figcaption><b>Slide 4.</b> Run task3_detection_natural, evaluate_origin of 26 October; thresholds fit on val, metrics on the 90 test photos. Against real objects pasted into the same box, every forensic method is near chance, and TruFor also flags many boxes whose background was only repainted: it detects local editing, not AI generation. Week 4 adds the trained crop classifier and the origin-aware prompts.</figcaption></figure>
 <figure class="slide"><div class="frame"><section id="next" style="background:#F7F6F2;color:#14213D;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:48px">
 <p style="font-size:24px;font-weight:600;color:#B04A12;letter-spacing:3px;text-transform:uppercase">Next and to discuss</p>
-<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;width:1600px">Learned forensics, VLM prompts</h2>
-<ul style="font-size:30px;line-height:1.5;color:#4A5568;width:1600px"><li>Figure 2 done: flips concentrate next to the edit; only Grounding DINO's extra flips persist 1–4 box lengths away</li><li>TruFor and UnivFD done: run on all 2,315 images in 7 min (26 Oct); next the <code>vlm</code> stage (Florence-2, Qwen2.5-VL-3B), plain and grounded prompts</li><li>To discuss: C3 pastes do not update the labels they cover, so H2 leaves covered objects out of the C3 contrast</li></ul>
-</section></div><figcaption><b>Slide 4.</b> Learned forensics and the VLM stage are next; H3–H5 results are not yet available.</figcaption></figure>
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:64px;font-weight:600;line-height:1.15;width:1600px">Week 4: composed systems, crop classifier, H4</h2>
+<ul style="font-size:30px;line-height:1.5;color:#4A5568;width:1600px"><li>Figure 2 done: flips concentrate next to the edit; only Grounding DINO's extra flips persist 1–4 box lengths away</li><li>TruFor and UnivFD run on all 2,315 images (7 min); VLM plain and grounded prompts run (69 min)</li><li>To discuss: H3 as forensics detect editing, not AI origin; is the origin-aware VLM setting worth the GPU time?</li><li>To discuss: C3 pastes do not update the labels they cover, so H2 leaves covered objects out of the C3 contrast</li></ul>
+</section></div><figcaption><b>Slide 5.</b> Week 3 is complete; week 4 adds the composed systems, the crop classifier, the origin-aware prompts and the robustness and Open Images tests (H4).</figcaption></figure>
 <script>
 function fit(){document.querySelectorAll('.frame').forEach(f=>{f.firstElementChild.style.transform='scale('+f.clientWidth/1920+')';});}
 addEventListener('resize',fit);fit();

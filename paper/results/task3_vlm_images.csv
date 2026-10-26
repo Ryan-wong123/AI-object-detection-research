@@ -1,0 +1,13 @@
+model,setting,condition,n,n_sources,any_ai,any_ai_lo,any_ai_hi
+florence2,grounded,C1,90,90,0.0,0.0,0.0
+florence2,grounded,C3,90,90,0.0,0.0,0.0
+florence2,grounded,C4,90,90,0.0,0.0,0.0
+florence2,plain,C1,90,90,0.0,0.0,0.0
+florence2,plain,C3,90,90,0.0,0.0,0.0
+florence2,plain,C4,90,90,0.0,0.0,0.0
+qwen25vl,grounded,C1,90,90,0.0,0.0,0.0
+qwen25vl,grounded,C3,90,90,0.0111,0.0,0.0333
+qwen25vl,grounded,C4,90,90,0.0111,0.0,0.0333
+qwen25vl,plain,C1,90,90,0.0,0.0,0.0
+qwen25vl,plain,C3,90,90,0.0,0.0,0.0
+qwen25vl,plain,C4,90,90,0.0,0.0,0.0

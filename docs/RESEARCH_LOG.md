@@ -7,6 +7,44 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-26: H3 forensic origin metrics and the Stage 2 VLM run (run `task3_detection_natural`)
+
+- **Order (author, 26 Oct):** VLM stage first so its GPU run could go while H3 was written.
+- **VLM setup:** Florence-2-large (`florence-community/Florence-2-large`, 1.56 GB, native
+  transformers class) and Qwen2.5-VL-3B-Instruct (7.52 GB, 4-bit NF4) downloaded with the author's
+  approval. Smoke test on one C4 image found two problems, fixed before the run (commit 9e762d9):
+  Qwen answered the grounded prompt with class names as ids (prompt now says the id is the box
+  number), and Florence's region text repeated `<loc_>` tokens (stripped).
+- **VLM run:** 90 test photos × C1/C3/C4 = 270 images, 26 Oct 16:02–17:11 (69 min): Florence plain
+  9:17, grounded 6:02; Qwen plain 34:06 (7.6 s/img), grounded 19:20 (4.3 s/img). Qwen answered
+  1,666 of 1,759 given boxes; 14 plain replies had no object list.
+- **H3 code (commit 77bdf64):** `eval/forensic_origin.py`; AI objects vs photographed objects of
+  C1–C4 and C3 pastes (C0 and mixed/modified out); direction and thresholds fit on val, metrics on
+  test (90 AI vs 2,580 real objects). Controls: AUROC vs the C3 pastes, and the share of C2 sham
+  boxes flagged (each method re-scored inside every edit box, `forensics.edit_box_rows`; hand-crafted
+  2 min 21 s on CPU, TruFor + UnivFD ~3 min after the VLM run). `scripts/evaluate_origin.py` writes
+  the H3/H5 tables in 16 s (evaluate_origin 2026-10-26T09:15:39Z).
+- **H3 results:** TruFor pooled over the object mask: AUROC 0.907 [0.870, 0.937], TPR 56.7% at 5%
+  FPR, false accusation 7.1% [5.4, 9.4] at the 80%-TPR threshold; its image-level scores 0.555 /
+  0.636 (false accusation 63–67%). Contrast mode 0.851. Hand-crafted F1–F5 and UnivFD: AUROC
+  0.48–0.68 in every mode. **Controls:** TruFor region-pooled vs C3 pastes 0.532 [0.469, 0.594]; it
+  flags 70.8% of pasted objects and 44.4% [34.4, 54.4] of C2 sham boxes. UnivFD crop vs pastes 0.334
+  [0.269, 0.406] (pastes look more fake than AI objects). No method/mode exceeds 0.60 vs pastes.
+  **Interpretation:** H3 partly supported: per-object scoring beats image-level by far, contrast
+  does not beat plain pooling, and every method detects local editing/compositing, not AI origin.
+- **H5 baseline (plain, grounded):** no AI claim on any photographed object or unedited image (both
+  models). AI objects called AI: Florence 0/90 (never states an origin), Qwen 0/90 plain, 1/90
+  grounded; Qwen grounded calls 55.6% of AI objects photographed (plain 12.2%, most objects not
+  mentioned). **Interpretation:** VLMs are silent rather than wrong about real objects and blind to
+  AI objects; boxes raise coverage and false-real claims. H5 proper needs the origin-aware setting
+  (week 4).
+- **Paper:** §7.4 Table 3 + finding, §7.6 controls, §7.7 Table 6 + finding, Abstract H3 and
+  H5-baseline clauses, Status box.
+- **Next (week 4):** composed systems (Table 4), crop classifier L3 on the saved CLIP features,
+  origin-aware prompts, robustness and Open Images (H4); false detections in empty C2 boxes.
+
+---
+
 ## 2026-10-26: TruFor and UnivFD run on all 2,315 images (run `task3_detection_natural`)
 
 - **Setup (done by the agent with the author's approval):** `yacs` installed in `.venv`;

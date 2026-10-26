@@ -81,6 +81,22 @@ UnivFD scores the image and a crop around every object with CLIP ViT-L/14 and th
 probe. The CLIP features of every crop are saved for next week's crop classifier. Tested on CPU;
 both then ran on all 2,315 images on 26 Oct in 7 minutes (TruFor's weights checked against the authors' checksum). Their origin scores (H3) are computed next week.
 
+### 5. Forensic origin per object (H3) and VLM origin claims (Stage 2), 26 Oct
+
+**H3.** For every object, each forensic method's score decides "AI-inserted or real"; thresholds
+are fit on the validation photos and tested on the 90 test photos (90 AI objects, 2,580 real
+ones). TruFor, pooled over the object's mask, separates AI objects from untouched real objects
+well, while scoring the whole image does not. Two controls show what it detects: real objects
+pasted into the same boxes (C3) are flagged as often as AI objects, and so are many sham-edit
+boxes (C2) that hold only repainted background. So the forensic signal marks *edited regions*,
+not *AI-made objects*. The hand-crafted methods and UnivFD are near chance.
+
+**Stage 2.** Florence-2 and Qwen2.5-VL-3B described the 270 test images (unedited, real paste, AI
+insertion), asked about each object's origin with and without detector boxes (69 min of GPU).
+Neither model ever called a real object AI, but they also almost never called an AI object AI
+(1 of 90). Florence-2 makes no origin statements at all. The third prompt setting, with forensic
+evidence, comes in week 4.
+
 ## Results
 
 | Item | Value |
@@ -93,16 +109,26 @@ both then ran on all 2,315 images on 26 Oct in 7 minutes (TruFor's weights check
 | AP on AI-inserted (C4) / pasted real (C3) objects | 0.38–0.41 / 0.34–0.43 <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 | Recall, AI object vs same-class photographed in the same photo (H1) | 6–9 points lower for AI objects (e.g. RT-DETR 0.522 vs 0.613; Grounding DINO's CI includes 0); vs the C3 paste at the same box: 0–8 points higher <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 | H2 by distance: Grounding DINO C4 − C2 at 1–2 / 2–4 box lengths | +1.4 [0.7, 2.4] / +1.1 [0.4, 2.0] pp; Faster R-CNN 0–0.3% flips beyond half a box length <!-- run:task3_detection_natural, file:paper/results/task3_h2_by_distance.csv --> |
+| H3: TruFor per object, AUROC vs real objects / vs pasted real objects | 0.907 [0.870, 0.937] / 0.532 [0.469, 0.594]; flags 7.1% of real objects but 70.8% of pastes and 44.4% of C2 sham boxes <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_h3_origin.csv --> |
+| H3: TruFor image-level / hand-crafted / UnivFD AUROC | 0.555–0.636 / 0.48–0.61 / 0.60–0.68 <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_h3_origin.csv --> |
+| Stage 2: AI objects called AI / real objects called AI | Qwen 1 of 90 (grounded), 0 of 90 (plain); Florence 0 / no real object called AI by either model <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_vlm_objects.csv --> |
 | Origin AUROC of detector confidence (H1) | vs same-class photographed 0.41–0.45; vs C3 paste 0.51–0.57 (0.5 = chance) <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 | Flip rate of uncovered real objects C1 → C4; excess over C2 sham (H2) | Faster R-CNN 0.20% (−0.04 pp, n.s.), YOLO 0.68% (+0.28 pp, n.s.), RT-DETR 1.27% (+0.52 pp [0.08, 0.97]), Grounding DINO 1.67% (+0.96 pp [0.45, 1.48]); re-encoding the photo (C0 vs C1) flips 1.0–1.2% <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 
 ## Next steps
 
-1. Write the `vlm` stage and caption metrics; plain and grounded prompts on the GPU.
+1. Week 4: composed systems, crop classifier L3 (CLIP features saved), origin-aware VLM prompts, robustness and Open Images (H4).
 2. The author's audit of C4 edits can continue in parallel. A rejected edit means regenerating it,
    then re-running detection and forensics for the changed images only.
 
 ## To discuss
+
+- **H3 reading.** TruFor's high per-object AUROC disappears against real objects pasted the same
+  way, and it flags 44% of sham-edit boxes. Frame H3 as "forensics detect editing, not AI origin"?
+  Is the C3 paste a fair control, given that the pastes are not blended (feathered edges only)?
+- **Stage 2.** The VLMs do not accuse real objects but are blind to AI ones; is the origin-aware
+  setting (forensic evidence in the prompt) worth the week-4 GPU time, given that the evidence
+  itself does not separate AI from pasted objects?
 
 - **H1 reading.** Detector confidence is a weak origin signal (AUROC 0.41–0.45), and its sign
   flips with the comparison: AI objects score below the photo's own same-class objects but above
