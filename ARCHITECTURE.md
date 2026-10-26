@@ -271,7 +271,7 @@ category names.
 
 Score threshold 0.001 for AP; outputs are saved as COCO results JSON per (run, condition).
 
-### 3.7 `forensics` ✅ hand-crafted F1–F5 · ⬜ learned L1–L4 (`forensics/`, `stages/forensics.py`)
+### 3.7 `forensics` ✅ hand-crafted F1–F5 · 🚧 learned L1–L2 code ✅ (2026-10-26), L3–L4 ⬜ (`forensics/`, `stages/forensics.py`)
 Every method outputs either a **pixel map** `M ∈ [0,1]^{H×W}` or an **image/crop score**.
 
 Hand-crafted ("traditional") (`forensics/handcrafted.py`, numpy + PIL only, about 0.1 s per 640×480
@@ -292,6 +292,19 @@ Learned (`forensics/learned/`):
 | L2 | UnivFD-style: CLIP ViT-L/14 features + linear probe | crop score |
 | L3 | **Ours-baseline**: CLIP ViT-L/14 (frozen) + logistic regression on object crops vs real-object crops from train split (G1 SDXL only since 2026-10-17) | crop score |
 | L4 | (optional) B-Free, if public weights run on the laptop | crop score |
+
+L1/L2 implementation (`forensics/learned.py`, 2026-10-26): `forensics.run_learned` lists the
+methods the stage runs, one pass each (one model on the GPU at a time, resumable).
+TruFor runs from the authors' code and weights (`forensics.models.trufor.src` / `weights`, under
+the git-ignored `third_party/`; non-commercial licence, not redistributed), following their
+`trufor_test.py` (RGB / 256; map = softmax(pred)[1]; image score = sigmoid(det)); its map gets the
+same image / region-pooled / contrast scores as F1–F5, plus `det`. UnivFD = Hugging Face
+`openai/clip-vit-large-patch14` `get_image_features` (same projected 768-d embedding as OpenAI's
+`encode_image`) + the authors' `fc_weights.pth` probe; image level with CLIP's resize + centre
+crop 224, object crops = box ×1.3, squared, resized to 224; per object `crop_prob`, `crop_logit`
+and `contrast` = crop logit − image logit. The CLIP features of the image and every crop are
+saved (`forensics/univfd_features/<image_id>.npz`) for L3. `scripts/smoke_learned.py` checks both
+models on one C4 image. CPU tests use `model_id: fake` and a tiny random CLIP.
 
 **Per-instance origin score** (`forensics/instance_scores.py`). For an instance mask `m`:
 - *image-level*: one score per image, shared by every instance (naive baseline);

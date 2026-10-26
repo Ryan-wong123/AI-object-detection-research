@@ -1,6 +1,6 @@
 # InlayFake: Week 3 progress (22–28 Oct 2026)
 
-25 Oct 2026 · Ryan Wong
+26 Oct 2026 · Ryan Wong
 
 Week 3 measures how detectors and forensic methods behave on the edited images. The benchmark
 was frozen on 23 Oct: 2,315 images (C0 518, C1 518, C2 425, C3 427, C4 427; 425 photos with all
@@ -15,6 +15,7 @@ forensics ran on all of them on 23 Oct (run `task3_detection_natural`): about 47
 | Plan | Agreed order: detection + hand-crafted forensics → TruFor/UnivFD → VLM prompts → evaluate |
 | Runs | `detect` then `forensics` complete 23 Oct 18:23: 4 detectors × 2,315 images, 5 hand-crafted methods × 2,315 images |
 | Figure 2 | H2 flip rates by distance to the edit (`paper/figures/fig2_h2_distance.png`) |
+| Learned forensics | TruFor and UnivFD written and CPU-tested (26 Oct); GPU run next |
 | Metrics | `evaluate`: subset AP, H1 origin (recall, AUROC), H2 matched-instance changes with paired contrasts; run 25 Oct (50 min) |
 
 ## Results
@@ -29,6 +30,6 @@ forensics ran on all of them on 23 Oct (run `task3_detection_natural`): about 47
 
 ## Next week and points to discuss
 
-- Next: TruFor and UnivFD; `vlm` stage with plain and grounded prompts.
+- Next: GPU run of TruFor and UnivFD; `vlm` stage with plain and grounded prompts.
 - To discuss: H1 sign flips with the comparison group (compositing, not generation?); H2 "partly supported".
 - To discuss: C3 pastes do not update the labels they cover, so H2 leaves the covered objects out of the C3 contrast.

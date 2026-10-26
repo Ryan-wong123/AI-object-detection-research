@@ -16,3 +16,5 @@ site:
   folder: week3_detection
 eval:
   ap_bootstrap: 200                    # final-table setting, as in Task 1
+forensics:
+  run_learned: [trufor, univfd]        # learned forensics L1, L2 (Task 3, 2026-10-26)

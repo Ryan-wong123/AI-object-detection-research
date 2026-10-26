@@ -72,8 +72,21 @@ def test_task1_real_baseline_end_to_end(cfg, tmp_path):
     d = detect.run(cfg)
     assert set(d["images_processed"]) == {"fake_a", "fake_b"}
     assert detect.run(cfg)["images_processed"] == {"fake_a": 0, "fake_b": 0}  # resumable
-    forensics.run(cfg)
-    assert forensics.run(cfg)["images_processed"] == 0
+    f = forensics.run(cfg)
+    assert f["learned_processed"]["trufor"] == f["learned_processed"]["univfd"] > 0  # fakes
+    again = forensics.run(cfg)
+    assert again["images_processed"] == 0
+    assert again["learned_processed"] == {"trufor": 0, "univfd": 0}  # resumable
+    import json
+
+    fdir = tmp_path / "runs" / "dryrun" / "forensics"
+    rows = [json.loads(line) for line in (fdir / "univfd.jsonl").open()]
+    inst = [r for r in rows if r["level"] == "instance"]
+    assert inst and {"crop_prob", "crop_logit", "contrast"} <= set(inst[0]["scores"])
+    npz = np.load(fdir / "univfd_features" / f"{inst[0]['image_id']}.npz")
+    assert npz["ids"][0] == "image" and len(npz["ids"]) == len(npz["features"])
+    tf = [json.loads(line) for line in (fdir / "trufor.jsonl").open()]
+    assert "det" in tf[0]["scores"] and "contrast" in tf[1]["scores"]
     a = audit.run(cfg)
     assert a["candidates"] == 0  # fake detectors only echo ground truth
     evaluate.run(cfg)
