@@ -19,3 +19,5 @@ eval:
 forensics:
   run_learned: [trufor, univfd]        # learned forensics L1, L2 (Task 3, 2026-10-26)
   edit_box_rows: true                  # edited-background flag rate (C2 boxes), 2026-10-26
+viewer:
+  share_max_side: 480                  # same as the week-2 benchmark page (same photos; repo size)
