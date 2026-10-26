@@ -15,7 +15,7 @@ forensics ran on all of them on 23 Oct (run `task3_detection_natural`): about 47
 | Plan | Agreed order: detection + hand-crafted forensics → TruFor/UnivFD → VLM prompts → evaluate |
 | Runs | `detect` then `forensics` complete 23 Oct 18:23: 4 detectors × 2,315 images, 5 hand-crafted methods × 2,315 images |
 | Figure 2 | H2 flip rates by distance to the edit (`paper/figures/fig2_h2_distance.png`) |
-| Learned forensics | TruFor and UnivFD written and CPU-tested (26 Oct); GPU run next |
+| Learned forensics | TruFor and UnivFD written, tested and run on all 2,315 images (26 Oct, 7 min) |
 | Metrics | `evaluate`: subset AP, H1 origin (recall, AUROC), H2 matched-instance changes with paired contrasts; run 25 Oct (50 min) |
 
 ## Results
@@ -30,6 +30,6 @@ forensics ran on all of them on 23 Oct (run `task3_detection_natural`): about 47
 
 ## Next week and points to discuss
 
-- Next: GPU run of TruFor and UnivFD; `vlm` stage with plain and grounded prompts.
+- Next: `vlm` stage with plain and grounded prompts.
 - To discuss: H1 sign flips with the comparison group (compositing, not generation?); H2 "partly supported".
 - To discuss: C3 pastes do not update the labels they cover, so H2 leaves the covered objects out of the C3 contrast.
