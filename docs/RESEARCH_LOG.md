@@ -7,6 +7,30 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-26: TruFor and UnivFD run on all 2,315 images (run `task3_detection_natural`)
+
+- **Setup (done by the agent with the author's approval):** `yacs` installed in `.venv`;
+  `github.com/grip-unina/TruFor` cloned (commit ae54475) to `third_party/TruFor`;
+  `TruFor_weights.zip` (260,878,690 bytes) downloaded in 26 s, **MD5
+  7bee48f3476c75616c3c5721ab256ff8 = the authors' value**, unpacked to
+  `test_docker/weights/trufor.pth.tar`; UnivFD `fc_weights.pth` (4,083 bytes; weight 1×768 + bias)
+  to `third_party/UniversalFakeDetect/pretrained_weights/`; CLIP ViT-L/14 (1.71 GB) fetched from
+  Hugging Face on first use. All under the git-ignored `third_party/` or the HF cache.
+- **Smoke test** (`scripts/smoke_learned.py`, one C4 image): both load and run. TruFor's weights
+  load strictly (no missing or unexpected keys) under torch 2.6, although the authors' Docker uses
+  torch 1.11; only a timm deprecation warning.
+- **Run:** `run_stages.py ... forensics` (hand-crafted already done, skipped), 26 Oct
+  15:17:58–15:25:06 (7 min 8 s incl. model loading): TruFor 4:16 (9.0 img/s, ~2 GB VRAM),
+  UnivFD 2:38 (14.6 img/s). Both: one image row per image (2,315, none missing), 17,300 object
+  rows; 2,315 CLIP feature files. Much faster than the 1–2 h estimate.
+- **Data quirk:** the 4 NaN scores (TruFor; the same 4 in every hand-crafted method) all come from
+  one C3 pasted object (`304180__C3`) whose stored mask is empty; it is dropped from per-object
+  forensic metrics.
+- **Next:** origin metrics for the forensic methods (H3: AUROC per scoring mode, false-accusation
+  rate with val-fitted thresholds) are planned for week 4; now the `vlm` stage.
+
+---
+
 ## 2026-10-26: Learned forensics TruFor (L1) and UnivFD (L2) implemented
 
 - **Decision (author, 26 Oct):** learned forensics before the VLM stage. Why: H3, the crop
