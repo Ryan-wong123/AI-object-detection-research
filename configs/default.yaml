@@ -261,6 +261,6 @@ vlm:                                   # Stage 2, H5 (stages/vlm.py, vlm/, eval/
     plain: |-
       Describe this photograph in two sentences. Then list every distinct object you can see as a JSON array: [{"label": "<object name>", "bbox_2d": [x1, y1, x2, y2], "origin": "photographed" or "ai_generated" or "unknown"}]. An object is "ai_generated" if it was created or inserted by an AI image editor instead of being photographed with the scene; use "unknown" if you cannot tell.
     grounded: |-
-      Describe this photograph in two sentences. These objects were detected in it (id: class [x1, y1, x2, y2] in pixels):
+      Describe this photograph in two sentences. A detector found these objects; each line is the object's number, its class and its box [x1, y1, x2, y2] in pixels:
       {boxes}
-      For each detected object, say whether it was photographed with the scene or created or inserted by an AI image editor. Answer with a JSON array: [{{"id": <id>, "origin": "photographed" or "ai_generated" or "unknown"}}]. Use "unknown" if you cannot tell.
+      For each numbered object, say whether it was photographed with the scene or created or inserted by an AI image editor. Answer with a JSON array with one entry per number, using the number as the id: [{{"id": 1, "origin": "photographed" or "ai_generated" or "unknown"}}, {{"id": 2, "origin": ...}}]. Use "unknown" if you cannot tell.
