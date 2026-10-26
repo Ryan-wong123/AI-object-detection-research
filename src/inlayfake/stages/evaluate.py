@@ -34,6 +34,7 @@ import numpy as np
 
 from inlayfake.edit.placement import iou
 from inlayfake.eval.bootstrap import grouped_bootstrap
+from inlayfake.eval.captions import claim_rows, summarize_claims
 from inlayfake.eval.coco_ap import ap_with_ci
 from inlayfake.eval.matched import (
     by_source,
@@ -167,6 +168,19 @@ def task3_tables(cfg, recs, categories, rng) -> dict[str, list[dict]]:
         out["h2_matched"] += [{"detector": name} | r for r in summarize_matched(h2, n_boot, rng)]
         out["h2_contrasts"] += [{"detector": name} | r for r in contrast_rows(h2, n_boot, rng)]
     return dict(out)
+
+
+def vlm_tables(cfg, recs, rng) -> dict[str, list[dict]]:
+    """H5 claim tables from runs/<run>/vlm/*.jsonl (empty dict before the `vlm` stage ran)."""
+    vdir = run_dir(cfg) / "vlm"
+    paths = sorted(vdir.glob("*.jsonl")) if vdir.exists() else []
+    if not paths:
+        return {}
+    rows = [json.loads(line) for p in paths for line in p.open(encoding="utf-8") if line.strip()]
+    by_id = {r.image_id: r for r in recs}
+    objects = claim_rows(rows, by_id, cfg["eval"]["iou_threshold"])
+    summary, images = summarize_claims(objects, rows, cfg["eval"]["bootstrap_resamples"], rng)
+    return {"vlm_objects": summary, "vlm_images": images, "vlm_object_rows": objects}
 
 
 def forensic_tables(cfg, rng) -> tuple[list[dict], list[dict]]:
@@ -324,7 +338,47 @@ def _task3_md(t3: dict[str, list[dict]]) -> list[str]:
     return lines
 
 
+def _vlm_md(t3: dict[str, list[dict]]) -> list[str]:
+    lines = [
+        "",
+        "## H5: VLM origin claims per object (Stage 2)",
+        "",
+        "Share of objects the model calls AI / photographed / unknown, describes without an",
+        "origin statement (none) or does not mention (no claim box at IoU >= 0.5).",
+        "",
+        "| model | setting | cond | objects | n | AI [CI] | photographed | unknown | none "
+        "| not mentioned |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for r in t3["vlm_objects"]:
+        lines.append(
+            _row(
+                r["model"],
+                r["setting"],
+                r["condition"],
+                r["object"],
+                r["n"],
+                _ci(r, "ai"),
+                f"{r['photographed']:.3f}",
+                f"{r['unknown']:.3f}",
+                f"{r['none']:.3f}",
+                f"{r['not_mentioned']:.3f}",
+            )
+        )
+    lines += [
+        "",
+        "## H5: images with any AI claim",
+        "",
+        "| model | setting | cond | images | any AI claim [CI] |",
+        "|---|---|---|---|---|",
+    ]
+    for r in t3["vlm_images"]:
+        lines.append(_row(r["model"], r["setting"], r["condition"], r["n"], _ci(r, "any_ai")))
+    return lines
+
+
 def _summary_md(cfg, ap_rows, flip_rows, dist_rows, shift_rows, t3=None) -> str:
+    t3 = t3 or {}
     lines = [
         f"# Evaluation summary: run `{cfg.get('run_name')}`",
         "",
@@ -406,8 +460,10 @@ def _summary_md(cfg, ap_rows, flip_rows, dist_rows, shift_rows, t3=None) -> str:
             f"| {r['method']} | {r['n_sources']} | {r['mean_diff_C1_minus_C0']:.4g} "
             f"[{r['diff_lo']:.4g}, {r['diff_hi']:.4g}] | {r['relative_diff']:+.1%} |"
         )
-    if t3:
+    if "detector_ap_subsets" in t3:
         lines += _task3_md(t3)
+    if "vlm_objects" in t3:
+        lines += _vlm_md(t3)
     return "\n".join(lines) + "\n"
 
 
@@ -418,6 +474,7 @@ def run(cfg: dict) -> dict:
     rd = run_dir(cfg)
     ap_rows, flip_rows = detector_tables(cfg, recs, categories, rng)
     t3 = task3_tables(cfg, recs, categories, rng)
+    t3 |= vlm_tables(cfg, recs, rng)
     print("[evaluate] forensic score tables", flush=True)
     dist_rows, shift_rows = forensic_tables(cfg, rng)
     _write_csv(ap_rows, rd / "tables" / "detector_ap.csv")
@@ -430,7 +487,7 @@ def run(cfg: dict) -> dict:
         "detector_ap": ap_rows,
         "detector_c0_vs_c1": flip_rows,
         "forensics_resave_shift": shift_rows,
-    } | {k: v for k, v in t3.items() if not k.endswith("_instances")}
+    } | {k: v for k, v in t3.items() if not k.endswith(("_instances", "_rows"))}
     (rd / "metrics.json").write_text(json.dumps(metrics, indent=1), encoding="utf-8")
     (rd / "summary.md").write_text(
         _summary_md(cfg, ap_rows, flip_rows, dist_rows, shift_rows, t3), encoding="utf-8"

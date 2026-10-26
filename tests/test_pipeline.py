@@ -87,13 +87,20 @@ def test_task1_real_baseline_end_to_end(cfg, tmp_path):
     assert npz["ids"][0] == "image" and len(npz["ids"]) == len(npz["features"])
     tf = [json.loads(line) for line in (fdir / "trufor.jsonl").open()]
     assert "det" in tf[0]["scores"] and "contrast" in tf[1]["scores"]
+    from inlayfake.stages import vlm
+
+    split = list(read_ledger(tmp_path / "work" / "ledger_generated.jsonl"))[0].split
+    vcfg = cfg | {"vlm": cfg["vlm"] | {"conditions": ["C1"], "split": split}}
+    v = vlm.run(vcfg)
+    assert v["images"] > 0 and v["processed"]["fake__plain"] == v["images"]
+    assert vlm.run(vcfg)["processed"] == {"fake__plain": 0, "fake__grounded": 0}  # resumable
     a = audit.run(cfg)
     assert a["candidates"] == 0  # fake detectors only echo ground truth
     evaluate.run(cfg)
 
     rd = tmp_path / "runs" / "dryrun"
     summary = (rd / "summary.md").read_text()
-    assert "Detector AP" in summary and "ela" in summary
+    assert "Detector AP" in summary and "ela" in summary and "H5: VLM origin claims" in summary
     import csv
 
     ap = list(csv.DictReader((rd / "tables" / "detector_ap.csv").open()))

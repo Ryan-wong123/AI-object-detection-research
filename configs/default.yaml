@@ -243,3 +243,24 @@ eval:
                                        # origin-subset AP instead (Task 3, eval/matched.py)
   ap_bootstrap: 20                     # resamples for AP CIs; each re-accumulates one COCOeval
                                        # 20 for quick runs; raise to 200 for the paper's final tables.
+
+vlm:                                   # Stage 2, H5 (stages/vlm.py, vlm/, eval/captions.py)
+  split: test                          # photos of this split that have every condition
+  conditions: [C1, C3, C4]             # unedited, real paste, AI insertion (C1 = half of PRD's "unedited at 50%")
+  max_sources: null                    # cap on photos (null: all; 90 test photos -> 270 images)
+  run_models: [florence2, qwen25vl]    # one model on the GPU at a time
+  prompt_settings: [plain, grounded]   # origin_aware (with forensic evidence) comes in week 4
+  grounding:                           # boxes given in the grounded setting: a frozen detector's output
+    detector: faster_rcnn              # highest recall on AI-inserted objects (0.649, H1 table)
+    score: 0.5                         # eval.recall_score
+    max_boxes: 12
+  models:
+    florence2: {impl: florence2, model_id: florence-community/Florence-2-large, max_new_tokens: 256}
+    qwen25vl: {impl: qwen25vl, model_id: Qwen/Qwen2.5-VL-3B-Instruct, load_in_4bit: true, max_new_tokens: 768}
+  prompts:                             # fixed for every image; grounded fills {boxes}
+    plain: |-
+      Describe this photograph in two sentences. Then list every distinct object you can see as a JSON array: [{"label": "<object name>", "bbox_2d": [x1, y1, x2, y2], "origin": "photographed" or "ai_generated" or "unknown"}]. An object is "ai_generated" if it was created or inserted by an AI image editor instead of being photographed with the scene; use "unknown" if you cannot tell.
+    grounded: |-
+      Describe this photograph in two sentences. These objects were detected in it (id: class [x1, y1, x2, y2] in pixels):
+      {boxes}
+      For each detected object, say whether it was photographed with the scene or created or inserted by an AI image editor. Answer with a JSON array: [{{"id": <id>, "origin": "photographed" or "ai_generated" or "unknown"}}]. Use "unknown" if you cannot tell.
