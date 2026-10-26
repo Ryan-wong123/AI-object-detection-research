@@ -97,6 +97,11 @@ Neither model ever called a real object AI, but they also almost never called an
 (1 of 90). Florence-2 makes no origin statements at all. The third prompt setting, with forensic
 evidence, comes in week 4.
 
+### 6. Results page (26 Oct)
+
+Every photo in every condition with its labels and the four detectors' boxes, plus all summary
+tables: `docs/results/week3_detection/` (tab "Week 3" of the project site, `docs/index.html`).
+
 ## Results
 
 | Item | Value |

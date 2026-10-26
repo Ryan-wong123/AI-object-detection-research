@@ -7,6 +7,16 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-26: Week-3 results page
+
+- `viewer --share` for `task3_detection_natural` → `docs/results/week3_detection/` (2,315 images
+  at 480 px, as the week-2 benchmark page; 84.5 MB; at 640 px it was 144 MB), tab "Week 3 ·
+  Detection on edited images" in `docs/index.html`. The page now also renders `summary_origin.md`
+  (H3/H5), next to `summary.md` (AP, H1, H2) and the `report` totals. Checked in the browser: all
+  five conditions, detector boxes, photos load.
+
+---
+
 ## 2026-10-26: H3 forensic origin metrics and the Stage 2 VLM run (run `task3_detection_natural`)
 
 - **Order (author, 26 Oct):** VLM stage first so its GPU run could go while H3 was written.

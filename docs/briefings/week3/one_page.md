@@ -17,6 +17,7 @@ forensics ran on all of them on 23 Oct (run `task3_detection_natural`): about 47
 | Figure 2 | H2 flip rates by distance to the edit (`paper/figures/fig2_h2_distance.png`) |
 | Learned forensics | TruFor and UnivFD written, tested and run on all 2,315 images (26 Oct, 7 min) |
 | H3 and Stage 2 | Forensic origin metrics with C3/C2 controls; Florence-2 and Qwen2.5-VL on 270 test images (26 Oct) |
+| Results page | `docs/results/week3_detection/` (tab "Week 3" in `docs/index.html`) |
 | Metrics | `evaluate`: subset AP, H1 origin (recall, AUROC), H2 matched-instance changes with paired contrasts; run 25 Oct (50 min) |
 
 ## Results
