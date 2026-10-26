@@ -36,6 +36,7 @@ from inlayfake.edit.placement import iou
 from inlayfake.eval.bootstrap import grouped_bootstrap
 from inlayfake.eval.captions import claim_rows, summarize_claims
 from inlayfake.eval.coco_ap import ap_with_ci
+from inlayfake.eval.forensic_origin import h3_tables
 from inlayfake.eval.matched import (
     by_source,
     contrast_rows,
@@ -338,6 +339,40 @@ def _task3_md(t3: dict[str, list[dict]]) -> list[str]:
     return lines
 
 
+def _h3_md(rows: list[dict]) -> list[str]:
+    lines = [
+        "",
+        "## H3: forensic origin per object (test split; direction and thresholds fit on val)",
+        "",
+        "AI-inserted objects vs real objects (photographed C1-C4, pasted C3). Base rate of",
+        "AUPRC = share of AI objects. TPR@5% = AI objects caught at the val 5%-FPR threshold;",
+        "false accusation = real objects called AI at the val 80%-TPR threshold. AUROC vs",
+        "pasted = AI objects against the real objects pasted at the same boxes (C3). C2 box",
+        "= share of sham-edit boxes (repainted background, no object) flagged at that threshold.",
+        "",
+        "| method | mode | dir | AUROC [CI] | AUROC vs pasted [CI] | AUPRC (base) | TPR@5% "
+        "| TPR@80% thr | false accusation [CI] | of pasted | C2 box flagged [CI] |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for r in rows:
+        lines.append(
+            _row(
+                r["method"],
+                r["mode"],
+                r["direction"],
+                _ci(r, "auroc"),
+                _ci(r, "auroc_vs_pasted"),
+                f"{r['auprc']:.3f} ({r['base_rate']:.3f})",
+                f"{r['tpr_at_val_fpr5']:.3f}",
+                f"{r['tpr_at_val_tpr80']:.3f}",
+                _ci(r, "false_accusation"),
+                f"{r.get('false_accusation pasted (C3)', float('nan')):.3f}",
+                _ci(r, "edited_background_flag"),
+            )
+        )
+    return lines
+
+
 def _vlm_md(t3: dict[str, list[dict]]) -> list[str]:
     lines = [
         "",
@@ -462,6 +497,8 @@ def _summary_md(cfg, ap_rows, flip_rows, dist_rows, shift_rows, t3=None) -> str:
         )
     if "detector_ap_subsets" in t3:
         lines += _task3_md(t3)
+    if "h3_origin" in t3:
+        lines += _h3_md(t3["h3_origin"])
     if "vlm_objects" in t3:
         lines += _vlm_md(t3)
     return "\n".join(lines) + "\n"
@@ -475,6 +512,12 @@ def run(cfg: dict) -> dict:
     ap_rows, flip_rows = detector_tables(cfg, recs, categories, rng)
     t3 = task3_tables(cfg, recs, categories, rng)
     t3 |= vlm_tables(cfg, recs, rng)
+    if "detector_ap_subsets" in t3:
+        fcfg = cfg["forensics"]
+        methods = list(fcfg["handcrafted"]) + list(fcfg.get("run_learned") or [])
+        h3 = h3_tables(rd / "forensics", methods, cfg["eval"]["bootstrap_resamples"], rng)
+        if h3:
+            t3["h3_origin"] = h3
     print("[evaluate] forensic score tables", flush=True)
     dist_rows, shift_rows = forensic_tables(cfg, rng)
     _write_csv(ap_rows, rd / "tables" / "detector_ap.csv")

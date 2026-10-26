@@ -194,6 +194,7 @@ forensics:
   handcrafted: [ela, srm_residual, noise_level, fft_highfreq, jpeg_bag]
   learned: [trufor, univfd, crop_probe]  # the learned methods of the study (ARCHITECTURE §3.7)
   run_learned: []                      # which of them `forensics` runs (Task 3: trufor, univfd)
+  edit_box_rows: false                 # also score every method inside each edit box (C2 control)
   models:                              # forensics/learned.py; code and weights are not in git
     trufor:                            # github.com/grip-unina/TruFor (non-commercial licence)
       src: third_party/TruFor/test_docker/src

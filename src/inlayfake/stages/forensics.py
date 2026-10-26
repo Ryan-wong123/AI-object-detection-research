@@ -138,6 +138,46 @@ def _run_learned(cfg, recs, index, rd) -> dict[str, int]:
     return processed
 
 
+def _run_edit_boxes(cfg, recs, rd) -> dict[str, int]:
+    """Scores of each method inside the planned edit box of every edited image (C2/C3/C4) →
+    <method>__editbox.jsonl, level ``edit_box``. The C2 box holds no object, only repainted
+    background: the share of C2 boxes a method flags is the edited-background flag rate (§6), which
+    tells detecting AI objects apart from detecting any regenerated region. One pass per method,
+    resumable; maps are recomputed (they are not stored)."""
+    fcfg = cfg["forensics"]
+    ring, expand = fcfg["context_ring_frac"], fcfg["crop_expand"]
+    edited = [r for r in recs if r.edit is not None]
+    processed = {}
+    for name in list(fcfg["handcrafted"]) + list(fcfg.get("run_learned") or []):
+        out = rd / f"{name}__editbox.jsonl"
+        done = done_ids(out)
+        todo = [r for r in edited if r.image_id not in done]
+        processed[name] = len(todo)
+        if not todo:
+            continue
+        model = None if name in METHODS else build_learned(name, cfg)
+        with open_append(out) as f:
+            for rec in tqdm(todo, desc=f"{name} edit box"):
+                img = load_rgb(rec.path)
+                box = rec.edit.plan_box
+                if model is None or name == "trufor":
+                    fmap = METHODS[name](img) if model is None else model(img)[0]
+                    mask = bbox_mask(box, img.shape[:2])
+                    scores = instance_score(fmap, mask, box, ring)
+                else:
+                    feats = model.features([clip_view(img), object_crop(img, box, expand)])
+                    img_logit, lg = (float(v) for v in model.logits(feats))
+                    scores = {
+                        "crop_prob": float(sigmoid(lg)),
+                        "crop_logit": lg,
+                        "contrast": lg - img_logit,
+                    }
+                row = _base(rec) | {"level": "edit_box", "box": box, "scores": scores}
+                f.write(json.dumps(row) + "\n")
+        del model
+    return processed
+
+
 def run(cfg: dict) -> dict:
     recs = load_records(cfg)
     index = load_coco(cfg)
@@ -166,10 +206,21 @@ def run(cfg: dict) -> dict:
         for f in files.values():
             f.close()
     learned = _run_learned(cfg, recs, index, rd)
+    boxes = _run_edit_boxes(cfg, recs, rd) if cfg["forensics"].get("edit_box_rows") else {}
     write_run_info(
         run_dir(cfg),
         "forensics",
         cfg,
-        {"images": len(todo), "methods": methods, "learned_images": learned},
+        {
+            "images": len(todo),
+            "methods": methods,
+            "learned_images": learned,
+            "edit_box_images": boxes,
+        },
     )
-    return {"images_processed": len(todo), "methods": methods, "learned_processed": learned}
+    return {
+        "images_processed": len(todo),
+        "methods": methods,
+        "learned_processed": learned,
+        "edit_box_processed": boxes,
+    }

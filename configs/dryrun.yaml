@@ -23,6 +23,7 @@ paths:
   runs: runs
 forensics:
   run_learned: [trufor, univfd]
+  edit_box_rows: true
   models:
     trufor: {model_id: fake}
     univfd: {model_id: fake}
