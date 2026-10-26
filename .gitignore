@@ -6,6 +6,8 @@
 *.safetensors
 *.ckpt
 hf_cache/
+# TruFor / UnivFD code and weights (licences: not redistributed)
+third_party/
 
 # python
 __pycache__/

@@ -1,6 +1,6 @@
 # InlayFake: Week 3 progress (22–28 Oct 2026)
 
-Last updated 25 Oct 2026 · Ryan Wong
+Last updated 26 Oct 2026 · Ryan Wong
 
 Briefing for the project professor. Branch `week-3-detection`. GPU stages run on the RTX 4070
 laptop (8 GB). Run `task3_detection_natural` (config `configs/task3_detection_natural.yaml`).
@@ -71,12 +71,23 @@ opts out of that throttling.
 detector. Faster R-CNN changes nothing beyond half a box length; Grounding DINO's extra flips
 over the sham edit persist 1–4 box lengths away.
 
+### 4. Learned forensics TruFor and UnivFD written (26 Oct)
+
+Order decided with the author: learned forensics before the VLM stage, because all of week 4
+(H3, crop classifier, joint AP, calibration, robustness) needs per-object origin scores, and
+TruFor's own code and the 8 GB GPU are the riskiest unknowns. TruFor runs from the authors' code
+and weights (non-commercial licence, kept out of git) and gives a pixel map plus an image score;
+UnivFD scores the image and a crop around every object with CLIP ViT-L/14 and the authors' linear
+probe. The CLIP features of every crop are saved for next week's crop classifier. Tested on CPU;
+the GPU run on the 2,315 images is next ([[TBD: time]]).
+
 ## Results
 
 | Item | Value |
 |---|---|
 | Records loaded by the Task 3 config | 2,315 (checked 23 Oct) |
 | `detect` wall time per detector (2,315 images) | Faster R-CNN 3:01 (12.8 img/s), YOLO11-m 0:39 (59 img/s), RT-DETR 1:32 (25 img/s), Grounding DINO 41:45 in two parts (26:14 for 1,440 + 15:31 for 877; 1.08 s/img); about 47 min of detector time plus model loading <!-- run:task3_detection_natural, file:data/inlayfake_v4/run_progress.log --> |
+| TruFor / UnivFD wall time (2,315 images) | [[TBD]] |
 | Hand-crafted `forensics` wall time | 5:05 for 2,315 images × 5 methods (7.6 img/s, CPU) <!-- run:task3_detection_natural, file:data/inlayfake_v4/run_progress.log --> |
 | AP on original objects, C1 → C4 (425 photos) | Faster R-CNN 0.502 → 0.493, YOLO 0.536 → 0.528, RT-DETR 0.522 → 0.514, Grounding DINO 0.516 → 0.509 (drops inside CIs) <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
 | AP on AI-inserted (C4) / pasted real (C3) objects | 0.38–0.41 / 0.34–0.43 <!-- run:task3_detection_natural, file:paper/results/task3_evaluate_summary.md --> |
@@ -87,9 +98,9 @@ over the sham edit persist 1–4 box lengths away.
 
 ## Next steps
 
-1. Write TruFor and UnivFD (CPU tests with fakes); give the author the download and run commands.
-3. Write the `vlm` stage and caption metrics; plain and grounded prompts on the GPU.
-4. The author's audit of C4 edits can continue in parallel. A rejected edit means regenerating it,
+1. Run TruFor and UnivFD on the GPU (author), then their origin scores.
+2. Write the `vlm` stage and caption metrics; plain and grounded prompts on the GPU.
+3. The author's audit of C4 edits can continue in parallel. A rejected edit means regenerating it,
    then re-running detection and forensics for the changed images only.
 
 ## To discuss

@@ -7,6 +7,29 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-26: Learned forensics TruFor (L1) and UnivFD (L2) implemented
+
+- **Decision (author, 26 Oct):** learned forensics before the VLM stage. Why: H3, the crop
+  classifier, joint AP, calibration and robustness (week 4) all need per-object origin scores,
+  and TruFor's own code and the 8 GB VRAM limit are the riskiest unknowns; the VLM plain and
+  grounded prompts only need the existing detections.
+- **Code:** `forensics/learned.py`, stage `forensics` (`forensics.run_learned`), configs
+  (`forensics.models`), `scripts/smoke_learned.py`. TruFor follows the authors'
+  `test_docker/src/trufor_test.py` (checked against the repository on 26 Oct); UnivFD = CLIP
+  ViT-L/14 image embedding + the authors' linear probe, as in their `models/clip_models.py` and
+  `validate.py` (sigmoid of the logit = P(fake)). Deviation: UnivFD's validation centre-crops 224
+  without resizing; we resize (CLIP preprocessing for the image level, 1.3× object crops resized
+  to 224), since object crops vary in size. CLIP features of every crop are saved for L3.
+- **Licences:** TruFor non-commercial (code and weights stay in the git-ignored `third_party/`);
+  UnivFD MIT.
+- **Tests:** 146 pass (CPU; fakes in the pipeline test, UnivFD's real path on a tiny random CLIP).
+- **Downloads for the author (sizes from HTTP headers, 26 Oct):** TruFor_weights.zip 249 MB
+  (grip.unina.it), fc_weights.pth 4 KB (GitHub), CLIP ViT-L/14 1.71 GB (Hugging Face, on first use).
+- **Next:** author runs the smoke test, then `forensics` (TruFor + UnivFD on 2,315 images; GPU
+  time [[TBD: measured]]); meanwhile the `vlm` stage.
+
+---
+
 ## 2026-10-25: Figure 2: H2 flip rates by distance to the edit (run `task3_detection_natural`)
 
 - **Code:** `scripts/figure_h2_distance.py <config>` reads `h2_instances.csv` from `evaluate` and the

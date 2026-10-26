@@ -192,7 +192,16 @@ detectors:
 
 forensics:
   handcrafted: [ela, srm_residual, noise_level, fft_highfreq, jpeg_bag]
-  learned: [trufor, univfd, crop_probe]
+  learned: [trufor, univfd, crop_probe]  # the learned methods of the study (ARCHITECTURE §3.7)
+  run_learned: []                      # which of them `forensics` runs (Task 3: trufor, univfd)
+  models:                              # forensics/learned.py; code and weights are not in git
+    trufor:                            # github.com/grip-unina/TruFor (non-commercial licence)
+      src: third_party/TruFor/test_docker/src
+      weights: third_party/TruFor/test_docker/weights/trufor.pth.tar
+    univfd:                            # github.com/WisconsinAIVision/UniversalFakeDetect (MIT)
+      fc_weights: third_party/UniversalFakeDetect/pretrained_weights/fc_weights.pth
+      clip_model_id: openai/clip-vit-large-patch14
+      batch_size: 32
   context_ring_frac: 0.15
   crop_expand: 1.3
 
