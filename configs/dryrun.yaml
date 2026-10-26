@@ -26,3 +26,8 @@ forensics:
   models:
     trufor: {model_id: fake}
     univfd: {model_id: fake}
+vlm:
+  run_models: [fake]
+  grounding: {detector: fake_a}
+  models:
+    fake: {impl: fake}

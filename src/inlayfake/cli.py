@@ -27,6 +27,7 @@ STAGES = {
     "viewer": "web page comparing COCO labels with every detector's boxes",
     "spots": "web page to accept or reject planned natural spots before generation",
     "editaudit": "clickable human audit of the AI edits, saved into audit_edits.csv",
+    "vlm": "Stage 2: VLM origin claims (plain / grounded prompts)",
 }
 IMPLEMENTED = {
     "sample",
@@ -43,6 +44,7 @@ IMPLEMENTED = {
     "insert",
     "spots",
     "editaudit",
+    "vlm",
 }
 
 
