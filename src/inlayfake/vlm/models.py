@@ -18,10 +18,14 @@ Heavy imports happen inside the classes; ``FakeVLM`` runs on CPU for the tests.
 
 from __future__ import annotations
 
+import re
+
 import numpy as np
 from PIL import Image
 
 from inlayfake.vlm.claims import boxes_prompt_lines, caption_text, parse_json_claims, text_origin
+
+LOC_TOKEN = re.compile(r"<loc_\d+>")
 
 
 class QwenVL25:
@@ -170,6 +174,7 @@ class Florence2:
             ]
             text = "<REGION_TO_DESCRIPTION>" + "".join(f"<loc_{v}>" for v in loc)
             raw, desc = self._run(img, "<REGION_TO_DESCRIPTION>", text)
+            desc = LOC_TOKEN.sub("", str(desc)).strip()  # the reply repeats the region
             raws.append(raw)
             claims.append(
                 {
