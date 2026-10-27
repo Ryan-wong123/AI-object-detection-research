@@ -21,3 +21,14 @@ eval:
 paths:
   work: data/inlayfake_dryrun
   runs: runs
+forensics:
+  run_learned: [trufor, univfd]
+  edit_box_rows: true
+  models:
+    trufor: {model_id: fake}
+    univfd: {model_id: fake}
+vlm:
+  run_models: [fake]
+  grounding: {detector: fake_a}
+  models:
+    fake: {impl: fake}

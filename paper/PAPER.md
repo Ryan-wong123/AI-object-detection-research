@@ -4,7 +4,10 @@
 >
 > | Item | State |
 > |---|---|
-> | Last updated | 2026-10-21 |
+> | Last updated | 2026-10-26 |
+> | H3 and H5 (Stage 2 baseline) | 2026-10-26 (evaluate_origin 09:15Z UTC): §7.4 Table 3 + finding (TruFor region-pooled AUROC 0.907, but 0.532 vs C3 pastes, flags 44% of C2 sham boxes: detects editing, not AI origin), §7.6 forensic and detector controls, §7.7 Table 6 + finding (VLMs: no false-AI claims, 1/90 AI objects called AI), Abstract H3 and H5-baseline clauses. Waiting: Table 4 (composed systems), L3, origin-aware prompts, false detections in C2 boxes [[TBD]] |
+> | Learned forensics | 2026-10-26: TruFor (L1, authors' code and weights) and UnivFD (L2, CLIP ViT-L/14 + authors' probe; object crops 1.3× resized to 224, a stated deviation from UnivFD's crop-only protocol) implemented and CPU-tested; 2026-10-26 run on all 2,315 images (TruFor 4:16, UnivFD 2:38; weights MD5-checked); origin metrics (H3) not computed yet [[TBD]]. §5 text unchanged (already describes them) |
+> | Task 3 detection | 2026-10-23 (run task3_detection_natural, frozen ledger data/inlayfake_v4, 2,315 images): 4 detectors and 5 hand-crafted forensic methods complete on C0–C4; detector time ≈ 47 min (Grounding DINO 41:45), forensics 5:05. 2026-10-25: H1/H2 evaluated (§7.2 Tables 2c/2d, §7.3 Table 2e; Abstract H1/H2 sentences filled; §6 strata defined). H1: confidence AUROC 0.41–0.45 vs same-class photographed, 0.51–0.57 vs C3 paste. H2: C4 − C2 flip excess on uncovered objects +0.5/+1.0 pp (RT-DETR/Grounding DINO), n.s. for CNNs. Figure 2 (H2 by distance, 2026-10-25: Grounding DINO excess over C2 persists at 1–4 box lengths; Faster R-CNN changes nothing beyond half a box length); TruFor/UnivFD and Stage 2 prompts not yet run |
 > | Natural placement in §4 | 2026-10-21: rewritten for the benchmark version: Qwen3-VL-8B box mode with one merged placement question (Box 1, full prompt), three checks only (15 px / 0.1% measured; elongation ≤ 3× the class's; ≤ 30% of any labelled object or person), one re-ask with the failures, next class, no fallback; no review gate (author), hand audit of every C4 afterwards; self-judge AUROC 0.44/0.50 (dropped). Table 1c replaced by the benchmark's rules. Pilot 44 of 50 (run task2_pilot_natural_qwen_free). Full run configs/insertion_natural_box.yaml not started [[TBD]]. Box 1 (~250 words) may move to the supplementary for the page limit. Earlier Molmo and rule-based versions are in docs/RESEARCH_LOG.md |
 > | Full natural run done | 2026-10-23 (run task2_insertion_natural_box): 427 of 544 photos with a verified AI object (boxes 1/2/3: 350/57/20), 425 complete C0–C4, 76 classes; author review of C2/C3/C4 pending [[TBD]] |
 > | Natural-placement pilot v3 | 2026-10-20 (run task2_pilot_natural_v3): more spots/classes per photo: 19 of 50 photos (v2 18), same quality (paper/results/task2_pilot_natural_four_way.json) |
@@ -15,7 +18,7 @@
 > | Scope change 2 | 2026-10-18 (author): the two AI placement rules (free space, occlusion) merged into one condition C4 (a class already in the photo, placed anywhere; verified free-space edit kept, else verified occluding edit, else new box anywhere; C2/C3 at the chosen box). 44 photos had no AI object under the separate rules. §4 conditions, rationale, Tables 1/1b, verification text, §6 and H2 analysis plan rewritten; H2 loses its controlled occlusion condition (covered objects analysed observationally). Merged run in progress |
 > | Scope change | 2026-10-17 (author): SDXL is the only generator; SD2 and the held-out FLUX/Kandinsky generator are dropped for time. H4 keeps post-processing + Open Images; held-out-generator results (old Table 5 grid) removed; Abstract, §1, §4, §5, §7.5, §8 reworded |
 > | Drafted | Abstract (skeleton), §1 Intro, §2 Related work, §3 Task, §4 Benchmark construction (design), §5 Methods evaluated, §6 Metrics, §8 Limitations/Ethics |
-> | Waiting on results | All numbers in Abstract and §7; Figures 1–5; Tables 2–6 |
+> | Waiting on results | Abstract H3–H5 sentences and §7.4–7.7; Figures 1, 3–5; Tables 3–6 |
 > | Experiments done | Task 1 complete (run task1_real_baseline, final evaluate 2026-10-11): 4 detectors and 5 hand-crafted methods on 544 × (C0, C1) real photos; §7.1 Tables 2a/2b final with 200-resample bootstrap CIs; label audit applied (77 add / 26 ignore / 4 reject, Table 2a uses audited labels), re-checked and confirmed by the author. Task 2: insertion + verification code complete and CPU-tested (branch week-2-ai-insertion). SDXL pilot (run task2_pilot, 2026-10-16, 46 planned sources, attempt 1 only): verifier-confirmed insertion 4/46 C4 and 1/38 C4-occ, sham 46/46 pass, 21.6 s per SDXL image (paper/results/task2_pilot_round1_*.json). Insertion design must change before the full run; §4 success-rate TBD left open on purpose because the pilot settings will not be the final ones. Second pilot with surface placement (run task2_pilot_surface): C4 0/35, C4-occ 4/19, so placement is not the cause; a 12-job diagnostic shows the edit-window size is (window 2.5× / 1.5× / 1.2× → 1 / 5 / 7 of 12 verified; paper/results/task2_window_scale_diagnostic.txt). Window size awaits the author's decision. Design change (author, 2026-10-16): the inserted class is now one already in the photo's audited GT (any class except person) instead of ten fixed categories; §4 rewritten; pilot re-planned (run task2_pilot_inphoto: 41/50 plans, 34 with C4-occ, 31 classes). Same-class pilot generated at window 1.2× with the looser verifier (IoU ≥ 0.3 or ≥ 80% inside the box): C4 27/41, C4-occ 17/34 verified after ≤ 3 attempts, C2 41/41 (paper/results/task2_pilot_inphoto_final_verify.json); §4 verification text updated. With re-plan on failure (up to 3 new boxes): C4 38/41, C4-occ 25/34 verified, C2 39/41 (paper/results/task2_pilot_inphoto_replan_verify.json). With class switch and C4-occ-only plans (2026-10-17): C4 39/41, C4-occ 35/41; 46 of 50 photos have a verified AI object (paper/results/task2_pilot_inphoto_classswitch_verify.json). With C4-occ boxes sized from the covered object: C4-occ 37/42, 48 of 50 photos (paper/results/task2_pilot_inphoto_targetsize_verify.json). With a class not in the photo as last resort: 49 of 50 photos, one such edit (paper/results/task2_pilot_inphoto_outside_verify.json). With a C4-occ box anywhere as very last resort: 50 of 50 photos (one doubtful tiny object; paper/results/task2_pilot_inphoto_anywhere_verify.json). Full run task2_insertion planned on the 544 week-1 photos (544 of 544, configs/insertion_inphoto.yaml), generation pending; success rate stays TBD until it finishes |
 > | Approx. length | ~3,800 words of text (CVPR limit ≈ 8 pages ≈ 6,000–6,500 words with figures); §4 condition rationale added 2026-10-17 (~450 words, may need shortening for the page limit) |
 > | Design decision | 2026-10-18: §4 explains how C3 is built and why C0, C3 and C4 alone would not suffice (C1 matched-encoding reference, C2 separates AI objects from AI-repainted pixels; ~370 words added). 2026-10-17 (author): C2 sham edit kept as a control; its justification and scoring (never an AI object; separate edited-background flag rate) written into §4, §6, §7.6 |
@@ -41,10 +44,10 @@ uncertainty, whether each one was photographed or AI-inserted. InlayFake builds
 resave, sham edit, real-object paste, AI insertion of a class already in the photograph) using the SDXL inpainting
 model, plus a source-domain-held-out test set from Open Images. Every instance carries a provenance record. We evaluate four detector
 families and [[TBD: 9]] hand-crafted and learned forensic methods at the instance level. We find that
-[[TBD: H1 finding: detector confidence does / does not separate origin]],
-that insertions [[TBD: H2 finding: do / do not alter predictions on untouched real objects beyond matched controls]],
-that instance-conditioned forensic scoring [[TBD: H3/H4 finding incl. post-processing and held-out domain]],
-and that grounding origin evidence in VLM captions [[TBD: H5 finding: does / does not reduce false origin claims]].
+detector confidence separates AI-inserted from photographed objects only weakly (AUROC 0.41–0.45 against same-class photographed objects; AI objects score *lower*, but higher than real objects pasted into the same box) <!-- run:task3_detection_natural, evaluate 2026-10-25T12:08:39Z, file:paper/results/task3_evaluate_summary.md -->,
+that insertions change predictions on untouched real objects only slightly beyond the sham edit (at most +1.0 percentage point of detected/missed flips, significant for the two transformer detectors only, and no larger than re-encoding the photograph) <!-- run:task3_detection_natural, evaluate 2026-10-25T12:08:39Z, file:paper/results/task3_evaluate_summary.md -->,
+that per-object forensic scoring separates AI-inserted from untouched photographed objects far better than image-level scoring (TruFor AUROC 0.907 vs 0.636) but cannot tell them from real objects composited into the same place (AUROC 0.53), so it detects editing rather than AI origin <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_h3_origin.csv --> [[TBD: H4 finding incl. post-processing and held-out domain]],
+and that VLMs asked about origin almost never call an AI object AI (1 of 90) while making no false accusations <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_vlm_objects.csv, task3_vlm_images.csv --> [[TBD: H5 finding with origin-aware prompts: does / does not reduce false origin claims]].
 We release the benchmark protocol, provenance ledger and baselines.
 
 ---
@@ -480,8 +483,12 @@ and *instance-conditioned* (interior minus a surrounding context ring). Scores a
 over the 80 categories and over IoU thresholds 0.50:0.05:0.95 (i.e. COCO mAP); AP50 uses IoU 0.50 only.
 It is reported separately for original and inserted subsets.
 *Matched-instance change*: for each original instance, the detected→missed rate, class flips, box IoU
-drift and score change from C1 to each condition, stratified by distance to the edit and by
-visibility. *Origin*: AUROC, AUPRC, TPR at 5% FPR and the **real-object false-accusation rate** at 80%
+drift and score change from C1 to each condition, stratified by the photograph's edit footprint
+(the planned box plus the 6-px mask dilation and one 8-px JPEG block, i.e. every pixel an edit can
+change): *covered* (the object's box overlaps the footprint), *uncovered near* (gap smaller than the
+footprint's longer side), *uncovered far*, and *mixed/modified* (the editor repainted > 10% of the
+object). C2, C3 and C4 share one box per photograph, so an object is in the same stratum in all of
+them, and paired differences (C4 − C2, C4 − C3, C4 − C0) are taken over the same objects. *Origin*: AUROC, AUPRC, TPR at 5% FPR and the **real-object false-accusation rate** at 80%
 TPR, computed both with oracle localisation and end to end. Origin metrics are computed **over
 objects only**: positives are AI-inserted objects (C4); negatives are photographed objects,
 including the real pasted objects of C3. A C2 box contains no object and is never a positive or a
@@ -548,17 +555,147 @@ candle as a cup). Adding the confirmed labels raises AP by 0.004–0.006 for eve
 unaudited COCO labels slightly understate detector accuracy. <!-- run:task1_real_baseline, file:paper/results/task1_real_baseline_summary_v3_audited.md -->
 
 ### 7.2 Do detectors see inserted objects, and does confidence reveal origin? (H1)
-**Table 2.** AP / AR on original vs inserted instances per detector and condition. [[TBD]]
-**Finding.** [[TBD]]
+All Task 3 numbers use the 425 photographs that have all five conditions (2,315 images in the
+frozen benchmark). Detectors are deterministic: on the 518 identical C0 images, two runs gave
+bit-identical outputs, so every difference below is caused by the image, not by run-to-run noise.
+
+**Table 2c.** COCO AP on original objects per condition (AI-inserted, pasted and mixed/modified
+objects are ignore regions), and on AI-inserted (C4) and pasted real (C3) objects only (all other
+objects ignore regions). 425 photographs per cell; basic bootstrap 95% CIs (200 resamples). <!-- run:task3_detection_natural, evaluate 2026-10-25T12:08:39Z, file:paper/results/task3_detector_ap_subsets.csv -->
+
+| Detector | C0 | C1 | C2 | C3 | C4 | AI-inserted (C4) | pasted real (C3) |
+|---|---|---|---|---|---|---|---|
+| Faster R-CNN v2 | 0.503 | 0.502 [0.455, 0.522] | 0.499 | 0.497 | 0.493 [0.450, 0.507] | 0.404 [0.345, 0.428] | 0.372 [0.318, 0.389] |
+| YOLO11-m | 0.539 | 0.536 [0.497, 0.556] | 0.529 | 0.535 | 0.528 [0.484, 0.545] | 0.399 [0.334, 0.416] | 0.426 [0.371, 0.454] |
+| RT-DETR-R50 | 0.524 | 0.522 [0.486, 0.545] | 0.520 | 0.520 | 0.514 [0.476, 0.536] | 0.410 [0.357, 0.429] | 0.406 [0.357, 0.432] |
+| Grounding DINO-T | 0.516 | 0.516 [0.469, 0.531] | 0.512 | 0.513 | 0.509 [0.465, 0.521] | 0.381 [0.316, 0.390] | 0.344 [0.281, 0.364] |
+
+**Table 2d.** Detector score as an origin signal (oracle localisation: each object's score is that
+of its best same-class detection at IoU ≥ 0.5, 0 if none; detected = score ≥ 0.5). The AI object of
+each C4 image (427) against the photographed objects of the same class in that image ("twins",
+833), all photographed objects of the image (2,869), and the real object pasted at the same box in
+C3 (427). Recall difference over photographs that have both; AUROC > 0.5 means AI objects score
+higher. Grouped bootstrap 95% CIs over photographs (1,000 resamples). <!-- run:task3_detection_natural, evaluate 2026-10-25T12:08:39Z, file:paper/results/task3_h1_origin.csv -->
+
+| Detector | recall AI | twin | pasted | recall AI − twin | AUROC AI vs twin | AUROC AI vs all photographed | AUROC AI vs pasted |
+|---|---|---|---|---|---|---|---|
+| Faster R-CNN v2 | 0.649 | 0.718 | 0.567 | −0.066 [−0.127, −0.008] | 0.441 [0.399, 0.478] | 0.452 [0.421, 0.485] | 0.560 [0.531, 0.594] |
+| YOLO11-m | 0.433 | 0.519 | 0.426 | −0.083 [−0.151, −0.019] | 0.411 [0.371, 0.447] | 0.426 [0.393, 0.460] | 0.505 [0.474, 0.537] |
+| RT-DETR-R50 | 0.522 | 0.613 | 0.459 | −0.088 [−0.150, −0.023] | 0.432 [0.396, 0.467] | 0.444 [0.413, 0.475] | 0.542 [0.513, 0.571] |
+| Grounding DINO-T | 0.344 | 0.409 | 0.262 | −0.057 [−0.122, 0.003] | 0.439 [0.403, 0.478] | 0.408 [0.378, 0.439] | 0.568 [0.538, 0.595] |
+
+**Finding (H1 supported, with a twist).** All four detectors find the AI-inserted objects; their AP
+on them (0.38–0.41) is close to their AP on real objects pasted into the same boxes (0.34–0.43) and
+below their AP on the photographs' own objects (0.49–0.54). Detector confidence is a poor origin
+signal: AUROC 0.41–0.45 against same-class photographed objects, i.e. at most 0.09 from chance, and
+in the direction of AI objects scoring *lower* (recall 6–9 points lower; the Grounding DINO
+interval includes 0). Against real objects pasted into the same box, the direction reverses (AUROC
+0.51–0.57; recall 0–8 points higher). The gap to the twins therefore follows how an object entered
+the scene (a new object composited into a planned box), not whether it was generated: a pasted
+photograph scores lower still. A threshold on confidence cannot tell origin, and its sign depends
+on which real objects it is compared with. Caveat: every AI object passed the OWLv2 verifier (so
+AI recall is, if anything, biased upwards), while pasted objects were not verified.
 
 ### 7.3 Do insertions disturb real objects? (H2)
-**Figure 2.** Matched-instance change rates (C2, C3, C4 vs C1) by distance to the edit, on original
-objects the AI object does not cover; covered objects shown separately by visible fraction. [[TBD]]
-**Finding.** [[TBD]]
+**Table 2e.** Detected↔missed flip rate of original objects from C1 to each condition (an object
+counts as detected with a same-class prediction at IoU ≥ 0.5 and score ≥ 0.5), by stratum, and the
+paired difference C4 − control on the same uncovered objects (2,511–2,512 objects, 425
+photographs). Grouped bootstrap 95% CIs (1,000 resamples). Covered: 357 objects in C4 (85 more are
+mixed/modified), 335 in C2 (104), 442 in C3 (C3 has no mixed/modified labels). <!-- run:task3_detection_natural, evaluate 2026-10-25T12:08:39Z, file:paper/results/task3_h2_matched.csv, task3_h2_contrasts.csv -->
+
+| Detector | C0 uncovered | C2 uncovered | C3 uncovered | C4 uncovered | C4 − C2 | C4 − C3 | C4 covered | C4 mixed/modified |
+|---|---|---|---|---|---|---|---|---|
+| Faster R-CNN v2 | 1.19% | 0.24% | 0.24% | 0.20% | −0.04 [−0.21, 0.12] pp | −0.04 [−0.34, 0.23] pp | 3.6% | 8.2% |
+| YOLO11-m | 1.00% | 0.40% | 0.68% | 0.68% | +0.28 [−0.04, 0.59] pp | 0.00 [−0.27, 0.28] pp | 0.6% | 16.5% |
+| RT-DETR-R50 | 1.11% | 0.76% | 0.68% | 1.27% | +0.52 [0.08, 0.97] pp | +0.60 [0.30, 0.93] pp | 5.0% | 11.8% |
+| Grounding DINO-T | 1.23% | 0.72% | 1.04% | 1.67% | +0.96 [0.45, 1.48] pp | +0.64 [0.15, 1.15] pp | 6.7% | 18.8% |
+
+**Finding (H2 partly supported).** Pixels outside the edit footprint are unchanged, yet edits flip
+0.2–1.7% of the untouched real objects. Most of this is editing as such: the sham edit (C2) and the
+real paste (C3) cause similar rates. The AI insertion adds a small, significant excess only for the
+two transformer detectors (RT-DETR +0.5 and Grounding DINO +1.0 percentage points over the sham
+edit; +0.6 points over the paste), whose global attention lets a new object influence predictions
+across the image; for the CNNs (Faster R-CNN, YOLO) the excess is within ±0.3 points and not
+significant. The effect decays with distance (Grounding DINO: 2.6% of objects within one box length
+of the edit flip in C4, 1.3% further away) and is no larger than re-encoding the whole photograph
+once (C0 vs C1: 1.0–1.2% for every detector). The mean absolute score change shows the same
+pattern (C4 − C2: +0.004–0.006 for YOLO, RT-DETR and Grounding DINO, ≈ 0 for Faster R-CNN). At the
+level of AP, insertions lower AP on the original objects by 0.007–0.009 (C1 → C4), well inside the
+CIs (Table 2c). Objects the edit box overlaps change much more (C4 covered 0.6–6.7%,
+mixed/modified 8–19%), but these are repainted or partly hidden, so they measure occlusion, not
+collateral influence; since the C4 boxes were placed to cover at most 30% of any real object, this
+part is observational, not a controlled contrast. <!-- run:task3_detection_natural, evaluate 2026-10-25T12:08:39Z, file:paper/results/task3_evaluate_summary.md -->
+
+![Figure 2](figures/fig2_h2_distance.png)
+
+**Figure 2.** Share of original objects that flip between detected and missed from C1 to each
+condition, by distance from the edit footprint (gap between the object's box and the footprint, in
+units of the footprint's longer side; *covered* = the box overlaps the footprint, grey band;
+mixed/modified objects left out). 357–714 objects per bin, 425 photographs; shaded band = 95%
+grouped-bootstrap CI of C4. C0 (original bytes vs the resave) changes every pixel, so its flips do
+not depend on distance. <!-- run:task3_detection_natural, file:paper/results/task3_h2_by_distance.csv, figure: scripts/figure_h2_distance.py -->
+
+**Distance (Figure 2).** For every detector, edit-induced flips concentrate on and right next to
+the edit and fall to the level of re-encoding within one box length. Faster R-CNN changes nothing
+beyond half a box length (0–0.3% of objects in C2, C3 and C4), consistent with its local receptive
+field. Grounding DINO is the exception: its excess over the sham edit persists far from the edit
+(C4 − C2 on the same objects +1.4 [0.7, 2.4] points at 1–2 box lengths, +1.1 [0.4, 2.0] at 2–4), so
+an inserted object changes its predictions across the image, the clearest collateral effect in the
+study. RT-DETR's excess is largest next to the edit (+1.3 [0.0, 2.9] points within half a box
+length) and not significant in any single bin further away. <!-- run:task3_detection_natural, file:paper/results/task3_h2_by_distance.csv -->
 
 ### 7.4 Can forensics tell origin per object? (H3)
-**Table 3.** Origin AUROC / AUPRC / false-accusation rate per method × scoring mode, oracle
-localisation. [[TBD]]
+**Table 3.** Per-object origin, oracle localisation, test split (90 AI-inserted objects against
+2,580 real objects: photographed objects of C1–C4 and the 90 objects pasted in C3; base rate
+3.4%). Each score's direction and both thresholds are fit on val and applied unchanged to test.
+*AUROC vs pasted*: AI objects against the real objects pasted at the same boxes (both composited).
+*TPR at 5% FPR*: AI objects caught at the val threshold for 5% false positives. *False
+accusation*: real objects called AI at the val threshold that catches 80% of AI objects (test
+TPR at that threshold 63–92%); *of pasted objects*: the same for the C3 pastes; *C2 boxes
+flagged*: sham-edit boxes (repainted background, no object) above that threshold. Grouped
+bootstrap 95% CIs over photographs (1,000 resamples). The 95th-percentile pooling and AUPRC are in
+the results file. <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_h3_origin.csv -->
+
+| Method | Scoring | AUROC [95% CI] | AUROC vs pasted [95% CI] | TPR at 5% FPR | False accusation [95% CI] | of pasted objects | C2 boxes flagged [95% CI] |
+|---|---|---|---|---|---|---|---|
+| F1 ELA | image-level | 0.561 [0.509, 0.604] | 0.518 [0.502, 0.541] | 14.4% | 66.0% [53.2, 77.8] | 71.1% | 74.4% [65.6, 83.3] |
+| F1 ELA | region-pooled (mean) | 0.477 [0.402, 0.548] | 0.577 [0.508, 0.647] | 1.1% | 70.0% [60.9, 78.4] | 58.4% | 97.8% [94.4, 100.0] |
+| F1 ELA | instance-conditioned | 0.596 [0.536, 0.656] | 0.486 [0.418, 0.563] | 21.1% | 90.2% [87.1, 93.2] | 88.8% | 46.7% [36.7, 56.7] |
+| F2 SRM residual | image-level | 0.475 [0.430, 0.524] | 0.504 [0.493, 0.514] | 1.1% | 81.7% [72.8, 89.7] | 73.3% | 74.4% [65.6, 83.3] |
+| F2 SRM residual | region-pooled (mean) | 0.530 [0.465, 0.596] | 0.562 [0.505, 0.631] | 7.8% | 59.7% [49.8, 69.7] | 59.6% | 94.4% [88.9, 98.9] |
+| F2 SRM residual | instance-conditioned | 0.603 [0.544, 0.661] | 0.534 [0.470, 0.602] | 17.8% | 87.0% [84.2, 90.1] | 80.9% | 27.8% [20.0, 36.7] |
+| F3 noise level | image-level | 0.542 [0.483, 0.596] | 0.508 [0.496, 0.522] | 13.3% | 78.9% [66.8, 89.6] | 82.2% | 82.2% [74.4, 90.0] |
+| F3 noise level | region-pooled (mean) | 0.558 [0.493, 0.618] | 0.591 [0.535, 0.646] | 3.3% | 71.9% [65.1, 78.6] | 70.8% | 80.0% [72.2, 87.8] |
+| F3 noise level | instance-conditioned | 0.499 [0.434, 0.556] | 0.585 [0.511, 0.656] | 6.7% | 75.0% [70.2, 79.5] | 60.7% | 74.4% [65.6, 84.4] |
+| F4 FFT high-freq. | image-level | 0.495 [0.450, 0.551] | 0.505 [0.498, 0.513] | 7.8% | 84.9% [74.9, 93.1] | 81.1% | 81.1% [72.2, 87.8] |
+| F4 FFT high-freq. | region-pooled (mean) | 0.531 [0.469, 0.592] | 0.474 [0.417, 0.530] | 7.8% | 77.2% [71.7, 82.5] | 80.9% | 80.0% [71.1, 87.8] |
+| F4 FFT high-freq. | instance-conditioned | 0.581 [0.532, 0.630] | 0.524 [0.454, 0.586] | 5.6% | 63.2% [59.0, 67.2] | 73.0% | 72.2% [63.3, 81.1] |
+| F5 JPEG blocking grid | image-level | 0.517 [0.470, 0.566] | 0.487 [0.468, 0.503] | 11.1% | 89.1% [81.4, 95.3] | 90.0% | 88.9% [82.2, 94.4] |
+| F5 JPEG blocking grid | region-pooled (mean) | 0.565 [0.501, 0.627] | 0.533 [0.468, 0.596] | 11.1% | 67.7% [61.8, 73.9] | 70.8% | 81.1% [72.2, 88.9] |
+| F5 JPEG blocking grid | instance-conditioned | 0.528 [0.465, 0.589] | 0.495 [0.425, 0.571] | 11.1% | 74.2% [70.8, 77.4] | 77.5% | 81.1% [72.2, 88.9] |
+| L1 TruFor | image-level | 0.555 [0.502, 0.605] | 0.494 [0.441, 0.543] | 8.9% | 63.1% [52.7, 73.4] | 68.9% | 81.1% [72.2, 88.9] |
+| L1 TruFor | region-pooled (mean) | 0.907 [0.870, 0.937] | 0.532 [0.469, 0.594] | 56.7% | 7.1% [5.4, 9.4] | 70.8% | 44.4% [34.4, 54.4] |
+| L1 TruFor | instance-conditioned | 0.851 [0.803, 0.894] | 0.308 [0.239, 0.374] | 42.2% | 13.2% [10.3, 16.3] | 82.0% | 47.8% [36.7, 58.9] |
+| L1 TruFor | image-level (own score) | 0.636 [0.596, 0.677] | 0.509 [0.459, 0.560] | 5.6% | 67.3% [56.8, 77.8] | 80.0% | 72.2% [62.2, 81.1] |
+| L2 UnivFD | image-level | 0.598 [0.546, 0.645] | 0.480 [0.445, 0.513] | 11.1% | 64.1% [52.6, 77.2] | 78.9% | 76.7% [67.8, 85.6] |
+| L2 UnivFD | object crop | 0.675 [0.617, 0.731] | 0.334 [0.269, 0.406] | 4.4% | 52.1% [46.1, 58.3] | 92.2% | 94.4% [90.0, 98.9] |
+| L2 UnivFD | instance-conditioned | 0.603 [0.539, 0.667] | 0.394 [0.335, 0.452] | 5.6% | 58.6% [51.2, 65.1] | 87.8% | 88.9% [82.2, 95.6] |
+
+**Finding (H3 partly supported).** Scoring each object instead of the image is what makes a
+forensic method useful here: TruFor pooled over the object mask reaches AUROC 0.907 and catches
+57% of AI objects at 5% FPR, falsely accusing 7.1% of real objects at the 80%-TPR threshold,
+while its own image-level score reaches 0.636 and accuses 67%. The instance-conditioned contrast
+(object minus surrounding ring) does not improve on plain region pooling (TruFor 0.851). The five
+hand-crafted methods and UnivFD stay close to chance in every scoring mode (AUROC 0.48–0.68).
+The controls change what TruFor's number means. Against real objects pasted into the same boxes,
+it is at chance (0.532 [0.469, 0.594]): it flags 71% of the pasted photographs, and 44% of the
+sham-edit boxes that contain only repainted background. TruFor therefore detects locally
+composited or regenerated regions, not AI-generated objects; its high AUROC comes from the
+photographed objects, which no edit touched. No method separates AI objects from real objects
+composited the same way (AUROC vs pasted 0.31–0.60 across all methods and modes), and UnivFD's object crops rank the pasted
+photographs as *more* likely fake than the AI objects (0.334 [0.269, 0.406]). The end-to-end
+composed systems (Table 4) and the trained crop classifier L3 follow in week 4. <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_h3_origin.csv -->
+
 **Table 4.** End-to-end joint origin-aware AP and calibration of composed systems. [[TBD]]
 **Finding.** [[TBD]]
 
@@ -572,12 +709,37 @@ For each forensic method, the origin score on C4 objects against the edited-back
 on C2 boxes (does it detect AI objects or any regenerated region?), and C4 against C3 objects
 (AI-made versus real objects composited the same way). For detectors, false detections inside
 empty C2 boxes, and matched-instance changes under C2 versus C4 (does repainting alone disturb
-nearby real objects?). [[TBD]]
+nearby real objects?). Forensics (Table 3): every method flags a large share of C2 boxes
+at its 80%-TPR threshold (28–98%; TruFor region-pooled 44%), and none separates AI objects from
+C3 pastes, so on this benchmark the forensic signal is a signal of local editing, not of AI
+origin. Detectors: repainting alone (C2) disturbs nearby real objects about as much as an AI
+insertion for the CNN detectors, while the transformer detectors react more to the AI object
+(§7.3). False detections inside empty C2 boxes: [[TBD]]. <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_h3_origin.csv -->
 
 ### 7.7 Origin claims in grounded captions (H5)
-**Table 6.** False-AI / false-real / abstention rates for Florence-2 and Qwen2.5-VL across three
-prompt settings, including unedited images. [[TBD]]
-**Finding.** [[TBD]]
+**Table 6.** Origin claims per object on the 90 test photographs in C1 (unedited), C3 (real
+paste) and C4 (AI insertion), 270 images. *Plain*: the model finds the objects and states each
+one's origin; *grounded*: it is given the boxes of a frozen detector (Faster R-CNN, score ≥ 0.5,
+at most 12) and states the origin of each. A claim is matched to a ground-truth object at IoU ≥
+0.5 (class-agnostic). Florence-2 does not follow instructions: its region descriptions count as an
+AI claim only if they use an AI or editing word. The origin-aware setting (boxes plus forensic
+evidence) needs the week-4 origin scores: [[TBD]]. <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_vlm_objects.csv, task3_vlm_images.csv -->
+
+| Model | Prompt | Real objects called AI (C1) | AI objects called AI | AI objects called photographed | AI objects: unknown | AI objects: no statement or not mentioned | Pasted real objects called AI | C1 images with any AI claim |
+|---|---|---|---|---|---|---|---|---|
+| Florence-2-large | plain | 0.0% (n=567) | 0.0% (n=90) | 0.0% | 0.0% | 100.0% | 0.0% (n=90) | 0.0% |
+| Florence-2-large | grounded | 0.0% (n=567) | 0.0% (n=90) | 0.0% | 0.0% | 100.0% | 0.0% (n=90) | 0.0% |
+| Qwen2.5-VL-3B (4-bit) | plain | 0.0% (n=567) | 0.0% (n=90) | 12.2% | 8.9% | 78.9% | 0.0% (n=90) | 0.0% |
+| Qwen2.5-VL-3B (4-bit) | grounded | 0.0% (n=567) | 1.1% (n=90) | 55.6% | 4.4% | 38.9% | 1.1% (n=90) | 0.0% |
+
+**Finding (baseline for H5).** Neither VLM makes false AI accusations: no photographed object in
+any condition and no unedited image received an AI claim. But neither recognises AI objects
+either. Florence-2 never makes an origin statement. Qwen2.5-VL calls 1 of 90 AI objects AI (and 1
+of 90 pasted objects); asked directly without boxes it mentions only a fifth of the AI objects and
+calls none of them AI; given detector boxes it answers for more objects and calls 56% of the AI
+objects photographed. Grounding by boxes thus raises coverage and with it the false-real claims,
+without any gain in detecting AI objects. Whether forensic evidence in the prompt changes this
+(H5 proper) is tested with the origin-aware setting in week 4. <!-- run:task3_detection_natural, evaluate_origin 2026-10-26T09:15:39Z, file:paper/results/task3_vlm_objects.csv, task3_vlm_images.csv -->
 
 ---
 
