@@ -27,6 +27,7 @@ STAGES = {
     "viewer": "web page comparing COCO labels with every detector's boxes",
     "spots": "web page to accept or reject planned natural spots before generation",
     "editaudit": "clickable human audit of the AI edits, saved into audit_edits.csv",
+    "vlm": "Stage 2: VLM origin claims (plain / grounded prompts)",
 }
 IMPLEMENTED = {
     "sample",
@@ -43,7 +44,45 @@ IMPLEMENTED = {
     "insert",
     "spots",
     "editaudit",
+    "vlm",
 }
+
+
+def full_speed_in_background() -> None:
+    """Opt this process out of Windows power throttling (EcoQoS).
+
+    Windows 11 slows down processes it treats as background work: `evaluate` started without a
+    window (scripts/run_stages.py detached) ran each AP resample in ~2.8 s instead of ~0.5 s
+    (2026-10-23). The opt-out is per process (SetProcessInformation), not a system setting.
+    """
+    import sys
+
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    class PowerThrottlingState(ctypes.Structure):
+        _fields_ = [
+            ("Version", ctypes.c_ulong),
+            ("ControlMask", ctypes.c_ulong),
+            ("StateMask", ctypes.c_ulong),
+        ]
+
+    execution_speed = 0x1  # PROCESS_POWER_THROTTLING_EXECUTION_SPEED; StateMask 0 = never throttle
+    state = PowerThrottlingState(1, execution_speed, 0)
+    kernel32 = ctypes.windll.kernel32
+    kernel32.GetCurrentProcess.restype = ctypes.c_void_p  # a 64-bit pseudo-handle, not an int
+    kernel32.SetProcessInformation.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+    ]
+    ok = kernel32.SetProcessInformation(
+        kernel32.GetCurrentProcess(), 4, ctypes.byref(state), ctypes.sizeof(state)
+    )  # 4 = ProcessPowerThrottling
+    if not ok:
+        print("[inlayfake] could not opt out of Windows power throttling", file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -95,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.stage not in IMPLEMENTED:
         raise SystemExit(f"stage {args.stage!r} is not implemented yet (see ARCHITECTURE.md)")
     cfg = load_config(args.config)
+    full_speed_in_background()
     module = importlib.import_module(f"inlayfake.stages.{args.stage}")
     kwargs = {"limit": args.limit} if getattr(args, "limit", None) is not None else {}
     if getattr(args, "share", False):

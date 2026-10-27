@@ -7,6 +7,185 @@ Format: date · run ID (if any) · what · key numbers · interpretation · next
 
 ---
 
+## 2026-10-26: Week-3 results page
+
+- `viewer --share` for `task3_detection_natural` → `docs/results/week3_detection/` (2,315 images
+  at 480 px, as the week-2 benchmark page; 84.5 MB; at 640 px it was 144 MB), tab "Week 3 ·
+  Detection on edited images" in `docs/index.html`. The page now also renders `summary_origin.md`
+  (H3/H5), next to `summary.md` (AP, H1, H2) and the `report` totals. Checked in the browser: all
+  five conditions, detector boxes, photos load.
+
+---
+
+## 2026-10-26: H3 forensic origin metrics and the Stage 2 VLM run (run `task3_detection_natural`)
+
+- **Order (author, 26 Oct):** VLM stage first so its GPU run could go while H3 was written.
+- **VLM setup:** Florence-2-large (`florence-community/Florence-2-large`, 1.56 GB, native
+  transformers class) and Qwen2.5-VL-3B-Instruct (7.52 GB, 4-bit NF4) downloaded with the author's
+  approval. Smoke test on one C4 image found two problems, fixed before the run (commit 9e762d9):
+  Qwen answered the grounded prompt with class names as ids (prompt now says the id is the box
+  number), and Florence's region text repeated `<loc_>` tokens (stripped).
+- **VLM run:** 90 test photos × C1/C3/C4 = 270 images, 26 Oct 16:02–17:11 (69 min): Florence plain
+  9:17, grounded 6:02; Qwen plain 34:06 (7.6 s/img), grounded 19:20 (4.3 s/img). Qwen answered
+  1,666 of 1,759 given boxes; 14 plain replies had no object list.
+- **H3 code (commit 77bdf64):** `eval/forensic_origin.py`; AI objects vs photographed objects of
+  C1–C4 and C3 pastes (C0 and mixed/modified out); direction and thresholds fit on val, metrics on
+  test (90 AI vs 2,580 real objects). Controls: AUROC vs the C3 pastes, and the share of C2 sham
+  boxes flagged (each method re-scored inside every edit box, `forensics.edit_box_rows`; hand-crafted
+  2 min 21 s on CPU, TruFor + UnivFD ~3 min after the VLM run). `scripts/evaluate_origin.py` writes
+  the H3/H5 tables in 16 s (evaluate_origin 2026-10-26T09:15:39Z).
+- **H3 results:** TruFor pooled over the object mask: AUROC 0.907 [0.870, 0.937], TPR 56.7% at 5%
+  FPR, false accusation 7.1% [5.4, 9.4] at the 80%-TPR threshold; its image-level scores 0.555 /
+  0.636 (false accusation 63–67%). Contrast mode 0.851. Hand-crafted F1–F5 and UnivFD: AUROC
+  0.48–0.68 in every mode. **Controls:** TruFor region-pooled vs C3 pastes 0.532 [0.469, 0.594]; it
+  flags 70.8% of pasted objects and 44.4% [34.4, 54.4] of C2 sham boxes. UnivFD crop vs pastes 0.334
+  [0.269, 0.406] (pastes look more fake than AI objects). No method/mode exceeds 0.60 vs pastes.
+  **Interpretation:** H3 partly supported: per-object scoring beats image-level by far, contrast
+  does not beat plain pooling, and every method detects local editing/compositing, not AI origin.
+- **H5 baseline (plain, grounded):** no AI claim on any photographed object or unedited image (both
+  models). AI objects called AI: Florence 0/90 (never states an origin), Qwen 0/90 plain, 1/90
+  grounded; Qwen grounded calls 55.6% of AI objects photographed (plain 12.2%, most objects not
+  mentioned). **Interpretation:** VLMs are silent rather than wrong about real objects and blind to
+  AI objects; boxes raise coverage and false-real claims. H5 proper needs the origin-aware setting
+  (week 4).
+- **Paper:** §7.4 Table 3 + finding, §7.6 controls, §7.7 Table 6 + finding, Abstract H3 and
+  H5-baseline clauses, Status box.
+- **Next (week 4):** composed systems (Table 4), crop classifier L3 on the saved CLIP features,
+  origin-aware prompts, robustness and Open Images (H4); false detections in empty C2 boxes.
+
+---
+
+## 2026-10-26: TruFor and UnivFD run on all 2,315 images (run `task3_detection_natural`)
+
+- **Setup (done by the agent with the author's approval):** `yacs` installed in `.venv`;
+  `github.com/grip-unina/TruFor` cloned (commit ae54475) to `third_party/TruFor`;
+  `TruFor_weights.zip` (260,878,690 bytes) downloaded in 26 s, **MD5
+  7bee48f3476c75616c3c5721ab256ff8 = the authors' value**, unpacked to
+  `test_docker/weights/trufor.pth.tar`; UnivFD `fc_weights.pth` (4,083 bytes; weight 1×768 + bias)
+  to `third_party/UniversalFakeDetect/pretrained_weights/`; CLIP ViT-L/14 (1.71 GB) fetched from
+  Hugging Face on first use. All under the git-ignored `third_party/` or the HF cache.
+- **Smoke test** (`scripts/smoke_learned.py`, one C4 image): both load and run. TruFor's weights
+  load strictly (no missing or unexpected keys) under torch 2.6, although the authors' Docker uses
+  torch 1.11; only a timm deprecation warning.
+- **Run:** `run_stages.py ... forensics` (hand-crafted already done, skipped), 26 Oct
+  15:17:58–15:25:06 (7 min 8 s incl. model loading): TruFor 4:16 (9.0 img/s, ~2 GB VRAM),
+  UnivFD 2:38 (14.6 img/s). Both: one image row per image (2,315, none missing), 17,300 object
+  rows; 2,315 CLIP feature files. Much faster than the 1–2 h estimate.
+- **Data quirk:** the 4 NaN scores (TruFor; the same 4 in every hand-crafted method) all come from
+  one C3 pasted object (`304180__C3`) whose stored mask is empty; it is dropped from per-object
+  forensic metrics.
+- **Next:** origin metrics for the forensic methods (H3: AUROC per scoring mode, false-accusation
+  rate with val-fitted thresholds) are planned for week 4; now the `vlm` stage.
+
+---
+
+## 2026-10-26: Learned forensics TruFor (L1) and UnivFD (L2) implemented
+
+- **Decision (author, 26 Oct):** learned forensics before the VLM stage. Why: H3, the crop
+  classifier, joint AP, calibration and robustness (week 4) all need per-object origin scores,
+  and TruFor's own code and the 8 GB VRAM limit are the riskiest unknowns; the VLM plain and
+  grounded prompts only need the existing detections.
+- **Code:** `forensics/learned.py`, stage `forensics` (`forensics.run_learned`), configs
+  (`forensics.models`), `scripts/smoke_learned.py`. TruFor follows the authors'
+  `test_docker/src/trufor_test.py` (checked against the repository on 26 Oct); UnivFD = CLIP
+  ViT-L/14 image embedding + the authors' linear probe, as in their `models/clip_models.py` and
+  `validate.py` (sigmoid of the logit = P(fake)). Deviation: UnivFD's validation centre-crops 224
+  without resizing; we resize (CLIP preprocessing for the image level, 1.3× object crops resized
+  to 224), since object crops vary in size. CLIP features of every crop are saved for L3.
+- **Licences:** TruFor non-commercial (code and weights stay in the git-ignored `third_party/`);
+  UnivFD MIT.
+- **Tests:** 146 pass (CPU; fakes in the pipeline test, UnivFD's real path on a tiny random CLIP).
+- **Downloads for the author (sizes from HTTP headers, 26 Oct):** TruFor_weights.zip 249 MB
+  (grip.unina.it), fc_weights.pth 4 KB (GitHub), CLIP ViT-L/14 1.71 GB (Hugging Face, on first use).
+- **Next:** author runs the smoke test, then `forensics` (TruFor + UnivFD on 2,315 images; GPU
+  time [[TBD: measured]]); meanwhile the `vlm` stage.
+
+---
+
+## 2026-10-25: Figure 2: H2 flip rates by distance to the edit (run `task3_detection_natural`)
+
+- **Code:** `scripts/figure_h2_distance.py <config>` reads `h2_instances.csv` from `evaluate` and the
+  ledger, bins every original object by its gap to the edit footprint (in units of the
+  footprint's longer side: covered, < 0.5, 0.5–1, 1–2, 2–4, ≥ 4; mixed/modified left out), and
+  writes `paper/results/task3_h2_by_distance.csv` (flip rate per detector × condition × bin and
+  the paired C4 − C2 difference, 1,000 grouped-bootstrap resamples) and
+  `paper/figures/fig2_h2_distance.{png,pdf}`. 357–714 objects per bin.
+- **Findings:** edit-induced flips concentrate on and right next to the edit. Faster R-CNN
+  changes nothing beyond half a box length (0–0.3% in C2–C4). Grounding DINO's excess over the
+  sham edit persists far away: C4 − C2 +1.4 [0.7, 2.4] points at 1–2 box lengths, +1.1 [0.4, 2.0]
+  at 2–4 (C4 flips 4.0% within half a box length). RT-DETR: largest next to the edit (+1.3 [0.0,
+  2.9] within half a box length), not significant in any single bin further away. C0 (re-encoding
+  every pixel) flips 0–1.9% without a distance trend.
+- **Interpretation:** the collateral effect of an AI object is local for the CNNs and long-range
+  only for Grounding DINO (text-conditioned global attention).
+- **Paper:** §7.3 Figure 2 with caption and a "Distance" paragraph; Status box.
+
+---
+
+## 2026-10-25: H1/H2 detector metrics evaluated (run `task3_detection_natural`)
+
+- **Code (commit 90f3463):** `eval/matched.py`, `eval/origin.py`; `evaluate` adds subset AP,
+  H1 (detector score as origin signal) and H2 (matched-instance changes) when the ledger has
+  C2–C4. The AP bootstrap now re-accumulates one COCOeval per resample instead of re-evaluating
+  (identical numbers, tested; ~5× faster). All-object AP is limited to C0/C1, where origins are
+  not mixed. Commit 072cd58: each stage opts out of Windows power throttling.
+- **Check:** detectors are deterministic: on the 518 identical C0 images, the week-1 run and this
+  run give bit-identical detections for all four detectors. So C1 → Cx changes are caused by the
+  edit, not by run-to-run noise.
+- **Ran:** `evaluate` (200 AP resamples, 1,000 for everything else), 25 Oct 19:18–20:08 (50 min).
+  Two earlier attempts on 23 Oct were lost: one closed after 5 min (exit 0xC000013A, its console
+  window closed), and one ran ~5× slower because Windows throttled the windowless process
+  (2.3–3.3 s per resample instead of 0.5 s), then died without an error line between 23 Oct
+  evening and the 25 Oct 18:48 boot that installed Windows 11 26H2 (build 26200 → 26300). Hence
+  the throttling opt-out. Results: `paper/results/task3_*.csv`, `task3_evaluate_summary.md`.
+- **Subset AP (425 photos with all five conditions):** original objects C1 → C4 drop by
+  0.007–0.009 for every detector (inside CIs; e.g. Faster R-CNN 0.502 [0.455, 0.522] → 0.493).
+  AP on AI-inserted objects 0.38–0.41, on pasted real objects 0.34–0.43.
+- **H1:** AUROC of the detector score, AI object vs same-class photographed twins in the same C4
+  image: 0.41–0.45 (Faster R-CNN 0.441 [0.399, 0.478], YOLO 0.411, RT-DETR 0.432, Grounding DINO
+  0.439); recall 6–9 points lower for AI objects (Grounding DINO CI includes 0). Against the real
+  object pasted at the same box (C3): AUROC 0.51–0.57, AI recall 0–8 points *higher*.
+  **Interpretation:** confidence is a poor origin signal (≤ 0.09 from chance) and its sign depends
+  on the real comparison group; the gap to twins follows compositing into a planned box, not
+  generation. Caveat: AI objects all passed OWLv2, pasted ones were not verified.
+- **H2:** flip rate (detected ↔ missed at score 0.5) of uncovered original objects C1 → C4:
+  0.20% / 0.68% / 1.27% / 1.67% (Faster R-CNN / YOLO / RT-DETR / Grounding DINO). Paired C4 − C2 on
+  the same objects: −0.04 [−0.21, 0.12], +0.28 [−0.04, 0.59], +0.52 [0.08, 0.97], +0.96 [0.45,
+  1.48] points; C4 − C3: −0.04, 0.00, +0.60 [0.30, 0.93], +0.64 [0.15, 1.15]. Re-encoding the
+  whole photo (C0 vs C1) flips 1.0–1.2% for every detector. Near the edit more than far
+  (Grounding DINO 2.6% vs 1.3%). Covered objects 0.6–6.7%, mixed/modified 8–19%.
+  **Interpretation:** H2 partly supported: a small excess collateral effect of AI insertion over
+  the sham edit and the paste exists only for the two transformer detectors (global attention),
+  of the size of a JPEG re-encode; none for the CNNs.
+- **Paper:** Abstract H1/H2 sentences, §6 strata, §7.2 (Tables 2c, 2d), §7.3 (Table 2e), Status box.
+- **Next:** Figure 2 (H2 by distance); TruFor and UnivFD; `vlm` stage.
+
+---
+
+## 2026-10-23: Task 3 `detect` and hand-crafted `forensics` complete (run `task3_detection_natural`)
+
+- **Branch** `week-3-detection` from `main`. Plan agreed with the author: detection + hand-crafted
+  forensics first, then TruFor/UnivFD, then the `vlm` plain/grounded prompts, with the H1/H2
+  metrics in `evaluate` written meanwhile.
+- **Code:** `scripts/run_stages.py` takes optional stage names after the config
+  (`... task3_detection_natural.yaml detect forensics`), so Task 3 stages run detached, one
+  process per stage, with sleep blocked. Why: the same resumable runner as week 2, without
+  re-running sample/plan/insert.
+- **Ran (author's laptop, RTX 4070 8 GB):** 4 detectors and 5 hand-crafted methods on all 2,315
+  ledger images; every output file has exactly one row per image (none missing, none extra).
+  Wall time: Faster R-CNN 3:01 (12.8 img/s), YOLO11-m 0:39, RT-DETR 1:32, Grounding DINO 41:45
+  (1.08 s/img, in two parts: 1,440 images in 26:14, then 877 in 15:31), forensics 5:05 (CPU,
+  7.6 img/s). Started 16:47, done 18:23 including a 41-min stop.
+- **Surprise:** the run stopped at 17:19 (Grounding DINO 1,438/2,315) because it was started as a
+  child of the agent desktop app, which restarted for an update at 17:20 (System event log); no
+  sleep, no driver reset, last JSONL line intact. Restarted at 18:00 as an independent process
+  (WMI) and resumed from the next image. Also seen: Windows Update began installing the 26H2
+  feature update at 17:18, which may reboot the laptop; pause updates during long runs.
+- **Next:** H1/H2 metrics in `evaluate` (semantic AP per origin subset, matched-instance changes),
+  then run it on these detections.
+
+---
+
 ## 2026-10-23: Benchmark frozen for Task 3: `data/inlayfake_v4`
 
 - **Author decision:** no further regeneration (no time to give every photo an object or to

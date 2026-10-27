@@ -162,12 +162,15 @@ def markdown_to_html(md: str) -> str:
 
 
 def results_html(cfg: dict) -> str:
-    """summary.md and the intro of tables/images_used.md of this run, rendered to HTML."""
+    """summary.md, summary_origin.md and the intro of tables/images_used.md of this run, as HTML."""
     rd = run_dir(cfg)
     parts = []
     summary = rd / "summary.md"
     if summary.exists():
         parts.append(markdown_to_html(summary.read_text(encoding="utf-8")))
+    origin = rd / "summary_origin.md"  # H3 / H5 tables from scripts/evaluate_origin.py (Task 3)
+    if origin.exists():
+        parts.append(markdown_to_html(origin.read_text(encoding="utf-8")))
     used = rd / "tables" / "images_used.md"
     if used.exists():
         text = used.read_text(encoding="utf-8")

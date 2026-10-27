@@ -271,7 +271,7 @@ category names.
 
 Score threshold 0.001 for AP; outputs are saved as COCO results JSON per (run, condition).
 
-### 3.7 `forensics` ✅ hand-crafted F1–F5 · ⬜ learned L1–L4 (`forensics/`, `stages/forensics.py`)
+### 3.7 `forensics` ✅ hand-crafted F1–F5 · 🚧 learned L1–L2 code ✅ (2026-10-26), L3–L4 ⬜ (`forensics/`, `stages/forensics.py`)
 Every method outputs either a **pixel map** `M ∈ [0,1]^{H×W}` or an **image/crop score**.
 
 Hand-crafted ("traditional") (`forensics/handcrafted.py`, numpy + PIL only, about 0.1 s per 640×480
@@ -292,6 +292,19 @@ Learned (`forensics/learned/`):
 | L2 | UnivFD-style: CLIP ViT-L/14 features + linear probe | crop score |
 | L3 | **Ours-baseline**: CLIP ViT-L/14 (frozen) + logistic regression on object crops vs real-object crops from train split (G1 SDXL only since 2026-10-17) | crop score |
 | L4 | (optional) B-Free, if public weights run on the laptop | crop score |
+
+L1/L2 implementation (`forensics/learned.py`, 2026-10-26): `forensics.run_learned` lists the
+methods the stage runs, one pass each (one model on the GPU at a time, resumable).
+TruFor runs from the authors' code and weights (`forensics.models.trufor.src` / `weights`, under
+the git-ignored `third_party/`; non-commercial licence, not redistributed), following their
+`trufor_test.py` (RGB / 256; map = softmax(pred)[1]; image score = sigmoid(det)); its map gets the
+same image / region-pooled / contrast scores as F1–F5, plus `det`. UnivFD = Hugging Face
+`openai/clip-vit-large-patch14` `get_image_features` (same projected 768-d embedding as OpenAI's
+`encode_image`) + the authors' `fc_weights.pth` probe; image level with CLIP's resize + centre
+crop 224, object crops = box ×1.3, squared, resized to 224; per object `crop_prob`, `crop_logit`
+and `contrast` = crop logit − image logit. The CLIP features of the image and every crop are
+saved (`forensics/univfd_features/<image_id>.npz`) for L3. `scripts/smoke_learned.py` checks both
+models on one C4 image. CPU tests use `model_id: fake` and a tiny random CLIP.
 
 **Per-instance origin score** (`forensics/instance_scores.py`). For an instance mask `m`:
 - *image-level*: one score per image, shared by every instance (naive baseline);
@@ -333,11 +346,24 @@ click-to-enlarge.
 data plus downscaled JPEG copies of the photos (max side 640, quality 80), so it can be committed,
 zipped or served with GitHub Pages without the full `data/` and `runs/` folders.
 
-### 3.11 `evaluate` 🚧 (`eval/`, `stages/evaluate.py`)
+### 3.11 `evaluate` 🚧 (Task 1 ✅, Task 3 detector metrics ✅, origin/joint/calibration ⬜) (`eval/`, `stages/evaluate.py`)
 Task 1 version ✅: AP/AP50/AP75/AR100 per detector × condition (95% CI from grouped bootstrap over
 sources, `eval.ap_bootstrap` resamples), C0→C1 per-object detection flips, forensic score
 distributions on real photos, and paired C1 − C0 shift. Writes `summary.md`, `metrics.json` and
 `tables/*.csv`. Origin metrics (AUROC, joint AP, calibration) come in Task 3, once AI images exist.
+Task 3 detector metrics ✅ (`eval/matched.py`, `eval/origin.py`, 2026-10-23; run only when the
+ledger has C2–C4): subset AP on the photos with every condition (original objects per
+condition; AI-inserted in C4; pasted in C3; the other origins are ignore regions); H1 = per-object
+score of the best same-class detection (oracle localisation, IoU ≥ 0.5) for the AI object vs its
+same-class photographed "twins", all photographed objects of the image, and the C3 paste at the
+same box: recall at `eval.recall_score`, paired recall difference, AUROC; H2 = every original
+object followed C1 → C0/C2/C3/C4 (lost, gained, flip, class flip, score change, box drift),
+stratified by the edit footprint (plan box + `edit.mask_dilate_px` + one 8-px JPEG block:
+covered / uncovered near / uncovered far / mixed-modified), and paired C4 − C2 / C3 / C0
+contrasts on the same uncovered objects. All CIs: grouped bootstrap over source photos
+(`grouped_mean_ci`, `grouped_bootstrap_fn`). AP bootstrap re-accumulates one COCOeval per
+resample instead of re-evaluating (identical numbers, tested; ~5× faster). All-object AP is kept
+for `eval.all_objects_ap_conditions` (C0, C1) only, since it mixes origins in edited images.
 | Module | Metric |
 |---|---|
 | `semantic.py` | COCO AP/AP50/recall via pycocotools, computed on **subsets**: original instances only, inserted only (other GT set to ignore) |
